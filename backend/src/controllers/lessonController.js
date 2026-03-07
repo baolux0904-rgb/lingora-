@@ -11,7 +11,7 @@
  */
 
 const lessonService = require("../services/lessonService");
-const { sendSuccess } = require("../utils/response");
+const { sendSuccess } = require("../response");
 
 // ---------------------------------------------------------------------------
 // Validation helpers

@@ -12,8 +12,8 @@ const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
 
-const { notFound, errorHandler } = require("./middleware/errorMiddleware");
-const healthRouter = require("./routes/healthRoutes");
+const { notFound, errorHandler } = require("./errorMiddleware");
+const healthRouter = require("./healthRoutes");
 
 // ---------------------------------------------------------------------------
 // App factory
@@ -53,7 +53,9 @@ function createApp() {
   // app.use("/api/v1/users",      require("./routes/userRoutes"));
   // app.use("/api/v1/vocabulary", require("./routes/vocabularyRoutes"));
   // app.use("/api/v1/quizzes",    require("./routes/quizRoutes"));
-  // app.use("/api/v1/lessons",    require("./routes/lessonRoutes"));
+  const courseRoutes = require("./routes/courseRoutes");
+  app.use("/api/v1/lessons",    require("./routes/lessonRoutes"));
+  app.use("/api/v1/courses", courseRoutes);
 
   // -------------------------------------------------------------------------
   // Error handling (must be registered last)
