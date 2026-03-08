@@ -1,7 +1,6 @@
 # Lingora
 
-> An English-learning app for kids focused on communication, vocabulary, quiz, and speaking.
-
+> An intelligent English-learning platform focused on communication, vocabulary, quizzes, and speaking practice.
 ---
 
 ## Monorepo Structure
@@ -15,7 +14,17 @@ lingora/
 ├── .gitignore
 └── README.md
 ```
+## Tech Stack
 
+### Frontend
+- Next.js
+- React
+- TypeScript
+
+### Backend
+- Node.js
+- Express
+- PostgreSQL
 ---
 
 ## Getting Started
@@ -48,7 +57,19 @@ npm run dev:backend    # http://localhost:4000
 |--------------|--------------|------------------------------------|
 | `frontend`   | `./frontend` | Next.js UI — pages, components     |
 | `backend`    | `./backend`  | Express API — routes, services     |
+## Backend Architecture
 
+The backend follows a layered architecture:
+
+Routes  
+↓  
+Controllers  
+↓  
+Services  
+↓  
+Repositories  
+↓  
+Database
 ---
 
 ## Documentation
@@ -74,4 +95,4 @@ npm run dev:backend    # http://localhost:4000
 
 ## Current Status
 
-🟡 Scaffold only — no features implemented yet. See `docs/roadmap.md` for planned phases.
+🟡 The project is currently under active development. Core backend architecture and frontend foundations are being built.
