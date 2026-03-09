@@ -465,4 +465,57 @@ INSERT INTO speaking_prompts (lesson_id, prompt_text, sample_answer, hint) VALUE
     'Think about bedtime habits like brushing teeth or reading.'
 );
 
+-- =============================================================================
+-- COURSES
+-- =============================================================================
+INSERT INTO courses (id, title, description, level, language) VALUES
+(
+    1,
+    'English for Beginners',
+    'A friendly introduction to English covering greetings, family, and daily routines.',
+    'beginner',
+    'English'
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Advance the sequence so future auto-inserts start after our seeded id.
+SELECT setval(pg_get_serial_sequence('courses', 'id'), GREATEST(MAX(id), 1)) FROM courses;
+
+-- =============================================================================
+-- UNITS
+-- =============================================================================
+INSERT INTO units (id, course_id, title, order_index) VALUES
+(1, 1, 'Unit 1 – Say Hello',         1),
+(2, 1, 'Unit 2 – People & Routines', 2)
+ON CONFLICT (id) DO NOTHING;
+
+SELECT setval(pg_get_serial_sequence('units', 'id'), GREATEST(MAX(id), 2)) FROM units;
+
+-- =============================================================================
+-- WIRE LESSONS → UNITS
+--   Lesson 1 (Hello & Introductions) → Unit 1
+--   Lesson 2 (My Family)             → Unit 2
+--   Lesson 3 (Daily Routine)         → Unit 2
+-- =============================================================================
+UPDATE lessons
+SET    unit_id   = 1,
+       type      = 'lesson',
+       xp_reward = 10
+WHERE  id = 'a1000000-0000-0000-0000-000000000001'
+  AND  unit_id IS NULL;
+
+UPDATE lessons
+SET    unit_id   = 2,
+       type      = 'lesson',
+       xp_reward = 10
+WHERE  id = 'a1000000-0000-0000-0000-000000000002'
+  AND  unit_id IS NULL;
+
+UPDATE lessons
+SET    unit_id   = 2,
+       type      = 'challenge',
+       xp_reward = 20
+WHERE  id = 'a1000000-0000-0000-0000-000000000003'
+  AND  unit_id IS NULL;
+
 COMMIT;

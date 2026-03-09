@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { mockLessons } from "@/lib/mockData";
+import { useLessons } from "@/hooks/useLessons";
 import LessonCard from "./LessonCard";
 import type { LessonStatus } from "@/lib/types";
 
@@ -14,10 +14,38 @@ const TABS: { id: TabFilter; label: string }[] = [
   { id: "completed",   label: "Completed"   },
 ];
 
+// ---------------------------------------------------------------------------
+// Loading skeleton — same grid layout as the real cards, no design change.
+// ---------------------------------------------------------------------------
+function LoadingSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {[0, 1, 2, 3].map((i) => (
+        <div
+          key={i}
+          className="rounded-[16px] p-[18px] border border-white/[0.07] bg-[#0B2239] animate-pulse"
+          style={{ animationDelay: `${i * 80}ms` }}
+        >
+          <div className="h-3 w-20 rounded bg-white/[0.07] mb-3" />
+          <div className="h-4 w-3/4 rounded bg-white/[0.07] mb-2" />
+          <div className="h-3 w-1/2 rounded bg-white/[0.05] mb-4" />
+          <div className="h-[3px] rounded-full bg-white/[0.05]" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 export default function LessonsSection() {
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
 
-  const filtered = mockLessons.filter((l) => {
+  // Real data from the backend — replaces mockLessons.
+  const { lessons, loading, error } = useLessons();
+
+  const filtered = lessons.filter((l) => {
     if (activeTab === "all") return true;
     if (activeTab === "completed") return l.status === "completed";
     if (activeTab === "recommended") return l.status === "recommended";
@@ -28,7 +56,7 @@ export default function LessonsSection() {
     <section>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h3 className="font-sora font-bold text-[15.5px] tracking-[-0.2px]">Today's Lessons</h3>
+        <h3 className="font-sora font-bold text-[15.5px] tracking-[-0.2px]">Today&apos;s Lessons</h3>
 
         <div className="flex items-center gap-2">
           {/* Tabs */}
@@ -56,19 +84,30 @@ export default function LessonsSection() {
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {filtered.length > 0
-          ? filtered.map((lesson, i) => (
-              <LessonCard key={lesson.id} lesson={lesson} delay={i * 60} />
-            ))
-          : (
-            <div className="col-span-2 py-10 text-center text-[#A6B3C2] text-sm">
-              No lessons in this category yet.
-            </div>
-          )
-        }
-      </div>
+      {/* Content */}
+      {loading ? (
+        <LoadingSkeleton />
+      ) : error ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="col-span-2 py-10 text-center space-y-1">
+            <p className="text-[#A6B3C2] text-sm">Could not load lessons.</p>
+            <p className="text-[#A6B3C2]/50 text-xs">{error}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {filtered.length > 0
+            ? filtered.map((lesson, i) => (
+                <LessonCard key={lesson.id} lesson={lesson} delay={i * 60} />
+              ))
+            : (
+              <div className="col-span-2 py-10 text-center text-[#A6B3C2] text-sm">
+                No lessons in this category yet.
+              </div>
+            )
+          }
+        </div>
+      )}
     </section>
   );
 }
