@@ -26,7 +26,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getLessons, type ApiLesson } from "@/lib/api";
 import type { Lesson, LessonType, LessonStatus } from "@/lib/types";
 
@@ -95,6 +95,9 @@ function mapApiLesson(api: ApiLesson): Lesson {
 
 export interface UseLessonsResult {
   lessons: Lesson[];
+  /** Raw ApiLesson[] — includes vocab_count, quiz_count, speaking_count.
+   *  Use this when computing stats or daily missions. */
+  apiLessons: ApiLesson[];
   loading: boolean;
   error: string | null;
 }
@@ -102,11 +105,11 @@ export interface UseLessonsResult {
 /**
  * useLessons
  *
- * Returns the mapped lesson list, a loading flag, and an error message.
- * Falls back gracefully when the backend is unreachable.
+ * Returns the mapped lesson list, raw API lessons, a loading flag, and an
+ * error message. Falls back gracefully when the backend is unreachable.
  */
 export function useLessons(): UseLessonsResult {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [apiLessons, setApiLessons] = useState<ApiLesson[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,7 +119,7 @@ export function useLessons(): UseLessonsResult {
     getLessons()
       .then((data) => {
         if (cancelled) return;
-        setLessons(data.map(mapApiLesson));
+        setApiLessons(data);
         setLoading(false);
       })
       .catch((err: Error) => {
@@ -130,5 +133,7 @@ export function useLessons(): UseLessonsResult {
     };
   }, []);
 
-  return { lessons, loading, error };
+  const lessons = apiLessons.map(mapApiLesson);
+
+  return { lessons, apiLessons, loading, error };
 }

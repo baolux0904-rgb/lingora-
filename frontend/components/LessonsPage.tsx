@@ -11,8 +11,9 @@ import {
 } from "@/hooks/useCourses";
 import { useGuestUser } from "@/lib/guestUser";
 import { useProgress } from "@/hooks/useProgress";
-import { useUserStats } from "@/hooks/useUserStats";
+import { useUserStats, dateKey } from "@/hooks/useUserStats";
 import LessonModal from "./LessonModal";
+import type { ApiProgressItem, ApiLesson } from "@/lib/api";
 import {
   IconCheck, IconLock, IconPlay, IconClock, IconArrowRight,
   IconFire, IconZap, IconTrophy, IconAward, IconChat,
@@ -25,12 +26,50 @@ const DIFF_CONFIG: Record<Difficulty, { label: string; dot: string; bg: string; 
   hard:   { label: "Hard",   dot: "bg-red-400",     bg: "bg-red-500/10",     border: "border-red-500/20",     text: "text-red-400" },
 };
 
-/* ─── static data (not yet connected to API) ─── */
-const DAILY_MISSIONS = [
-  { id: "dm-1", label: "Complete 1 lesson", done: true,  xp: 10 },
-  { id: "dm-2", label: "Learn 10 new words", done: true,  xp: 15 },
-  { id: "dm-3", label: "Practice speaking",  done: false, xp: 20 },
-];
+/* ─── daily mission types & computation ─── */
+interface DailyMissionItem {
+  id: string;
+  label: string;
+  done: boolean;
+  xp: number;
+}
+
+/**
+ * Derive the three fixed daily missions from real progress + lesson data.
+ * All missions are scoped to today's date so they reset each day.
+ */
+function computeDailyMissions(
+  progress: ApiProgressItem[],
+  lessons: ApiLesson[]
+): DailyMissionItem[] {
+  const todayStr = dateKey(new Date());
+
+  // Lessons the user completed today
+  const todayCompleted = progress.filter((p) => {
+    if (!p.completed || !p.completedAt) return false;
+    return dateKey(new Date(p.completedAt)) === todayStr;
+  });
+
+  // Map lesson metadata by ID for O(1) lookup
+  const lessonMap = new Map(lessons.map((l) => [l.id, l]));
+
+  // Mission 2: sum vocab words from today's lessons
+  const vocabToday = todayCompleted.reduce(
+    (sum, p) => sum + (lessonMap.get(p.lessonId)?.vocab_count ?? 0),
+    0
+  );
+
+  // Mission 3: any lesson today with at least one speaking prompt
+  const practicedSpeaking = todayCompleted.some(
+    (p) => (lessonMap.get(p.lessonId)?.speaking_count ?? 0) > 0
+  );
+
+  return [
+    { id: "dm-1", label: "Complete a lesson",  done: todayCompleted.length > 0, xp: 10 },
+    { id: "dm-2", label: "Learn 10 new words", done: vocabToday >= 10,          xp: 15 },
+    { id: "dm-3", label: "Practice speaking",  done: practicedSpeaking,         xp: 20 },
+  ];
+}
 
 const STREAK_MILESTONES = [3, 7, 14, 30];
 
@@ -70,9 +109,9 @@ function LevelFilter({ active, onChange }: { active: string; onChange: (v: strin
   );
 }
 
-function DailyMission() {
-  const allDone = DAILY_MISSIONS.every((m) => m.done);
-  const doneCount = DAILY_MISSIONS.filter((m) => m.done).length;
+function DailyMission({ missions }: { missions: DailyMissionItem[] }) {
+  const allDone = missions.every((m) => m.done);
+  const doneCount = missions.filter((m) => m.done).length;
 
   return (
     <div className="relative rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/[0.08] to-amber-600/[0.03] p-5 overflow-hidden">
@@ -83,7 +122,7 @@ function DailyMission() {
         </div>
         <div>
           <h3 className="text-[15px] font-bold text-amber-300">Daily Mission</h3>
-          <p className="text-[11px] text-amber-400/60">{doneCount}/{DAILY_MISSIONS.length} completed</p>
+          <p className="text-[11px] text-amber-400/60">{doneCount}/{missions.length} completed</p>
         </div>
         {allDone && (
           <span className="ml-auto text-[11px] font-bold text-amber-300 bg-amber-500/15 px-2.5 py-1 rounded-full">
@@ -92,7 +131,7 @@ function DailyMission() {
         )}
       </div>
       <div className="flex flex-col gap-2.5">
-        {DAILY_MISSIONS.map((m) => (
+        {missions.map((m) => (
           <div
             key={m.id}
             className={cn(
@@ -351,13 +390,18 @@ function PathLoadingSkeleton() {
 /* ════════════════════════════════════════════════════════════
    MAIN
    ════════════════════════════════════════════════════════════ */
-export default function LessonsPage() {
+export default function LessonsPage({ apiLessons = [] }: { apiLessons?: ApiLesson[] }) {
   const [levelFilter, setLevelFilter] = useState("All");
   const [openLessonId, setOpenLessonId] = useState<string | null>(null);
 
   const userId = useGuestUser();
   const { progress, refresh } = useProgress(userId);
-  const stats = useUserStats(progress);
+  const stats = useUserStats(progress, apiLessons);
+
+  const missions = useMemo(
+    () => computeDailyMissions(progress, apiLessons),
+    [progress, apiLessons]
+  );
 
   const completedIds = useMemo(
     () => new Set(progress.filter((p) => p.completed).map((p) => p.lessonId)),
@@ -382,7 +426,7 @@ export default function LessonsPage() {
       </div>
 
       {/* Daily Mission */}
-      <DailyMission />
+      <DailyMission missions={missions} />
 
       {/* Streak + Skill XP */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-5">

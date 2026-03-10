@@ -13,6 +13,7 @@ import RightPanel from "@/components/RightPanel";
 import LessonsPage from "@/components/LessonsPage";
 import { useGuestUser } from "@/lib/guestUser";
 import { useProgress } from "@/hooks/useProgress";
+import { useLessons } from "@/hooks/useLessons";
 import { useUserStats } from "@/hooks/useUserStats";
 
 const NAV_LABELS: Record<string, string> = {
@@ -33,7 +34,8 @@ export default function DashboardPage() {
 
   const userId = useGuestUser();
   const { progress } = useProgress(userId);
-  const stats = useUserStats(progress);
+  const { apiLessons } = useLessons();
+  const stats = useUserStats(progress, apiLessons);
 
   return (
     <div className="relative flex h-screen overflow-x-visible overflow-y-hidden">
@@ -84,7 +86,11 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-5">
                 <div className="flex flex-col gap-5 min-w-0">
                   <Hero />
-                  <StatsRow streak={stats.streak} />
+                  <StatsRow
+                    streak={stats.streak}
+                    vocabLearned={stats.vocabLearned}
+                    studyMinutes={stats.studyMinutes}
+                  />
                   <LessonsSection />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <AiTutorCard />
@@ -98,7 +104,7 @@ export default function DashboardPage() {
             )}
 
             {/* ── LESSONS ── */}
-            {activeNav === "lessons" && <LessonsPage />}
+            {activeNav === "lessons" && <LessonsPage apiLessons={apiLessons} />}
 
             {/* ── OTHER PAGES — placeholder ── */}
             {activeNav !== "dashboard" && activeNav !== "lessons" && (

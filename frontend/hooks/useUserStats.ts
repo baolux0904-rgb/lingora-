@@ -1,23 +1,30 @@
 import { useMemo } from "react";
-import type { ApiProgressItem } from "@/lib/api";
+import type { ApiProgressItem, ApiLesson } from "@/lib/api";
 
 export interface UserStats {
   totalXp: number;
   level: number;
-  xp: number;       // XP within current level
-  xpToNext: number; // XP needed to reach next level
-  streak: number;   // consecutive days with at least one completed lesson
+  xp: number;           // XP within current level
+  xpToNext: number;     // XP needed to reach next level
+  streak: number;       // consecutive days with at least one completed lesson
   completedLessons: number;
+  vocabLearned: number; // sum of vocab_count from completed lessons
+  studyMinutes: number; // estimated: completedLessons × MINUTES_PER_LESSON
 }
 
 const XP_PER_LESSON = 10;
 const XP_PER_LEVEL = 100;
+/** Average lesson duration in minutes — derived from content-count estimates. */
+const MINUTES_PER_LESSON = 9;
 
-function dateKey(d: Date): string {
+export function dateKey(d: Date): string {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-export function computeUserStats(progress: ApiProgressItem[]): UserStats {
+export function computeUserStats(
+  progress: ApiProgressItem[],
+  lessons: ApiLesson[] = []
+): UserStats {
   const completed = progress.filter((p) => p.completed);
   const totalXp = completed.length * XP_PER_LESSON;
   const level = Math.floor(totalXp / XP_PER_LEVEL) + 1;
@@ -48,9 +55,30 @@ export function computeUserStats(progress: ApiProgressItem[]): UserStats {
     }
   }
 
-  return { totalXp, level, xp, xpToNext, streak, completedLessons: completed.length };
+  // Vocabulary: sum vocab_count from lessons the user has completed
+  const completedIds = new Set(completed.map((p) => p.lessonId));
+  const vocabLearned = lessons
+    .filter((l) => completedIds.has(l.id))
+    .reduce((sum, l) => sum + (l.vocab_count ?? 0), 0);
+
+  // Study time: estimated from number of completed lessons
+  const studyMinutes = completed.length * MINUTES_PER_LESSON;
+
+  return {
+    totalXp,
+    level,
+    xp,
+    xpToNext,
+    streak,
+    completedLessons: completed.length,
+    vocabLearned,
+    studyMinutes,
+  };
 }
 
-export function useUserStats(progress: ApiProgressItem[]): UserStats {
-  return useMemo(() => computeUserStats(progress), [progress]);
+export function useUserStats(
+  progress: ApiProgressItem[],
+  lessons: ApiLesson[] = []
+): UserStats {
+  return useMemo(() => computeUserStats(progress, lessons), [progress, lessons]);
 }

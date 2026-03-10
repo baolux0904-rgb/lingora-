@@ -91,14 +91,47 @@ function StatCardItem({ stat, delay }: { stat: StatCard; delay: number }) {
 
 interface StatsRowProps {
   streak?: number;
+  /** Real vocabulary count derived from completed lessons × vocab_count. */
+  vocabLearned?: number;
+  /** Estimated study time in minutes (completedLessons × avg lesson duration). */
+  studyMinutes?: number;
 }
 
-export default function StatsRow({ streak }: StatsRowProps) {
-  const stats = mockStats.map((s) =>
-    s.id === "streak" && streak !== undefined
-      ? { ...s, value: streak, barPercent: Math.min(Math.round((streak / 30) * 100), 100) }
-      : s
-  );
+export default function StatsRow({ streak, vocabLearned, studyMinutes }: StatsRowProps) {
+  const stats = mockStats.map((s): StatCard => {
+    if (s.id === "streak" && streak !== undefined) {
+      return { ...s, value: streak, trend: "", barPercent: Math.min(Math.round((streak / 30) * 100), 100) };
+    }
+    if (s.id === "vocab" && vocabLearned !== undefined) {
+      return {
+        ...s,
+        value: vocabLearned,
+        trend: "",
+        // 500 words ≈ full bar for an intermediate learner
+        barPercent: Math.min(Math.round((vocabLearned / 500) * 100), 100),
+      };
+    }
+    if (s.id === "rank") {
+      // No real leaderboard yet — degrade cleanly rather than show a fake number
+      return { ...s, value: "—", unit: "", trend: "—" };
+    }
+    if (s.id === "time" && studyMinutes !== undefined) {
+      // Display as minutes below 60, hours above
+      const isHours = studyMinutes >= 60;
+      const displayValue = isHours
+        ? Math.round((studyMinutes / 60) * 10) / 10
+        : studyMinutes;
+      return {
+        ...s,
+        value: displayValue,
+        unit: isHours ? "hrs" : "min",
+        trend: "",
+        // 600 min (10 hrs) ≈ full bar
+        barPercent: Math.min(Math.round((studyMinutes / 600) * 100), 100),
+      };
+    }
+    return s;
+  });
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
