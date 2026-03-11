@@ -100,7 +100,7 @@ When scale or team structure justifies extraction, these are the likely first ca
 | Guest migration | ✅ Done — POST /users/migrate-guest, wired into login + register |
 | Deploy config + Sentry | ✅ Done — railway.toml, Next.js proxy rewrites, @sentry/node + @sentry/nextjs |
 | XP ledger + gamification | ✅ Done — xp_ledger, streaks, badges, leaderboard, fill-in-blank quiz |
-| Pronunciation practice | ❌ Not started |
+| Pronunciation practice | ✅ Done — provider abstraction, mock storage/speech, audio recorder, phoneme feedback UI |
 | Scenario speaking | ❌ Not started |
 | Exam speaking | ❌ Not started |
 | Grammar & sentence training | ❌ Not started |
@@ -160,19 +160,49 @@ no effect on request/response shapes, route paths, or calling code.
 
 ---
 
-## Active Phase: Phase 3 — Pronunciation Practice
+## Active Phase: Phase 4 — Scenario Speaking
 
-**Goal:** Audio upload, speech-to-text transcription, and AI pronunciation scoring with phoneme-level feedback.
+**Goal:** AI role-play speaking scenarios — interview, travel, meetings, daily conversations.
 
 Tasks in order:
-1. ⬅️ **NEXT** Backend: Pre-signed S3/R2 URL endpoint for audio upload
-2. Backend: Azure Speech API integration — `pronunciationService.js`
-3. Backend: `POST /api/v1/speaking/pronunciation-score` — accepts audio metadata, returns score + phoneme breakdown
-4. Frontend: Audio recorder component in LessonModal SpeakingSection
-5. Frontend: Upload audio to S3/R2 via pre-signed URL
-6. Frontend: Display pronunciation score + phoneme feedback UI
+1. ⬅️ **NEXT** Design scenario data model (scenario templates, conversation turns, scoring rubrics)
+2. Backend: Scenario session management — start, continue, end session
+3. Backend: AI conversation integration — LLM-powered role-play responses
+4. Frontend: Scenario selection UI + conversation interface
+5. Frontend: Turn-by-turn speaking + AI response playback
+6. Frontend: Session summary with scoring feedback
 
-**Exit criteria:** User can record speech, upload audio, and receive pronunciation feedback with phoneme-level detail within the lesson flow.
+**Exit criteria:** User can select a scenario, engage in multi-turn speaking practice with AI, and receive a session-level score.
+
+---
+
+## Completed Phase: Phase 3 — Pronunciation Practice (Mock-First)
+
+**Goal:** Audio upload, speech-to-text, and AI pronunciation scoring with phoneme-level feedback. Mock-first approach: mock providers ship first, real Cloudflare R2 + Azure Speech integration follows.
+
+All tasks completed:
+1. ✅ Migration `0005_pronunciation` — `pronunciation_attempts` table with JSONB phoneme/word details
+2. ✅ Backend: Provider abstraction pattern — `providers/storage/` and `providers/speech/` with factory + interface docs
+3. ✅ Backend: Mock storage provider — in-memory Map, localhost upload/download URLs, Express mock routes
+4. ✅ Backend: Mock speech provider — deterministic scoring from reference text, phoneme decomposition
+5. ✅ Backend: `mediaService.js` — pre-signed upload URL generation via storage provider
+6. ✅ Backend: `pronunciationService.js` — orchestrates assessment: download URL → speech provider → persist attempt
+7. ✅ Backend: `pronunciationRepository.js` — insert attempt, find best by lesson, find by prompt
+8. ✅ Backend: `POST /api/v1/pronunciation/upload-url` — JWT protected, returns `{ uploadUrl, storageKey }`
+9. ✅ Backend: `POST /api/v1/pronunciation/assess` — JWT protected, looks up reference text, returns phoneme feedback
+10. ✅ Backend: `GET /api/v1/pronunciation/history/:promptId` — JWT protected, attempt history
+11. ✅ Frontend: `AudioRecorder` component — browser MediaRecorder API, mic permission, pulsing recording UI
+12. ✅ Frontend: `PronunciationResults` component — animated score circle, subscores, word pills, expandable phoneme detail
+13. ✅ Frontend: `SpeakingSection` rewrite — per-prompt state machine (idle → recording → uploading → assessing → results)
+14. ✅ Frontend: `LessonModal` — combined quiz + speaking scoring, passes lessonId/userId to SpeakingSection
+15. ✅ Frontend: `CompletionScreen` — optional speaking score stat card alongside XP and quiz
+
+**Exit criteria met:** User can record speech, upload audio (mock), receive pronunciation score + phoneme breakdown, retry per prompt, and see combined score on completion.
+
+**Pending real provider integration (Phase 3b):**
+- `providers/storage/r2Storage.js` — Cloudflare R2 with `@aws-sdk/client-s3`
+- `providers/speech/azureSpeech.js` — Azure Speech SDK (`microsoft-cognitiveservices-speech-sdk`)
+- Env vars: `STORAGE_PROVIDER=r2`, `SPEECH_PROVIDER=azure` + R2/Azure credentials
 
 ---
 
@@ -242,8 +272,8 @@ Tasks in order:
 | 0 – Foundation | Monorepo + docs | ✅ Done |
 | 1 – Auth + Infra | JWT auth, migrations, CI/CD, deploy | ✅ Done |
 | 2 – Gamification | XP ledger, streaks, badges, leaderboard | ✅ Done |
-| 3 – Pronunciation Practice | Audio upload, speech-to-text, AI pronunciation scoring, phoneme feedback | ⬅️ Next |
-| 4 – Scenario Speaking | AI role-play speaking scenarios (interview, travel, meetings, daily conversations) | ⬜ |
+| 3 – Pronunciation Practice | Audio upload, speech-to-text, AI pronunciation scoring, phoneme feedback | ✅ Done (mock providers) |
+| 4 – Scenario Speaking | AI role-play speaking scenarios (interview, travel, meetings, daily conversations) | ⬅️ Next |
 | 5 – Exam Speaking | Speaking exam simulator (IELTS format with timers and scoring) | ⬜ |
 | 6 – Grammar & Sentence Training | AI grammar correction, sentence rewriting, advanced grammar explanations | ⬜ |
 | 7 – Exam Writing | Writing evaluation with rubric scoring (IELTS Writing Task 1 and Task 2) | ⬜ |
@@ -296,7 +326,7 @@ Tasks in order:
 | `backend/src/repositories/` | SQL queries |
 | `backend/src/middleware/` | Auth, error, logging |
 | `backend/sql/` | Schema + seed SQL |
-| `backend/migrations/` | node-pg-migrate files (`0001_auth`, `0002_content_meta`, `0003_gamification`, `0004_fill_in_blank`) |
+| `backend/migrations/` | node-pg-migrate files (`0001_auth`, `0002_content_meta`, `0003_gamification`, `0004_fill_in_blank`, `0005_pronunciation`) |
 | `backend/src/routes/authRoutes.js` | Auth route declarations + rate limiter |
 | `backend/src/controllers/authController.js` | Auth HTTP layer (cookies, validation) |
 | `backend/src/services/authService.js` | Auth business logic (bcrypt, JWT, token rotation) |
@@ -339,3 +369,14 @@ Tasks in order:
 | `frontend/components/BadgeToast.tsx` | Auto-dismiss badge award notification (4s) |
 | `frontend/components/LevelUpModal.tsx` | Full-screen level-up celebration, auto-closes 3s |
 | `frontend/app/leaderboard/page.tsx` | Leaderboard page — scope tabs, medals, "You" badge |
+| `backend/src/providers/storage/storageProvider.js` | Storage provider factory — returns mock or R2 based on env |
+| `backend/src/providers/storage/mockStorage.js` | In-memory mock storage — dev-only, stores audio blobs in Map |
+| `backend/src/providers/speech/speechProvider.js` | Speech provider factory — returns mock or Azure based on env |
+| `backend/src/providers/speech/mockSpeech.js` | Deterministic mock pronunciation scorer — phoneme decomposition |
+| `backend/src/repositories/pronunciationRepository.js` | SQL for pronunciation_attempts — insert, best-by-lesson, history |
+| `backend/src/services/mediaService.js` | Pre-signed upload/download URL generation via storage provider |
+| `backend/src/services/pronunciationService.js` | Orchestrates assessment: audio URL → speech provider → persist |
+| `backend/src/controllers/pronunciationController.js` | HTTP layer for /pronunciation/* endpoints (upload-url, assess, history) |
+| `backend/src/routes/pronunciationRoutes.js` | Pronunciation routes — all JWT protected |
+| `frontend/components/LessonModal/AudioRecorder.tsx` | Browser MediaRecorder — mic permission, pulsing recording UI |
+| `frontend/components/LessonModal/PronunciationResults.tsx` | Animated score circle, subscore bars, word pills, phoneme expansion |
