@@ -199,6 +199,11 @@ All tasks completed:
 
 **Exit criteria met:** User can record speech, upload audio (mock), receive pronunciation score + phoneme breakdown, retry per prompt, and see combined score on completion.
 
+**Post-Phase 3 fix — Cross-domain query removal:**
+- `pronunciationService.js` no longer imports `db.query()` or queries `speaking_prompts` directly
+- Speaking prompt lookup now goes through `lessonService.getSpeakingPromptById()` → `lessonRepository.findSpeakingPromptById()`
+- This enforces the "no cross-domain repository access" design rule
+
 **Pending real provider integration (Phase 3b):**
 - `providers/storage/r2Storage.js` — Cloudflare R2 with `@aws-sdk/client-s3`
 - `providers/speech/azureSpeech.js` — Azure Speech SDK (`microsoft-cognitiveservices-speech-sdk`)
