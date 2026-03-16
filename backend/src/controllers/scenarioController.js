@@ -1,0 +1,214 @@
+/**
+ * controllers/scenarioController.js
+ *
+ * HTTP layer for scenario speaking practice endpoints.
+ * Public routes: list / get scenarios.
+ * Protected routes (JWT): session management + conversation turns.
+ */
+
+const scenarioService = require("../services/scenarioService");
+const { sendSuccess, sendError } = require("../response");
+
+// UUID v4 pattern
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/scenarios
+// ---------------------------------------------------------------------------
+
+/**
+ * List all scenarios, optionally filtered by ?category=...
+ */
+async function listScenarios(req, res, next) {
+  try {
+    const { category } = req.query;
+    const scenarios = await scenarioService.listScenarios(category || undefined);
+
+    return sendSuccess(res, {
+      data: { scenarios },
+      message: "Scenarios retrieved",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/scenarios/:scenarioId
+// ---------------------------------------------------------------------------
+
+/**
+ * Get a single scenario by ID.
+ */
+async function getScenario(req, res, next) {
+  try {
+    const { scenarioId } = req.params;
+
+    if (!UUID_RE.test(scenarioId)) {
+      return sendError(res, { status: 400, message: "Valid scenarioId (UUID) is required" });
+    }
+
+    const scenario = await scenarioService.getScenario(scenarioId);
+
+    return sendSuccess(res, {
+      data: scenario,
+      message: "Scenario retrieved",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/scenarios/:scenarioId/start
+// ---------------------------------------------------------------------------
+
+/**
+ * Start a new conversation session.
+ *
+ * Response: { sessionId, title, emoji, category, turns }
+ */
+async function startSession(req, res, next) {
+  try {
+    const { scenarioId } = req.params;
+    const userId = req.user.id;
+
+    if (!UUID_RE.test(scenarioId)) {
+      return sendError(res, { status: 400, message: "Valid scenarioId (UUID) is required" });
+    }
+
+    const result = await scenarioService.startSession(scenarioId, userId);
+
+    return sendSuccess(res, {
+      data: result,
+      status: 201,
+      message: "Session started",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/scenarios/sessions/:sessionId/turns
+// ---------------------------------------------------------------------------
+
+/**
+ * Submit a user turn and receive the AI response.
+ *
+ * Body: { content: string }
+ * Response: { userTurn, aiTurn }
+ */
+async function submitTurn(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+    const { content } = req.body;
+
+    if (!UUID_RE.test(sessionId)) {
+      return sendError(res, { status: 400, message: "Valid sessionId (UUID) is required" });
+    }
+    if (!content || typeof content !== "string" || !content.trim()) {
+      return sendError(res, { status: 400, message: "content is required" });
+    }
+
+    const result = await scenarioService.submitTurn(sessionId, userId, content.trim());
+
+    return sendSuccess(res, {
+      data: result,
+      message: "Turn submitted",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/scenarios/sessions/:sessionId/end
+// ---------------------------------------------------------------------------
+
+/**
+ * End a session and get scores.
+ *
+ * Body: { durationMs?: number }
+ * Response: scores + stats
+ */
+async function endSession(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+    const { durationMs } = req.body;
+
+    if (!UUID_RE.test(sessionId)) {
+      return sendError(res, { status: 400, message: "Valid sessionId (UUID) is required" });
+    }
+
+    const duration = durationMs != null ? Math.round(Number(durationMs)) : null;
+    const result = await scenarioService.endSession(sessionId, userId, duration);
+
+    return sendSuccess(res, {
+      data: result,
+      message: "Session completed",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/scenarios/sessions/:sessionId
+// ---------------------------------------------------------------------------
+
+/**
+ * Get session detail with all turns.
+ */
+async function getSession(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    if (!UUID_RE.test(sessionId)) {
+      return sendError(res, { status: 400, message: "Valid sessionId (UUID) is required" });
+    }
+
+    const result = await scenarioService.getSessionDetail(sessionId, userId);
+
+    return sendSuccess(res, {
+      data: result,
+      message: "Session retrieved",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/scenarios/sessions
+// ---------------------------------------------------------------------------
+
+/**
+ * Get the authenticated user's session history.
+ */
+async function getUserSessions(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const sessions = await scenarioService.getUserSessions(userId);
+
+    return sendSuccess(res, {
+      data: { sessions },
+      message: "Sessions retrieved",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = {
+  listScenarios,
+  getScenario,
+  startSession,
+  submitTurn,
+  endSession,
+  getSession,
+  getUserSessions,
+};

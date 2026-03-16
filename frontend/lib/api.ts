@@ -23,7 +23,16 @@
  */
 
 import { useAuthStore, type AuthUser } from "@/lib/stores/authStore";
-import type { GamificationData, LeaderboardData, PronunciationResult } from "@/lib/types";
+import type {
+  GamificationData,
+  LeaderboardData,
+  PronunciationResult,
+  Scenario,
+  StartSessionResult,
+  SubmitTurnResult,
+  EndSessionResult,
+  SessionDetail,
+} from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -493,6 +502,48 @@ export async function assessPronunciation(
       ...(audioDurationMs != null ? { audioDurationMs } : {}),
     },
   );
+}
+
+// ---------------------------------------------------------------------------
+// API functions — Scenarios  (public list + protected sessions)
+// ---------------------------------------------------------------------------
+
+/** GET /api/v1/scenarios — list all scenarios, optionally filtered by category. */
+export async function getScenarios(category?: string): Promise<Scenario[]> {
+  const path = category ? `/scenarios?category=${encodeURIComponent(category)}` : "/scenarios";
+  const data = await apiFetch<{ scenarios: Scenario[] }>(path);
+  return data.scenarios;
+}
+
+/** POST /api/v1/scenarios/:scenarioId/start — start a new conversation session. */
+export async function startScenarioSession(scenarioId: string): Promise<StartSessionResult> {
+  return apiPostAuth<StartSessionResult>(`/scenarios/${scenarioId}/start`, {});
+}
+
+/** POST /api/v1/scenarios/sessions/:sessionId/turns — submit a user message. */
+export async function submitScenarioTurn(
+  sessionId: string,
+  content: string,
+): Promise<SubmitTurnResult> {
+  return apiPostAuth<SubmitTurnResult>(`/scenarios/sessions/${sessionId}/turns`, { content });
+}
+
+/** POST /api/v1/scenarios/sessions/:sessionId/end — end session and get scores. */
+export async function endScenarioSession(
+  sessionId: string,
+  durationMs: number,
+): Promise<EndSessionResult> {
+  return apiPostAuth<EndSessionResult>(`/scenarios/sessions/${sessionId}/end`, { durationMs });
+}
+
+/** GET /api/v1/scenarios/sessions/:sessionId — get session detail with turns. */
+export async function getScenarioSession(sessionId: string): Promise<SessionDetail> {
+  return apiFetchAuth<SessionDetail>(`/scenarios/sessions/${sessionId}`);
+}
+
+/** GET /api/v1/scenarios/sessions — get user's session history. */
+export async function getScenarioHistory(): Promise<SessionDetail[]> {
+  return apiFetchAuth<SessionDetail[]>("/scenarios/sessions");
 }
 
 // ---------------------------------------------------------------------------

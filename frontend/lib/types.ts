@@ -102,6 +102,92 @@ export interface WordDetail {
   phonemes: PhonemeDetail[];
 }
 
+// ---------------------------------------------------------------------------
+// Scenario types
+// ---------------------------------------------------------------------------
+
+export interface Scenario {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  difficulty: string;
+  emoji: string;
+  tags: string[];
+  expected_turns: number;
+  created_at: string;
+}
+
+export interface ScenarioDetail extends Scenario {
+  system_prompt: string;
+  opening_message: string;
+}
+
+export interface ConversationTurn {
+  id: string;
+  turnIndex: number;
+  role: "user" | "assistant";
+  content: string;
+  audioStorageKey: string | null;
+  scores: Record<string, number> | null;
+  feedback: string | null;
+  createdAt: string;
+}
+
+export interface StartSessionResult {
+  sessionId: string;
+  title: string;
+  emoji: string;
+  category: string;
+  turns: ConversationTurn[];
+}
+
+export interface SubmitTurnResult {
+  userTurn: ConversationTurn;
+  aiTurn: ConversationTurn;
+}
+
+export interface TurnFeedback {
+  turnIndex: number;
+  tip: string;
+}
+
+export interface EndSessionResult {
+  overallScore: number;
+  fluency: number;
+  vocabulary: number;
+  grammar: number;
+  coachFeedback: string;
+  turnFeedback: TurnFeedback[];
+  turnCount: number;
+  wordCount: number;
+  durationMs: number;
+}
+
+export interface SessionDetail {
+  sessionId: string;
+  scenarioId: string;
+  title: string;
+  emoji: string;
+  category: string;
+  status: string;
+  overallScore: number | null;
+  fluencyScore: number | null;
+  vocabularyScore: number | null;
+  grammarScore: number | null;
+  coachFeedback: string | null;
+  turnCount: number | null;
+  wordCount: number | null;
+  durationMs: number | null;
+  startedAt: string;
+  completedAt: string | null;
+  turns: ConversationTurn[];
+}
+
+// ---------------------------------------------------------------------------
+// Pronunciation types (continued)
+// ---------------------------------------------------------------------------
+
 export interface PronunciationResult {
   attemptId:          string;
   overallScore:       number;

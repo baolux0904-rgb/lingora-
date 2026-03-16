@@ -8,14 +8,18 @@ import PracticeScenarios from "@/components/PracticeScenarios";
 import CoachTipCard from "@/components/CoachTipCard";
 import LessonsPage from "@/components/LessonsPage";
 import LessonsSection from "@/components/LessonsSection";
+import ScenarioList from "@/components/ScenarioList";
+import ScenarioConversation from "@/components/ScenarioConversation";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useProgress } from "@/hooks/useProgress";
 import { useLessons } from "@/hooks/useLessons";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useGamification } from "@/hooks/useGamification";
+import type { Scenario } from "@/lib/types";
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState("home");
+  const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
 
   const userId = useCurrentUserId();
   const { progress } = useProgress(userId);
@@ -29,9 +33,34 @@ export default function HomePage() {
     setActiveTab("speak");
   };
 
-  const handleScenarioSelect = (_scenarioId: string) => {
-    // TODO: Open specific scenario lesson modal
+  const handleScenarioSelect = (scenarioOrId: Scenario | string) => {
+    if (typeof scenarioOrId === "string") {
+      // From homepage PracticeScenarios — switch to speak tab
+      setActiveTab("speak");
+    } else {
+      // From ScenarioList — open conversation
+      setActiveScenario(scenarioOrId);
+    }
   };
+
+  const handleConversationClose = () => {
+    setActiveScenario(null);
+  };
+
+  const handleConversationComplete = () => {
+    refetchGamification();
+  };
+
+  // Full-screen conversation overlay
+  if (activeScenario) {
+    return (
+      <ScenarioConversation
+        scenario={activeScenario}
+        onClose={handleConversationClose}
+        onComplete={handleConversationComplete}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-dvh" style={{ backgroundColor: "var(--color-bg)" }}>
@@ -45,21 +74,22 @@ export default function HomePage() {
           {activeTab === "home" && (
             <div className="flex flex-col gap-5">
               <StartSpeakingCard onStart={handleStartSpeaking} />
-              <PracticeScenarios onSelect={handleScenarioSelect} />
+              <PracticeScenarios onSelect={(id) => handleScenarioSelect(id)} />
               <CoachTipCard />
             </div>
           )}
 
-          {/* ── SPEAK TAB ── */}
+          {/* ── SPEAK TAB — Scenario browser ── */}
           {activeTab === "speak" && (
-            <div className="flex flex-col gap-4">
-              <LessonsSection onLessonComplete={refetchGamification} />
-            </div>
+            <ScenarioList onSelect={(scenario) => handleScenarioSelect(scenario)} />
           )}
 
-          {/* ── PRACTICE TAB ── */}
+          {/* ── PRACTICE TAB — Lesson-based practice ── */}
           {activeTab === "practice" && (
-            <LessonsPage apiLessons={apiLessons} />
+            <div className="space-y-4">
+              <LessonsSection onLessonComplete={refetchGamification} />
+              <LessonsPage apiLessons={apiLessons} />
+            </div>
           )}
 
           {/* ── PROFILE TAB ── */}
