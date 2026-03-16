@@ -85,6 +85,9 @@ function createApp() {
   // Pronunciation practice: upload-url, assess, history
   app.use("/api/v1/pronunciation", require("./routes/pronunciationRoutes"));
 
+  // Scenario speaking: AI role-play conversations
+  app.use("/api/v1/scenarios", require("./routes/scenarioRoutes"));
+
   // ── Mock storage route (development only) ──
   // When using the mock storage provider, the frontend PUTs audio blobs to
   // /mock-storage/:key.  This route accepts the binary body and stores it
