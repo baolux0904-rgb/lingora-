@@ -42,12 +42,64 @@ body {
 }
 
 /* ── Splash keyframes ── */
-@keyframes splashFadeIn {
-  from { opacity: 0; transform: scale(0.92); }
-  to   { opacity: 1; transform: scale(1); }
+
+/* Logo drops in with a bouncy overshoot */
+@keyframes splashLogoDrop {
+  0%   { opacity: 0; transform: translateY(-60px) scale(0.3) rotate(-15deg); }
+  60%  { opacity: 1; transform: translateY(8px) scale(1.08) rotate(3deg); }
+  80%  { transform: translateY(-4px) scale(0.97) rotate(-1deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
 }
 
-@keyframes splashFadeOut {
-  from { opacity: 1; }
-  to   { opacity: 0; }
+/* Each letter slides up into view */
+@keyframes splashLetterReveal {
+  0%   { opacity: 0; transform: translateY(24px) scale(0.5); }
+  60%  { opacity: 1; transform: translateY(-3px) scale(1.05); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Tagline fade + slide up */
+@keyframes splashFadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 0.7; transform: translateY(0); }
+}
+
+/* Orbit rings expand outward and fade */
+@keyframes splashOrbitExpand {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0); }
+  40%  { opacity: 0.5; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Background gradient pulse */
+@keyframes splashBgPulse {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.6; }
+  100% { opacity: 0.2; }
+}
+
+/* Logo glow */
+@keyframes splashGlow {
+  0%   { opacity: 0; transform: scale(0.5); }
+  50%  { opacity: 0.8; transform: scale(1.2); }
+  100% { opacity: 0.4; transform: scale(1); }
+}
+
+/* Floating particles rise upward */
+@keyframes splashParticleFloat {
+  0%   { opacity: 0; transform: translateY(0) scale(0); }
+  20%  { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 0; transform: translateY(-85vh) scale(0.3); }
+}
+
+/* Loading bar fills across */
+@keyframes splashLoadingBar {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* Final curtain exit — scales down and fades */
+@keyframes splashCurtainExit {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.08); filter: blur(8px); }
 }

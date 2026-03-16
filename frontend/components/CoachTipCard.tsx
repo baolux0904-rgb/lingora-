@@ -27,7 +27,7 @@ export default function CoachTipCard() {
     >
       {/* Mascot icon */}
       <img
-        src="/lingora-logo.png"
+        src="/lingona-logo.png"
         alt=""
         className="w-8 h-8 object-contain flex-shrink-0 mt-0.5"
       />

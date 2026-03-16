@@ -24,7 +24,7 @@ export default function StartSpeakingCard({ onStart }: StartSpeakingCardProps) {
       {/* Mascot */}
       <div className="relative z-10 mt-2">
         <img
-          src="/lingora-logo.png"
+          src="/lingona-logo.png"
           alt="Lingona mascot"
           className="w-20 h-20 object-contain drop-shadow-lg"
         />
