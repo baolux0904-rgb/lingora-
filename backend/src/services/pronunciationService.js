@@ -29,7 +29,9 @@ async function assess(userId, lessonId, promptId, storageKey, audioDurationMs = 
   // 1. Look up the speaking prompt via lessonService (respects domain boundaries)
   const prompt = await lessonService.getSpeakingPromptById(promptId);
   if (!prompt) {
-    throw { status: 404, message: "Speaking prompt not found" };
+    const err = new Error("Speaking prompt not found");
+    err.status = 404;
+    throw err;
   }
 
   // Use sample_answer as reference text; fall back to prompt_text

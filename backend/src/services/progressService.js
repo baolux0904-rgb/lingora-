@@ -13,11 +13,10 @@
  */
 
 const progressRepository          = require('../repositories/progressRepository');
-const { awardXp, computeLevel }   = require('./xpService');
-const { updateStreak }            = require('./streakService');
-const { checkAndAwardBadges }     = require('./badgeService');
-const { insertEvent }             = require('../repositories/learningEventRepository');
-const { getTotalXp }              = require('../repositories/xpRepository');
+const { awardXp, computeLevel, getXpSummary } = require('./xpService');
+const { updateStreak }                        = require('./streakService');
+const { checkAndAwardBadges }                 = require('./badgeService');
+const { insertEvent }                         = require('../repositories/learningEventRepository');
 
 // ---------------------------------------------------------------------------
 // Shape helpers
@@ -79,9 +78,10 @@ async function completeLesson(userId, lessonId, score, timeTakenMs) {
   // Streak update must happen before badge check (badge needs currentStreak).
   const streakResult = await updateStreak(userId);
 
-  // Fetch total XP (after award) + check badges concurrently.
-  const [totalXp, newBadges] = await Promise.all([
-    getTotalXp(userId),
+  // Fetch total XP summary (after award) + check badges concurrently.
+  // getXpSummary goes through the service layer — no cross-domain repo access.
+  const [xpSummary, newBadges] = await Promise.all([
+    getXpSummary(userId),
     checkAndAwardBadges(userId, {
       isFirstLesson,
       score,
@@ -90,13 +90,12 @@ async function completeLesson(userId, lessonId, score, timeTakenMs) {
     }),
   ]);
 
-  // Compute level from updated total XP.
-  const { level, xpInLevel, xpToNextLevel } = computeLevel(totalXp);
+  const { totalXp, level, xpInLevel, xpToNextLevel } = xpSummary;
 
   // Detect level-up: compare level before this lesson's XP was added.
-  const xpBefore              = Math.max(0, totalXp - xpReward);
-  const { level: levelBefore } = computeLevel(xpBefore);
-  const leveledUp             = level > levelBefore;
+  const xpBefore               = Math.max(0, totalXp - xpReward);
+  const { level: levelBefore } = computeLevel(xpBefore); // computeLevel is a pure fn — no DB call
+  const leveledUp              = level > levelBefore;
 
   // ── Build response ────────────────────────────────────────────────────────
   return {

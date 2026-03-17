@@ -8,7 +8,7 @@
  * them without a corresponding code change here.
  */
 
-const { getBadgeBySlug, userHasBadge, awardBadge } = require('../repositories/badgeRepository');
+const { getBadgeBySlug, userHasBadge, awardBadge, getUserBadges } = require('../repositories/badgeRepository');
 const { awardXp } = require('./xpService');
 
 // ---------------------------------------------------------------------------
@@ -74,4 +74,17 @@ async function checkAndAwardBadges(userId, { isFirstLesson, score, currentStreak
   return results.filter(Boolean); // strip nulls (already held or slug not found)
 }
 
-module.exports = { tryAwardBadge, checkAndAwardBadges };
+/**
+ * listUserBadges
+ *
+ * Returns all badges earned by a user.
+ * Controllers should call this instead of reaching into badgeRepository directly.
+ *
+ * @param {string} userId
+ * @returns {Promise<object[]>}
+ */
+async function listUserBadges(userId) {
+  return getUserBadges(userId);
+}
+
+module.exports = { tryAwardBadge, checkAndAwardBadges, listUserBadges };

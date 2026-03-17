@@ -6,6 +6,7 @@
  */
 
 const { getLeaderboard } = require('../services/leaderboardService');
+const { sendSuccess }    = require('../response');
 
 const VALID_SCOPES = new Set(['weekly', 'all-time']);
 
@@ -20,11 +21,9 @@ async function listLeaderboard(req, res, next) {
   try {
     const scope = req.query.scope ?? 'all-time';
     if (!VALID_SCOPES.has(scope)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid scope. Must be one of: ${[...VALID_SCOPES].join(', ')}`,
-        data:    null,
-      });
+      const err = new Error(`Invalid scope. Must be one of: ${[...VALID_SCOPES].join(', ')}`);
+      err.status = 400;
+      return next(err);
     }
 
     // req.user is populated by verifyToken if the client sent a token,
@@ -33,8 +32,7 @@ async function listLeaderboard(req, res, next) {
 
     const { entries, myEntry } = await getLeaderboard(scope, requestingUserId);
 
-    return res.json({
-      success: true,
+    return sendSuccess(res, {
       message: `${scope} leaderboard`,
       data:    { scope, entries, myEntry },
     });

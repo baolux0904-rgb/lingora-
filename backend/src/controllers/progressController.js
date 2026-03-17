@@ -18,25 +18,21 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /**
  * completeLesson
  *
- * Body: { userId: string (UUID), score: number (0–100), timeTakenMs?: number }
+ * Body: { score: number (0–100), timeTakenMs?: number }
+ * userId is always derived from the verified JWT (req.user.id) — never from
+ * the request body, which would allow one user to claim completions for another.
  * Upserts a user_progress row, runs gamification side-effects, and returns
  * an enriched record that includes XP, level, streak, and any new badges.
  */
 async function completeLesson(req, res, next) {
   try {
     const { lessonId } = req.params;
-    const { userId, score, timeTakenMs } = req.body;
+    const userId = req.user.id; // always from verified JWT — never from body
+    const { score, timeTakenMs } = req.body;
 
     // --- Validate lessonId ---
     if (!UUID_RE.test(lessonId)) {
       const err = new Error("Invalid lesson ID. Expected a UUID.");
-      err.status = 400;
-      return next(err);
-    }
-
-    // --- Validate userId ---
-    if (!userId || !UUID_RE.test(String(userId))) {
-      const err = new Error("userId is required and must be a valid UUID.");
       err.status = 400;
       return next(err);
     }

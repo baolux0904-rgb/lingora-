@@ -5,10 +5,11 @@
  * Returns XP summary, streak, and badge collection for a given user.
  */
 
-const UUID_RE              = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const { getXpSummary }    = require('../services/xpService');
-const { getStreakSummary } = require('../services/streakService');
-const { getUserBadges }    = require('../repositories/badgeRepository');
+const UUID_RE                = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const { getXpSummary }      = require('../services/xpService');
+const { getStreakSummary }  = require('../services/streakService');
+const { listUserBadges }    = require('../services/badgeService');
+const { sendSuccess }       = require('../response');
 
 /**
  * GET /api/v1/users/:userId/gamification
@@ -21,31 +22,26 @@ async function getUserGamification(req, res, next) {
     const { userId } = req.params;
 
     if (!UUID_RE.test(userId)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid userId — must be a UUID',
-        data:    null,
-      });
+      const err = new Error('Invalid userId — must be a UUID');
+      err.status = 400;
+      return next(err);
     }
 
     // Users can only read their own data.
     if (req.user.id !== userId) {
-      return res.status(403).json({
-        success: false,
-        message: 'Forbidden — you may only read your own gamification data',
-        data:    null,
-      });
+      const err = new Error('Forbidden — you may only read your own gamification data');
+      err.status = 403;
+      return next(err);
     }
 
-    // Fetch XP, streak and badges in parallel.
+    // Fetch XP, streak and badges in parallel — all go through the service layer.
     const [xp, streak, badges] = await Promise.all([
       getXpSummary(userId),
       getStreakSummary(userId),
-      getUserBadges(userId),
+      listUserBadges(userId),
     ]);
 
-    return res.json({
-      success: true,
+    return sendSuccess(res, {
       message: 'Gamification data',
       data:    { xp, streak, badges },
     });

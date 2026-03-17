@@ -36,7 +36,9 @@ async function listScenarios(category) {
 async function getScenario(id) {
   const scenario = await scenarioRepository.findScenarioById(id);
   if (!scenario) {
-    throw { status: 404, message: "Scenario not found" };
+    const err = new Error("Scenario not found");
+    err.status = 404;
+    throw err;
   }
   return scenario;
 }
@@ -57,7 +59,9 @@ async function startSession(scenarioId, userId) {
   // Validate scenario exists
   const scenario = await scenarioRepository.findScenarioById(scenarioId);
   if (!scenario) {
-    throw { status: 404, message: "Scenario not found" };
+    const err = new Error("Scenario not found");
+    err.status = 404;
+    throw err;
   }
 
   // Abandon any existing active session
@@ -102,13 +106,19 @@ async function submitTurn(sessionId, userId, content) {
   // Validate session exists and belongs to this user
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
-    throw { status: 404, message: "Session not found" };
+    const err = new Error("Session not found");
+    err.status = 404;
+    throw err;
   }
   if (session.user_id !== userId) {
-    throw { status: 403, message: "Not authorized to access this session" };
+    const err = new Error("Not authorized to access this session");
+    err.status = 403;
+    throw err;
   }
   if (session.status !== "active") {
-    throw { status: 400, message: "Session is no longer active" };
+    const err = new Error("Session is no longer active");
+    err.status = 400;
+    throw err;
   }
 
   // Get existing turns to determine next index
@@ -173,13 +183,19 @@ async function endSession(sessionId, userId, durationMs) {
   // Validate session
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
-    throw { status: 404, message: "Session not found" };
+    const err = new Error("Session not found");
+    err.status = 404;
+    throw err;
   }
   if (session.user_id !== userId) {
-    throw { status: 403, message: "Not authorized to access this session" };
+    const err = new Error("Not authorized to access this session");
+    err.status = 403;
+    throw err;
   }
   if (session.status !== "active") {
-    throw { status: 400, message: "Session is no longer active" };
+    const err = new Error("Session is no longer active");
+    err.status = 400;
+    throw err;
   }
 
   // Get all turns
@@ -244,10 +260,14 @@ async function endSession(sessionId, userId, durationMs) {
 async function getSessionDetail(sessionId, userId) {
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
-    throw { status: 404, message: "Session not found" };
+    const err = new Error("Session not found");
+    err.status = 404;
+    throw err;
   }
   if (session.user_id !== userId) {
-    throw { status: 403, message: "Not authorized to access this session" };
+    const err = new Error("Not authorized to access this session");
+    err.status = 403;
+    throw err;
   }
 
   const turns = await scenarioRepository.findSessionTurns(sessionId);
