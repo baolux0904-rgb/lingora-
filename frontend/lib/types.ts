@@ -220,6 +220,35 @@ export interface SessionDetail {
 }
 
 // ---------------------------------------------------------------------------
+// AI Study Coach types
+// ---------------------------------------------------------------------------
+
+/**
+ * The category of a focus recommendation — used by the frontend to pick
+ * the right label colour and icon without relying on string matching.
+ */
+export type FocusType = 'first_lesson' | 'pronunciation' | 'scenario' | 'ielts';
+
+/**
+ * A single coaching recommendation from GET /api/v1/users/:userId/coach/focus.
+ *
+ * actionTarget is a tab name ('practice' | 'speak') that the homepage uses
+ * to navigate when the user taps the action button.
+ */
+export interface FocusRecommendation {
+  type:         FocusType;
+  label:        string;   // e.g. "Pronunciation" | "Speaking" | "Get Started"
+  title:        string;   // specific, action-oriented headline
+  description:  string;   // 1-sentence supporting detail
+  actionLabel:  string;   // button text, e.g. "Practice" | "Explore"
+  actionTarget: string;   // navigation target, e.g. "practice" | "speak"
+}
+
+export interface TodayFocusData {
+  recommendations: FocusRecommendation[];
+}
+
+// ---------------------------------------------------------------------------
 // Pronunciation types (continued)
 // ---------------------------------------------------------------------------
 

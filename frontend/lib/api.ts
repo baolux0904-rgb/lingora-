@@ -33,6 +33,7 @@ import type {
   EndSessionResult,
   SessionDetail,
   SpeakingMetricsData,
+  TodayFocusData,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -432,6 +433,19 @@ export async function getUserGamification(userId: string): Promise<GamificationD
  */
 export async function getSpeakingMetrics(userId: string): Promise<SpeakingMetricsData> {
   return apiFetchAuth<SpeakingMetricsData>(`/users/${userId}/pronunciation/metrics`);
+}
+
+/**
+ * GET /api/v1/users/:userId/coach/focus
+ * Returns 0–2 prioritised focus recommendations for the homepage coach card.
+ * Never throws — returns { recommendations: [] } on any error.
+ */
+export async function getTodayFocus(userId: string): Promise<TodayFocusData> {
+  try {
+    return await apiFetchAuth<TodayFocusData>(`/users/${userId}/coach/focus`);
+  } catch {
+    return { recommendations: [] };
+  }
 }
 
 // ---------------------------------------------------------------------------

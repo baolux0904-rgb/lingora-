@@ -233,6 +233,39 @@ Changes applied:
 
 ---
 
+## Completed: Phase 5 — AI Study Coach / "Today's Focus"
+
+**Goal:** Help the user immediately know what to do next when they open the app. 1–2 high-impact recommendations, scannable in 3 seconds, coach feel.
+
+**Architecture (strict separation of concerns):**
+- `coachRepository.js` — data access only: counts, weakest prompt, recent sessions (4 SQL queries)
+- `coachService.js` — rules engine: pure logic, no HTTP. Thresholds in named constants for easy tuning
+- `coachController.js` — HTTP layer: UUID validation, ownership check, delegates to service
+- `coachRoutes.js` — mounted at `/api/v1/users` alongside gamificationRoutes
+- `useTodayFocus.ts` — React hook: fetch + cancel on unmount, no error state (graceful empty)
+- `TodayFocusCard.tsx` — renders nothing when 0 recommendations; colour-coded label pills per type
+
+**Rules engine (priority order):**
+1. **New user** (0 pronunciation + 0 scenarios) → "Start your first lesson" → Practice tab
+2. **Weak pronunciation** (avg score on worst prompt < 75) → specific prompt with score → Practice tab
+3. **No recent scenarios** (last 7 days) → "No conversations this week" → Speak tab
+4. **Low recent scenario avg** (< 60) → score shown, encourage more practice → Speak tab
+5. Returns empty array if user is performing well → card hidden (no noise)
+
+**Extension points (built in, not used yet):**
+- Thresholds (`WEAK_PRON_THRESHOLD`, `WEAK_SCENARIO_THRESHOLD`, `RECENT_SCENARIO_DAYS`) are named constants
+- Each recommendation type has its own builder function — add new types without touching control flow
+- `getFocusRecommendations()` never throws — LLM integration can replace or augment it later
+- `actionTarget` string passed back to UI → UI handles navigation → easy to add deep-links later
+
+**UX decisions:**
+- Card appears between `StartSpeakingCard` and `PracticeScenarios` — after hero, before generic content
+- Renders nothing while loading or when recommendations = [] — no loading skeleton, no flash
+- Each row: label pill + title + description + action button (right-aligned)
+- Button navigates to correct tab; no modal or interruption
+
+---
+
 ## Completed: UI/UX Overhaul (between Phase 3 and Phase 4)
 
 **Goal:** Transform Lingona from dashboard-style app to action-first AI speaking coach. Speaking-first, not content-browsing-first.
@@ -366,7 +399,7 @@ Tasks in order:
 | — UI/UX Overhaul | Speaking-first homepage, dark/light theme, new navigation, branding | ✅ Done |
 | 4 – Scenario Speaking | AI role-play conversations (mock-first): scenario domain, AI provider, 12 templates, conversation UI | ✅ Done (mock providers) |
 | **4b – Real Providers + Exam Speaking** | **Wire real Azure Speech + R2 + OpenAI; add IELTS speaking as scenario variant; speaking metrics** | **✅ Done (R2 storage pending credentials)** |
-| 5 – AI Study Coach (Rules-Based) | Homepage "Today's Focus" based on weakest scores; quick practice actions; no LLM needed | ⬜ |
+| **5 – AI Study Coach (Rules-Based)** | **Homepage "Today's Focus" based on weakest scores; quick practice actions; no LLM needed** | **✅ Done** |
 | 6 – Admin CMS | Browser-based lesson/vocab/scenario content editor | ⬜ |
 | 7 – Monetization | Stripe subscriptions, free tier limits, pro tier unlocks | ⬜ |
 | 8 – Grammar & Writing | Grammar correction, sentence rewriting, exam writing (IELTS Task 1 & 2) | ⬜ Delayed |
@@ -485,3 +518,9 @@ Tasks in order:
 | `frontend/components/BottomNav.tsx` | Mobile-first bottom navigation — Home / Speak / Practice / Profile |
 | `frontend/components/ThemeToggle.tsx` | Dark/light mode toggle button using next-themes |
 | `frontend/components/SplashScreen.tsx` | Logo animation splash — shown once per session via sessionStorage |
+| `backend/src/repositories/coachRepository.js` | Coach data queries — pronunciation counts, weakest prompt, recent scenario sessions |
+| `backend/src/services/coachService.js` | Rules-based recommendation engine — returns 0–2 `FocusRecommendation` objects |
+| `backend/src/controllers/coachController.js` | `GET /api/v1/users/:userId/coach/focus` — JWT protected, ownership enforced |
+| `backend/src/routes/coachRoutes.js` | Coach routes — mounted at `/api/v1/users` |
+| `frontend/hooks/useTodayFocus.ts` | Fetches focus recommendations; returns empty array on error (graceful) |
+| `frontend/components/TodayFocusCard.tsx` | Homepage coach card — colour-coded label pills, action buttons, renders nothing when empty |

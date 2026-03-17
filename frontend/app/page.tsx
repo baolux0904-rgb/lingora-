@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import StartSpeakingCard from "@/components/StartSpeakingCard";
 import PracticeScenarios from "@/components/PracticeScenarios";
 import CoachTipCard from "@/components/CoachTipCard";
+import TodayFocusCard from "@/components/TodayFocusCard";
 import LessonsPage from "@/components/LessonsPage";
 import LessonsSection from "@/components/LessonsSection";
 import ScenarioList from "@/components/ScenarioList";
@@ -18,6 +19,7 @@ import { useLessons } from "@/hooks/useLessons";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useGamification } from "@/hooks/useGamification";
 import { useSpeakingMetrics } from "@/hooks/useSpeakingMetrics";
+import { useTodayFocus }      from "@/hooks/useTodayFocus";
 import type { Scenario } from "@/lib/types";
 
 export default function HomePage() {
@@ -31,6 +33,7 @@ export default function HomePage() {
   const stats = useUserStats(progress, apiLessons);
   const { data: gamification, refetch: refetchGamification } = useGamification(userId);
   const { data: metrics, loading: metricsLoading } = useSpeakingMetrics(userId);
+  const { recommendations: focusRecs, loading: focusLoading } = useTodayFocus(userId);
 
   const displayStreak = gamification?.streak.currentStreak ?? stats.streak;
 
@@ -57,6 +60,11 @@ export default function HomePage() {
 
   const handleConversationComplete = () => {
     refetchGamification();
+  };
+
+  // Coach card action — navigate to the target tab
+  const handleFocusAction = (target: string) => {
+    setActiveTab(target);
   };
 
   // Full-screen IELTS overlay
@@ -93,6 +101,11 @@ export default function HomePage() {
           {activeTab === "home" && (
             <div className="flex flex-col gap-5">
               <StartSpeakingCard onStart={handleStartSpeaking} />
+              <TodayFocusCard
+                recommendations={focusRecs}
+                loading={focusLoading}
+                onAction={handleFocusAction}
+              />
               <PracticeScenarios onSelect={(id) => handleScenarioSelect(id)} />
               <CoachTipCard />
             </div>

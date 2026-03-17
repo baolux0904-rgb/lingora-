@@ -79,6 +79,9 @@ function createApp() {
   // Gamification: GET /api/v1/users/:userId/gamification
   app.use("/api/v1/users",   require("./routes/gamificationRoutes"));
 
+  // AI Study Coach: GET /api/v1/users/:userId/coach/focus
+  app.use("/api/v1/users",   require("./routes/coachRoutes"));
+
   // Leaderboard: GET /api/v1/leaderboard?scope=weekly|all-time
   app.use("/api/v1/leaderboard", require("./routes/leaderboardRoutes"));
 
