@@ -167,6 +167,37 @@ no effect on request/response shapes, route paths, or calling code.
 
 ---
 
+## Architecture Fixes (applied after Phase 4b architecture review)
+
+Five issues identified in a full codebase architecture review and corrected:
+
+### Fix 1 — Security: `completeLesson` userId derived from JWT, not body (`progressController.js`)
+**Problem:** The endpoint accepted `userId` from `req.body`, allowing any authenticated user to record lesson completions (and earn XP/badges) on behalf of any other user's UUID.
+**Fix:** `userId` is now always derived from `req.user.id` (the verified JWT token). The body field is ignored.
+
+### Fix 2 — Error instances in all services (`scenarioService.js`, `pronunciationService.js`)
+**Problem:** Services threw plain objects (`throw { status, message }`) which have no `.stack`. Sentry captures them as `[object Object]` with no usable trace.
+**Fix:** All service throws now use proper Error instances with `.status` attached:
+```js
+const err = new Error("Scenario not found");
+err.status = 404;
+throw err;
+```
+
+### Fix 3 — `gamificationController` bypassed the service layer (`gamificationController.js`, `badgeService.js`)
+**Problem:** Controller imported `badgeRepository` directly, skipping the service layer. Any future caching or validation on badge retrieval would be missed.
+**Fix:** Added `listUserBadges(userId)` to `badgeService.js`. Controller now calls `badgeService.listUserBadges` instead of importing the repository directly.
+
+### Fix 4 — Response envelope consistency (`gamificationController.js`, `leaderboardController.js`)
+**Problem:** Both controllers called `res.json()` directly instead of `sendSuccess()`, producing a slightly different error shape (`data: null` field) than the rest of the API.
+**Fix:** Both controllers now use `sendSuccess(res, {...})` and pass errors to `next(err)` for consistent handling by `errorMiddleware`.
+
+### Fix 5 — Cross-domain repository access in `progressService.js`
+**Problem:** `progressService` imported `xpRepository.getTotalXp` directly, crossing domain boundaries at the storage layer instead of calling the service layer.
+**Fix:** Replaced `getTotalXp` import from the repository with `getXpSummary` from `xpService`. Also removed the now-redundant `computeLevel` call since `getXpSummary` already returns the computed level.
+
+---
+
 ## Completed: Phase 4 — Scenario Speaking (Core Conversations)
 
 **Goal:** User selects a scenario, has multi-turn AI conversation, gets session score.
@@ -184,7 +215,21 @@ Changes applied:
 8. ✅ `ScenarioSummary` — animated score circle (0→target ease-out), sub-score bars, coach feedback, turn-by-turn tips
 9. ✅ Speak tab wired to real API data; homepage PracticeScenarios switches to Speak tab
 
-**Next:** Phase 4b — Real OpenAI integration (swap mock provider for `openaiProvider.js`)
+**Completed in Phase 4b:**
+- ✅ Real OpenAI provider (`openaiProvider.js`) using Responses API with 5s timeout + mock fallback
+- ✅ IELTS Speaking mode — full 3-part simulation (Part 1 interview → Part 2 cue card + timers → Part 3 discussion)
+- ✅ `IeltsConversation.tsx` — phase state machine, keyword + turn-cap detection, localStorage persistence, safe score defaults
+- ✅ `IeltsTimer.tsx` — countdown timer (60s prep, 120s speaking), no memory leaks, onExpire once-only guard
+- ✅ Migration 0007 — `exam_type` column on scenarios, IELTS scenario seeded
+
+**Also completed in Phase 4b (after architecture review):**
+- ✅ Real Azure Speech provider (`azureSpeech.js`) — pure REST API, no SDK, set `SPEECH_PROVIDER=azure` + `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION`
+- ✅ Voice input for IELTS — `useVoiceInput` hook (Web Speech API, Chrome/Edge), mic button in `IeltsConversation`, live transcript, auto-send on silence, text input fallback
+- ✅ Speaking metrics — 30-day score trend via `GET /api/v1/users/:userId/pronunciation/metrics`, `useSpeakingMetrics` hook, `SpeakingMetrics` SVG chart component, wired into Profile tab
+
+**Remaining in Phase 4b:**
+- ⬜ Real Cloudflare R2 storage (`r2Storage.js`) — do when user has R2 credentials
+- ⬜ Ensure audio stored as WAV for best Azure Speech accuracy (MediaRecorder records WebM by default)
 
 ---
 
@@ -320,7 +365,7 @@ Tasks in order:
 | 3 – Pronunciation Practice | Audio upload, speech-to-text, AI pronunciation scoring, phoneme feedback | ✅ Done (mock providers) |
 | — UI/UX Overhaul | Speaking-first homepage, dark/light theme, new navigation, branding | ✅ Done |
 | 4 – Scenario Speaking | AI role-play conversations (mock-first): scenario domain, AI provider, 12 templates, conversation UI | ✅ Done (mock providers) |
-| **4b – Real Providers + Exam Speaking** | **Wire real Azure Speech + R2 + OpenAI; add IELTS speaking as scenario variant; speaking metrics** | **⬅️ Next** |
+| **4b – Real Providers + Exam Speaking** | **Wire real Azure Speech + R2 + OpenAI; add IELTS speaking as scenario variant; speaking metrics** | **✅ Done (R2 storage pending credentials)** |
 | 5 – AI Study Coach (Rules-Based) | Homepage "Today's Focus" based on weakest scores; quick practice actions; no LLM needed | ⬜ |
 | 6 – Admin CMS | Browser-based lesson/vocab/scenario content editor | ⬜ |
 | 7 – Monetization | Stripe subscriptions, free tier limits, pro tier unlocks | ⬜ |
