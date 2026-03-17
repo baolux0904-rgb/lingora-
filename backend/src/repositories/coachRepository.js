@@ -8,7 +8,7 @@
  * weak spots that the coaching engine converts into recommendations.
  */
 
-const db = require('../db');
+const db = require('../config/db');
 
 // ---------------------------------------------------------------------------
 // Pronunciation data
