@@ -238,31 +238,42 @@ Changes applied:
 **Goal:** Help the user immediately know what to do next when they open the app. 1–2 high-impact recommendations, scannable in 3 seconds, coach feel.
 
 **Architecture (strict separation of concerns):**
-- `coachRepository.js` — data access only: counts, weakest prompt, recent sessions (4 SQL queries)
+- `coachRepository.js` — data access only: counts, weakest prompt (with lessonId), recent sessions (with scenarioId) — 4 SQL queries
 - `coachService.js` — rules engine: pure logic, no HTTP. Thresholds in named constants for easy tuning
 - `coachController.js` — HTTP layer: UUID validation, ownership check, delegates to service
 - `coachRoutes.js` — mounted at `/api/v1/users` alongside gamificationRoutes
-- `useTodayFocus.ts` — React hook: fetch + cancel on unmount, no error state (graceful empty)
-- `TodayFocusCard.tsx` — renders nothing when 0 recommendations; colour-coded label pills per type
+- `useTodayFocus.ts` — React hook: fetch + cancel on unmount, errors logged via `console.warn`
+- `TodayFocusCard.tsx` — positive empty state ("You're doing great today!"), colour-coded label pills per type
 
 **Rules engine (priority order):**
 1. **New user** (0 pronunciation + 0 scenarios) → "Start your first lesson" → Practice tab
-2. **Weak pronunciation** (avg score on worst prompt < 75) → specific prompt with score → Practice tab
+2. **Weak pronunciation** (avg score on worst prompt < 75) → specific prompt with score + `lessonId` → Practice tab
 3. **No recent scenarios** (last 7 days) → "No conversations this week" → Speak tab
-4. **Low recent scenario avg** (< 60) → score shown, encourage more practice → Speak tab
-5. Returns empty array if user is performing well → card hidden (no noise)
+4. **Low recent scenario avg** (< 60) → names the worst scenario + `scenarioId` for deep-link → Speak tab (or opens scenario directly)
+5. Returns empty array if user is performing well → card shows positive empty state
+
+**Deep linking:**
+- `FocusRecommendation` carries optional `scenarioId` and `lessonId` fields
+- Scenario deep-link: when `scenarioId` is present + actionTarget is `"speak"`, `handleFocusAction` fetches the scenario list, finds the match, and opens the conversation directly (bypasses ScenarioList browser)
+- Pronunciation/lesson deep-link: `lessonId` is included for future auto-open (requires deeper component plumbing — TODO)
+- All deep-links fall through to tab navigation on any error
+
+**Error handling:**
+- `api.ts` `getTodayFocus()` catches and logs errors via `console.warn`, returns `{ recommendations: [] }`
+- `useTodayFocus` hook `.catch()` logs errors via `console.warn`
+- `coachService.getFocusRecommendations()` catches DB errors, logs via `console.error`, returns `[]`
+- UI always degrades gracefully — never crashes the homepage
 
 **Extension points (built in, not used yet):**
 - Thresholds (`WEAK_PRON_THRESHOLD`, `WEAK_SCENARIO_THRESHOLD`, `RECENT_SCENARIO_DAYS`) are named constants
 - Each recommendation type has its own builder function — add new types without touching control flow
 - `getFocusRecommendations()` never throws — LLM integration can replace or augment it later
-- `actionTarget` string passed back to UI → UI handles navigation → easy to add deep-links later
 
 **UX decisions:**
 - Card appears between `StartSpeakingCard` and `PracticeScenarios` — after hero, before generic content
-- Renders nothing while loading or when recommendations = [] — no loading skeleton, no flash
+- Hidden while loading (no flash); shows positive empty state when no weak spots found
 - Each row: label pill + title + description + action button (right-aligned)
-- Button navigates to correct tab; no modal or interruption
+- Action button deep-links to specific scenario when possible; falls back to tab navigation
 
 ---
 
