@@ -48,13 +48,20 @@ export default function SplashScreen() {
   const [phase, setPhase] = useState<"enter" | "hold" | "exit">("enter");
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Effect 1: decide whether to show the splash (sessionStorage gate)
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (sessionStorage.getItem("lingona-splash-shown")) return;
-    setShow(true);
     sessionStorage.setItem("lingona-splash-shown", "1");
+    setShow(true);
+  }, []);
 
-    // Phase transitions
+  // Effect 2: run timers only when splash is visible
+  // Kept separate so React Strict Mode's cleanup+re-run doesn't kill the timers
+  // before the sessionStorage gate has already fired.
+  useEffect(() => {
+    if (!show) return;
+
     const holdTimer = setTimeout(() => setPhase("hold"), 800);
     const exitTimer = setTimeout(() => setPhase("exit"), TOTAL_DURATION);
     const hideTimer = setTimeout(() => setShow(false), TOTAL_DURATION + FADE_OUT_DURATION);
@@ -64,7 +71,7 @@ export default function SplashScreen() {
       clearTimeout(exitTimer);
       clearTimeout(hideTimer);
     };
-  }, []);
+  }, [show]);
 
   if (!show) return null;
 
