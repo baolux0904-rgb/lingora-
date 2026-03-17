@@ -32,6 +32,7 @@ import type {
   SubmitTurnResult,
   EndSessionResult,
   SessionDetail,
+  SpeakingMetricsData,
 } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -423,6 +424,14 @@ export async function migrateGuestProgress(
  */
 export async function getUserGamification(userId: string): Promise<GamificationData> {
   return apiFetchAuth<GamificationData>(`/users/${userId}/gamification`);
+}
+
+/**
+ * GET /api/v1/users/:userId/pronunciation/metrics
+ * Returns 30-day score trend and summary stats for the Speaking Metrics view.
+ */
+export async function getSpeakingMetrics(userId: string): Promise<SpeakingMetricsData> {
+  return apiFetchAuth<SpeakingMetricsData>(`/users/${userId}/pronunciation/metrics`);
 }
 
 // ---------------------------------------------------------------------------

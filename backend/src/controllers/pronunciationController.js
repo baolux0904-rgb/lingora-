@@ -120,8 +120,42 @@ async function getHistory(req, res, next) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// GET /api/v1/users/:userId/pronunciation/metrics
+// ---------------------------------------------------------------------------
+
+/**
+ * Get speaking metrics (score trend, totals) for a user over the last 30 days.
+ * Users may only view their own metrics.
+ */
+async function getMetrics(req, res, next) {
+  try {
+    const { userId } = req.params;
+
+    if (!UUID_RE.test(userId)) {
+      return sendError(res, { status: 400, message: "Valid userId (UUID) is required" });
+    }
+
+    if (req.user.id !== userId) {
+      const err = new Error("Forbidden — you may only view your own metrics");
+      err.status = 403;
+      throw err;
+    }
+
+    const metrics = await pronunciationService.getMetrics(userId);
+
+    return sendSuccess(res, {
+      data:    metrics,
+      message: "Speaking metrics retrieved",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getUploadUrl,
   assess,
   getHistory,
+  getMetrics,
 };

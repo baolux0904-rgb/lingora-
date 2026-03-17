@@ -113,8 +113,38 @@ async function getAttemptsByPrompt(userId, promptId) {
   }));
 }
 
+/**
+ * Get speaking metrics for a user over the last 30 days.
+ * Returns daily score aggregates and computed summary stats.
+ *
+ * @param {string} userId
+ * @returns {Promise<object>} { trend, totalAttempts, averageScore, bestScore, recentScore }
+ */
+async function getMetrics(userId) {
+  const [trend, recentScore] = await Promise.all([
+    pronunciationRepository.getMetricsByUser(userId, 30),
+    pronunciationRepository.getLatestScore(userId),
+  ]);
+
+  const totalAttempts = trend.reduce((sum, d) => sum + d.attempt_count, 0);
+  const allScores     = trend.map((d) => d.avg_score);
+  const averageScore  = allScores.length
+    ? Math.round(allScores.reduce((s, v) => s + v, 0) / allScores.length)
+    : 0;
+  const bestScore = allScores.length ? Math.round(Math.max(...allScores)) : 0;
+
+  return {
+    trend:          trend.map((d) => ({ date: d.date, avgScore: d.avg_score, attempts: d.attempt_count })),
+    totalAttempts,
+    averageScore,
+    bestScore,
+    recentScore:    recentScore !== null ? Math.round(recentScore) : null,
+  };
+}
+
 module.exports = {
   assess,
   getLessonSpeakingScore,
   getAttemptsByPrompt,
+  getMetrics,
 };

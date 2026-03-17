@@ -11,11 +11,13 @@ import LessonsSection from "@/components/LessonsSection";
 import ScenarioList from "@/components/ScenarioList";
 import ScenarioConversation from "@/components/ScenarioConversation";
 import IeltsConversation from "@/components/IeltsConversation";
+import SpeakingMetrics from "@/components/SpeakingMetrics";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useProgress } from "@/hooks/useProgress";
 import { useLessons } from "@/hooks/useLessons";
 import { useUserStats } from "@/hooks/useUserStats";
 import { useGamification } from "@/hooks/useGamification";
+import { useSpeakingMetrics } from "@/hooks/useSpeakingMetrics";
 import type { Scenario } from "@/lib/types";
 
 export default function HomePage() {
@@ -28,6 +30,7 @@ export default function HomePage() {
   const { apiLessons } = useLessons();
   const stats = useUserStats(progress, apiLessons);
   const { data: gamification, refetch: refetchGamification } = useGamification(userId);
+  const { data: metrics, loading: metricsLoading } = useSpeakingMetrics(userId);
 
   const displayStreak = gamification?.streak.currentStreak ?? stats.streak;
 
@@ -110,22 +113,17 @@ export default function HomePage() {
 
           {/* ── PROFILE TAB ── */}
           {activeTab === "profile" && (
-            <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center"
-                style={{
-                  backgroundColor: "var(--color-primary-soft)",
-                  border: "1px solid var(--color-border)",
+            <div className="flex flex-col gap-6">
+              <SpeakingMetrics
+                data={metrics ?? {
+                  trend: [],
+                  totalAttempts: 0,
+                  averageScore: 0,
+                  bestScore: 0,
+                  recentScore: null,
                 }}
-              >
-                <span style={{ color: "var(--color-primary)" }} className="text-2xl font-bold">P</span>
-              </div>
-              <h2 className="text-xl font-sora font-bold" style={{ color: "var(--color-text)" }}>
-                Profile
-              </h2>
-              <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-                Coming soon — stay tuned!
-              </p>
+                loading={metricsLoading}
+              />
             </div>
           )}
 

@@ -95,8 +95,52 @@ async function findByUserAndPrompt(userId, promptId) {
   return result.rows;
 }
 
+/**
+ * Get speaking metrics for a user over the last N days.
+ * Returns daily aggregates (date, avg score, attempt count) + overall summary.
+ *
+ * @param {string} userId
+ * @param {number} [days=30] – look-back window
+ * @returns {Promise<object[]>} rows: { date, avg_score, attempt_count }
+ */
+async function getMetricsByUser(userId, days = 30) {
+  const result = await query(
+    `SELECT
+       DATE(created_at AT TIME ZONE 'UTC') AS date,
+       ROUND(AVG(overall_score)::numeric, 1)::float AS avg_score,
+       COUNT(*)::int                                  AS attempt_count
+     FROM pronunciation_attempts
+     WHERE user_id = $1
+       AND created_at >= NOW() - ($2 || ' days')::INTERVAL
+     GROUP BY DATE(created_at AT TIME ZONE 'UTC')
+     ORDER BY date ASC`,
+    [userId, days]
+  );
+  return result.rows;
+}
+
+/**
+ * Get the most recent overall score for a user (latest single attempt).
+ *
+ * @param {string} userId
+ * @returns {Promise<number|null>}
+ */
+async function getLatestScore(userId) {
+  const result = await query(
+    `SELECT overall_score
+     FROM pronunciation_attempts
+     WHERE user_id = $1
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId]
+  );
+  return result.rows[0]?.overall_score ?? null;
+}
+
 module.exports = {
   insertAttempt,
   findBestByLessonAndUser,
   findByUserAndPrompt,
+  getMetricsByUser,
+  getLatestScore,
 };

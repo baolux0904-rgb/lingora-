@@ -72,6 +72,21 @@ export interface GamificationData {
   badges: Badge[];
 }
 
+// Speaking metrics (pronunciation trend over 30 days)
+export interface MetricDay {
+  date:     string;   // "YYYY-MM-DD"
+  avgScore: number;   // 0-100
+  attempts: number;
+}
+
+export interface SpeakingMetricsData {
+  trend:         MetricDay[];
+  totalAttempts: number;
+  averageScore:  number;
+  bestScore:     number;
+  recentScore:   number | null;
+}
+
 export interface LeaderboardEntry {
   userId: string;
   name:   string;

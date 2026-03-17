@@ -30,6 +30,7 @@ import type {
 } from "@/lib/types";
 import IeltsTimer from "./IeltsTimer";
 import ScenarioSummary from "./ScenarioSummary";
+import { useVoiceInput } from "@/hooks/useVoiceInput";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
@@ -357,9 +358,19 @@ export default function IeltsConversation({
   const [scores, setScores]             = useState<EndSessionResult | null>(null);
   const [errorMsg, setErrorMsg]         = useState<string | null>(null);
 
-  const startTimeRef = useRef<number>(Date.now());
-  const chatEndRef   = useRef<HTMLDivElement>(null);
-  const inputRef     = useRef<HTMLTextAreaElement>(null);
+  const startTimeRef  = useRef<number>(Date.now());
+  const chatEndRef    = useRef<HTMLDivElement>(null);
+  const inputRef      = useRef<HTMLTextAreaElement>(null);
+  // Stable ref to always call the latest handleSend from voice callback
+  const handleSendRef = useRef<((content?: string) => void) | null>(null);
+
+  // Voice input — auto-sends transcript when speech ends
+  // Uses handleSendRef so the callback never goes stale
+  const voice = useVoiceInput(
+    useCallback((transcript: string) => {
+      handleSendRef.current?.(transcript);
+    }, [])
+  );
 
   // Auto-scroll on new turns
   useEffect(() => {
@@ -563,6 +574,9 @@ export default function IeltsConversation({
       inputRef.current?.focus();
     }
   }, [sessionId, inputText, isTyping, turns, phase, part1TurnCount, part3TurnCount, cueCard, scenario.id, handleEndSession]);
+
+  // Keep the ref pointing at the latest handleSend
+  handleSendRef.current = handleSend;
 
   // ── Key handler ───────────────────────────────────────────────────────────
 
@@ -880,40 +894,95 @@ export default function IeltsConversation({
               style={{ color: "var(--color-text-secondary)" }}
               className="text-xs text-center mb-2"
             >
-              💡 Type your spoken response or just click &quot;I&apos;m Done Speaking&quot; above
+              💡 Tap 🎤 to speak, or type your response below
+            </div>
+          )}
+
+          {/* Live transcript preview while recording */}
+          {voice.isRecording && voice.interimTranscript && (
+            <div
+              className="mb-2 px-3 py-1.5 rounded-lg text-xs italic"
+              style={{
+                background: "var(--color-primary-soft)",
+                color: "var(--color-text-secondary)",
+                border: "1px solid var(--color-border)",
+              }}
+            >
+              🎤 &ldquo;{voice.interimTranscript}&rdquo;
             </div>
           )}
 
           <div className="flex items-end gap-2">
+
+            {/* Mic button — shown when Web Speech API is supported */}
+            {voice.isSupported && (
+              <button
+                onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
+                disabled={isTyping}
+                title={voice.isRecording ? "Stop recording" : "Speak your answer"}
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-50"
+                style={{
+                  background: voice.isRecording
+                    ? "#ef4444"
+                    : "var(--color-primary-soft)",
+                  color: voice.isRecording ? "#fff" : "var(--color-primary)",
+                  boxShadow: voice.isRecording
+                    ? "0 0 12px rgba(239,68,68,0.4)"
+                    : "none",
+                }}
+              >
+                {voice.isRecording ? (
+                  // Stop icon
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="4" y="4" width="16" height="16" rx="2" />
+                  </svg>
+                ) : (
+                  // Mic icon
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                  </svg>
+                )}
+              </button>
+            )}
+
+            {/* Text input — always shown as fallback / alternative */}
             <textarea
               ref={inputRef}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={
-                phase === "part1"
+                voice.isSupported
+                  ? "Or type your answer..."
+                  : phase === "part1"
                   ? "Answer the examiner's question..."
                   : phase === "part2_speaking"
                   ? "Type your long turn response..."
                   : "Discuss the topic..."
               }
               rows={1}
-              disabled={isTyping}
+              disabled={isTyping || voice.isRecording}
               style={{
                 background: "var(--color-primary-soft)",
                 color: "var(--color-text)",
                 border: "1px solid var(--color-border)",
+                opacity: voice.isRecording ? 0.5 : 1,
               }}
               className="flex-1 resize-none rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[color:var(--color-primary)] transition-colors placeholder:opacity-50"
             />
+
+            {/* Send button — only for text input */}
             <button
               onClick={() => handleSend()}
-              disabled={!inputText.trim() || isTyping}
+              disabled={!inputText.trim() || isTyping || voice.isRecording}
               style={{
-                background: inputText.trim() && !isTyping
+                background: inputText.trim() && !isTyping && !voice.isRecording
                   ? "var(--color-primary)"
                   : "var(--color-border)",
-                color: inputText.trim() && !isTyping
+                color: inputText.trim() && !isTyping && !voice.isRecording
                   ? "#fff"
                   : "var(--color-text-secondary)",
               }}
@@ -933,6 +1002,13 @@ export default function IeltsConversation({
               </svg>
             </button>
           </div>
+
+          {/* "Not working?" hint for unsupported browsers */}
+          {!voice.isSupported && (
+            <p className="text-[10px] mt-1.5 text-center" style={{ color: "var(--color-text-secondary)" }}>
+              Voice input requires Chrome or Edge. Type your answer above.
+            </p>
+          )}
         </div>
       )}
     </div>
