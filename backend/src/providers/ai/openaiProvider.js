@@ -1,7 +1,7 @@
 /**
  * openaiProvider.js
  *
- * Real OpenAI AI provider using the Responses API (gpt-4o-mini by default).
+ * Real OpenAI AI provider using the Chat Completions API (gpt-4o-mini by default).
  *
  * Safety guarantees:
  *  - If OPENAI_API_KEY is not set → auto-fallback to mock provider (no crash)
@@ -20,7 +20,7 @@ const mockAi = require("./mockAi");
 // Constants
 // ---------------------------------------------------------------------------
 
-const OPENAI_TIMEOUT_MS = 5000; // 5-second max per request — no hanging
+const OPENAI_TIMEOUT_MS = 15_000; // 15-second max — OpenAI can be slow
 
 const SAFE_SCORE_DEFAULTS = {
   overallScore: 60,
@@ -47,6 +47,7 @@ function getClient() {
   if (!_client) {
     _client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     _model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+    console.log(`[ai] OpenAI client initialized — model: ${_model}`);
   }
   return _client;
 }
@@ -117,25 +118,33 @@ async function generateResponse(systemPrompt, conversationHistory, options = {})
       `IMPORTANT: Keep your reply short and conversational — 1 to 3 sentences maximum. ` +
       `Speak naturally as your character. Do not break character.`;
 
-    const input = [
+    const messages = [
       { role: "system", content: fullSystemPrompt },
       ...conversationHistory,
     ];
 
+    console.log(`[ai] generateResponse — sending ${messages.length} messages to ${_model}`);
+
     const response = await withTimeout(
-      openai.responses.create({ model: _model, input })
+      openai.chat.completions.create({
+        model: _model,
+        messages,
+        max_tokens: 200,
+        temperature: 0.8,
+      })
     );
 
-    const text = response.output?.[0]?.content?.[0]?.text || "";
+    const text = response.choices?.[0]?.message?.content?.trim() || "";
 
     if (!text) {
       console.warn("[ai] OpenAI returned empty response — falling back to mock for generateResponse");
       return mockAi.generateResponse(systemPrompt, conversationHistory, options);
     }
 
+    console.log(`[ai] generateResponse OK — ${text.length} chars`);
     return text;
   } catch (err) {
-    console.warn(`[ai] generateResponse failed (${err.message}) — falling back to mock`);
+    console.error(`[ai] generateResponse FAILED: ${err.message}`);
     return mockAi.generateResponse(systemPrompt, conversationHistory, options);
   }
 }
@@ -189,20 +198,24 @@ Rules:
 
 Scenario context: ${systemPrompt}`;
 
-    const input = [
+    const messages = [
       { role: "system", content: scoringInstruction },
       ...conversationHistory,
     ];
 
+    console.log(`[ai] scoreConversation — sending ${messages.length} messages to ${_model}`);
+
     const response = await withTimeout(
-      openai.responses.create({
+      openai.chat.completions.create({
         model: _model,
-        input,
-        text: { format: { type: "json_object" } },
+        messages,
+        max_tokens: 500,
+        temperature: 0.3,
+        response_format: { type: "json_object" },
       })
     );
 
-    const text = response.output?.[0]?.content?.[0]?.text || "";
+    const text = response.choices?.[0]?.message?.content?.trim() || "";
 
     if (!text) {
       console.warn("[ai] OpenAI returned empty score response — using safe defaults");
@@ -222,9 +235,10 @@ Scenario context: ${systemPrompt}`;
       return { ...SAFE_SCORE_DEFAULTS };
     }
 
+    console.log(`[ai] scoreConversation OK — overall: ${parsed.overallScore}`);
     return parsed;
   } catch (err) {
-    console.warn(`[ai] scoreConversation failed (${err.message}) — using safe defaults`);
+    console.error(`[ai] scoreConversation FAILED: ${err.message}`);
     return { ...SAFE_SCORE_DEFAULTS };
   }
 }

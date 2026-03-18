@@ -217,6 +217,7 @@ async function synthesizeSpeech(req, res, next) {
     const tts = createTtsProvider();
 
     if (!tts.isAvailable()) {
+      console.log("[tts] Provider not available — returning 204");
       return res.status(204).end(); // No audio available (mock mode)
     }
 
@@ -225,11 +226,14 @@ async function synthesizeSpeech(req, res, next) {
       return sendError(res, { status: 400, message: "text is required (max 2000 chars)" });
     }
 
+    console.log(`[tts] Synthesizing ${text.length} chars, voice=${voice || "default"}`);
     const audioBuffer = await tts.synthesize(text, { voice });
+    console.log(`[tts] Audio generated — ${audioBuffer.length} bytes`);
     res.set("Content-Type", "audio/mpeg");
     res.set("Content-Length", audioBuffer.length);
     return res.send(audioBuffer);
   } catch (err) {
+    console.error(`[tts] synthesizeSpeech FAILED: ${err.message}`);
     next(err);
   }
 }

@@ -22,6 +22,7 @@ function createTtsProvider() {
   if (_provider) return _provider;
 
   const provider = process.env.TTS_PROVIDER || "mock";
+  console.log(`[tts] Provider selected: "${provider}" (env TTS_PROVIDER=${process.env.TTS_PROVIDER || "(not set)"})`);
 
   switch (provider) {
     case "openai":
@@ -33,6 +34,7 @@ function createTtsProvider() {
       break;
   }
 
+  console.log(`[tts] isAvailable: ${_provider.isAvailable()}`);
   return _provider;
 }
 

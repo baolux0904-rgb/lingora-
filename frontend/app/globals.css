@@ -187,149 +187,158 @@ body {
 
 /* ─── Layered Background System ─────────────────────────────────────────── */
 
-/* HOME: expressive, branded, warm */
+/* HOME: brand purple + teal ambient, soundwave motif */
 .bg-home {
   background:
-    radial-gradient(ellipse 80% 60% at 80% 10%, rgba(109, 74, 232, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 15% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(109, 74, 232, 0.04) 0%, transparent 70%),
-    url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 10 Q40 25 30 40 Q20 25 30 10Z' fill='none' stroke='rgba(109,74,232,0.04)' stroke-width='0.5'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 100% 100%, 100% 100%, 60px 60px;
+    radial-gradient(ellipse 80% 60% at 85% 8%, rgba(124, 92, 252, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 10% 85%, rgba(46, 211, 198, 0.07) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='100' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 Q25 8 50 20 T100 20' fill='none' stroke='rgba(124,92,252,0.035)' stroke-width='0.6'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 100px 40px;
 }
 
-/* SPEAK: conversational energy, flowing curves */
+/* SPEAK: warm conversational glow, wave pattern */
 .bg-speak {
   background:
-    radial-gradient(ellipse 70% 50% at 50% 20%, rgba(109, 74, 232, 0.09) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 40% at 80% 70%, rgba(59, 130, 246, 0.06) 0%, transparent 60%),
-    url("data:image/svg+xml,%3Csvg width='120' height='30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 Q30 8 60 20 T120 20' fill='none' stroke='rgba(109,74,232,0.035)' stroke-width='0.8'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 100% 100%, 120px 30px;
+    radial-gradient(ellipse 65% 45% at 50% 15%, rgba(124, 92, 252, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 35% at 80% 75%, rgba(46, 211, 198, 0.05) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='140' height='35' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 17 Q35 7 70 17 T140 17' fill='none' stroke='rgba(124,92,252,0.025)' stroke-width='0.5'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 140px 35px;
 }
 
-/* EXAM: focused, serious, minimal with subtle grid */
+/* EXAM: muted, serious — faint top gradient only */
 .bg-exam {
   background:
-    radial-gradient(ellipse 50% 25% at 50% 5%, rgba(79, 70, 229, 0.06) 0%, transparent 70%),
-    linear-gradient(180deg, transparent 0%, rgba(79, 70, 229, 0.015) 100%),
-    url("data:image/svg+xml,%3Csvg width='48' height='48' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M48 0H0v48' fill='none' stroke='rgba(0,0,0,0.025)' stroke-width='0.4'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 100% 100%, 48px 48px;
+    radial-gradient(ellipse 45% 20% at 50% 3%, rgba(79, 70, 229, 0.05) 0%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgba(79, 70, 229, 0.01) 100%);
+  background-size: 100% 100%, 100% 100%;
 }
 
-/* PRACTICE: clean, structured */
+/* PRACTICE: structured, faint wave grid */
 .bg-practice {
   background:
-    radial-gradient(ellipse 60% 40% at 70% 20%, rgba(109, 74, 232, 0.05) 0%, transparent 60%),
-    url("data:image/svg+xml,%3Csvg width='28' height='28' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='14' cy='14' r='0.6' fill='rgba(0,0,0,0.03)'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 28px 28px;
+    radial-gradient(ellipse 55% 35% at 65% 18%, rgba(124, 92, 252, 0.04) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='80' height='30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 15 Q20 8 40 15 T80 15' fill='none' stroke='rgba(0,0,0,0.02)' stroke-width='0.4'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 80px 30px;
 }
 
-/* Dark mode overrides */
+/* Dark mode — richer ambient for dark backgrounds */
 .dark .bg-home {
   background:
-    radial-gradient(ellipse 80% 60% at 80% 10%, rgba(124, 92, 252, 0.18) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 15% 80%, rgba(56, 189, 248, 0.10) 0%, transparent 60%),
-    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(124, 92, 252, 0.06) 0%, transparent 70%),
-    url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 10 Q40 25 30 40 Q20 25 30 10Z' fill='none' stroke='rgba(124,92,252,0.04)' stroke-width='0.5'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 100% 100%, 100% 100%, 60px 60px;
+    radial-gradient(ellipse 80% 60% at 85% 8%, rgba(124, 92, 252, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 45% at 10% 85%, rgba(46, 211, 198, 0.10) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='100' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 Q25 8 50 20 T100 20' fill='none' stroke='rgba(124,92,252,0.04)' stroke-width='0.6'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 100px 40px;
 }
 
 .dark .bg-speak {
   background:
-    radial-gradient(ellipse 70% 50% at 50% 20%, rgba(124, 92, 252, 0.14) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 40% at 80% 70%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
-    url("data:image/svg+xml,%3Csvg width='120' height='30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 Q30 8 60 20 T120 20' fill='none' stroke='rgba(124,92,252,0.035)' stroke-width='0.8'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 100% 100%, 120px 30px;
+    radial-gradient(ellipse 65% 45% at 50% 15%, rgba(124, 92, 252, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 35% at 80% 75%, rgba(46, 211, 198, 0.07) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='140' height='35' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 17 Q35 7 70 17 T140 17' fill='none' stroke='rgba(124,92,252,0.03)' stroke-width='0.5'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 100% 100%, 140px 35px;
 }
 
 .dark .bg-exam {
   background:
-    radial-gradient(ellipse 50% 25% at 50% 5%, rgba(129, 140, 248, 0.08) 0%, transparent 70%),
-    linear-gradient(180deg, transparent 0%, rgba(129, 140, 248, 0.02) 100%),
-    url("data:image/svg+xml,%3Csvg width='48' height='48' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M48 0H0v48' fill='none' stroke='rgba(255,255,255,0.02)' stroke-width='0.4'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 100% 100%, 48px 48px;
+    radial-gradient(ellipse 45% 20% at 50% 3%, rgba(129, 140, 248, 0.07) 0%, transparent 70%),
+    linear-gradient(180deg, transparent 0%, rgba(129, 140, 248, 0.015) 100%);
+  background-size: 100% 100%, 100% 100%;
 }
 
 .dark .bg-practice {
   background:
-    radial-gradient(ellipse 60% 40% at 70% 20%, rgba(124, 92, 252, 0.06) 0%, transparent 60%),
-    url("data:image/svg+xml,%3Csvg width='28' height='28' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='14' cy='14' r='0.6' fill='rgba(255,255,255,0.02)'/%3E%3C/svg%3E");
-  background-size: 100% 100%, 28px 28px;
+    radial-gradient(ellipse 55% 35% at 65% 18%, rgba(124, 92, 252, 0.06) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='80' height='30' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 15 Q20 8 40 15 T80 15' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='0.4'/%3E%3C/svg%3E");
+  background-size: 100% 100%, 80px 30px;
 }
 
-/* ─── Animated Gradient Blobs ────────────────────────────────────── */
-/* CSS-only animated blobs — low opacity, blurred, 8-15s loops */
+/* ─── Lingona Signature Animated Background ─────────────────────── */
+/* Soundwave-inspired — brand purple/teal palette, wave ribbons + glows */
 
-@keyframes blobFloat1 {
+@keyframes lingonaFloat {
   0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(30px, -20px) scale(1.05); }
-  50% { transform: translate(-10px, 15px) scale(0.95); }
-  75% { transform: translate(20px, 10px) scale(1.02); }
-}
-@keyframes blobFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-25px, 20px) scale(1.08); }
-  66% { transform: translate(15px, -15px) scale(0.93); }
-}
-@keyframes blobFloat3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  20% { transform: translate(-20px, -25px) scale(1.04); }
-  40% { transform: translate(25px, 10px) scale(0.97); }
-  60% { transform: translate(-10px, 20px) scale(1.06); }
-  80% { transform: translate(15px, -10px) scale(0.98); }
+  33% { transform: translate(15px, -10px) scale(1.03); }
+  66% { transform: translate(-10px, 8px) scale(0.97); }
 }
 
-.animated-blob {
+@keyframes lingonaWaveDrift {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes lingonaPulse {
+  0%, 100% { opacity: 0.06; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.12; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+/* Glows — soft ambient color */
+.lingona-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(100px);
   pointer-events: none;
   will-change: transform;
+  animation: lingonaFloat 18s ease-in-out infinite;
 }
 
-.blob-1 {
-  width: 300px; height: 300px;
-  top: -5%; right: -5%;
-  background: radial-gradient(circle, rgba(124,92,252,0.15) 0%, transparent 70%);
-  animation: blobFloat1 12s ease-in-out infinite;
+.lingona-glow-primary {
+  width: 280px; height: 280px;
+  top: -8%; right: -5%;
+  background: radial-gradient(circle, rgba(124,92,252,0.14) 0%, transparent 70%);
 }
-.blob-2 {
-  width: 250px; height: 250px;
-  bottom: 10%; left: -8%;
-  background: radial-gradient(circle, rgba(56,189,248,0.12) 0%, transparent 70%);
-  animation: blobFloat2 10s ease-in-out infinite;
-}
-.blob-3 {
-  width: 200px; height: 200px;
-  top: 40%; right: 10%;
-  background: radial-gradient(circle, rgba(52,211,153,0.10) 0%, transparent 70%);
-  animation: blobFloat3 14s ease-in-out infinite;
+.lingona-glow-accent {
+  width: 220px; height: 220px;
+  bottom: 5%; left: -6%;
+  background: radial-gradient(circle, rgba(46,211,198,0.10) 0%, transparent 70%);
+  animation-delay: -6s;
+  animation-duration: 14s;
 }
 
-/* Center glow behind main content card */
-.center-glow {
+/* Wave ribbons — signature soundwave feel */
+.lingona-wave {
   position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 400px; height: 400px;
+  width: 200%;
+  pointer-events: none;
+  animation: lingonaWaveDrift 25s linear infinite;
+}
+.lingona-wave-1 {
+  top: 28%;
+  height: 80px;
+  opacity: 0.6;
+}
+.lingona-wave-2 {
+  top: 62%;
+  height: 60px;
+  opacity: 0.4;
+  animation-duration: 35s;
+  animation-direction: reverse;
+}
+
+.lingona-wave-path {
+  vector-effect: non-scaling-stroke;
+}
+
+/* Breathing center pulse */
+.lingona-pulse {
+  position: absolute;
+  top: 40%; left: 50%;
+  width: 350px; height: 350px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(124,92,252,0.08) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(124,92,252,0.08) 0%, transparent 65%);
   filter: blur(60px);
   pointer-events: none;
-  animation: blobFloat1 15s ease-in-out infinite;
+  animation: lingonaPulse 6s ease-in-out infinite;
 }
 
-/* Dark mode — slightly higher opacity for blobs */
-.dark .blob-1 {
+/* Dark mode — richer glows for dark backgrounds */
+.dark .lingona-glow-primary {
   background: radial-gradient(circle, rgba(124,92,252,0.22) 0%, transparent 70%);
 }
-.dark .blob-2 {
-  background: radial-gradient(circle, rgba(56,189,248,0.16) 0%, transparent 70%);
+.dark .lingona-glow-accent {
+  background: radial-gradient(circle, rgba(46,211,198,0.15) 0%, transparent 70%);
 }
-.dark .blob-3 {
-  background: radial-gradient(circle, rgba(52,211,153,0.14) 0%, transparent 70%);
-}
-.dark .center-glow {
-  background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 60%);
+.dark .lingona-pulse {
+  background: radial-gradient(circle, rgba(124,92,252,0.12) 0%, transparent 65%);
 }
 
 /* ─── IELTS Exam Specific ─────────────────────────────────────────── */

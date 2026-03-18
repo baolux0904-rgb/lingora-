@@ -70,6 +70,16 @@ const RESPONSE_POOLS = {
     "Take this twice a day after meals. Come back if symptoms persist.",
     "Do you have any other questions or concerns I can help with?",
   ],
+  exam: [
+    "Let's begin. Can you tell me about where you live and what you like about your neighbourhood?",
+    "That's interesting. How long have you been living there?",
+    "I see. Now, let's talk about your daily routine. What do you usually do on a typical day?",
+    "Thank you. Do you prefer spending your free time indoors or outdoors? Why?",
+    "Good. Let's move on. Can you describe a memorable event you attended recently?",
+    "That sounds fascinating. Why was that event particularly memorable for you?",
+    "Now I'd like to ask about technology. How has technology changed the way people communicate?",
+    "Interesting point. Do you think these changes have been mostly positive or negative?",
+  ],
 };
 
 // Fallback for unknown categories

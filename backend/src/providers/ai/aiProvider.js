@@ -25,6 +25,7 @@ function createAiProvider() {
   if (_provider) return _provider;
 
   const provider = process.env.AI_PROVIDER || "mock";
+  console.log(`[ai] Provider selected: "${provider}" (env AI_PROVIDER=${process.env.AI_PROVIDER || "(not set)"})`);
 
   switch (provider) {
     case "openai":
