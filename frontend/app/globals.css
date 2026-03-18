@@ -4,33 +4,37 @@
 
 /* ── Light theme (default) ── */
 :root {
-  --color-bg: #F6F8FF;
+  --color-bg: #F0F2FA;
+  --color-bg-secondary: #E8EBF6;
   --color-bg-card: #FFFFFF;
-  --color-bg-card-hover: #F0F2FF;
-  --color-primary: #8B71EA;
-  --color-primary-soft: rgba(139, 113, 234, 0.08);
-  --color-primary-glow: rgba(139, 113, 234, 0.15);
-  --color-accent: #5BA3D9;
-  --color-text: #1A1A2E;
-  --color-text-secondary: #6B6880;
-  --color-border: rgba(0, 0, 0, 0.08);
+  --color-bg-card-hover: #F5F6FF;
+  --color-primary: #6D4AE8;
+  --color-primary-soft: rgba(109, 74, 232, 0.08);
+  --color-primary-glow: rgba(109, 74, 232, 0.15);
+  --color-accent: #3B82F6;
+  --color-accent-soft: rgba(59, 130, 246, 0.08);
+  --color-text: #1A1D2E;
+  --color-text-secondary: #6B7196;
+  --color-border: rgba(0, 0, 0, 0.07);
   --color-success: #16A34A;
   --color-warning: #D97706;
 }
 
 /* ── Dark theme ── */
 .dark {
-  --color-bg: #0F1226;
-  --color-bg-card: #1A1F3F;
-  --color-bg-card-hover: #222750;
-  --color-primary: #8B71EA;
-  --color-primary-soft: rgba(139, 113, 234, 0.12);
-  --color-primary-glow: rgba(139, 113, 234, 0.3);
-  --color-accent: #89CFFF;
-  --color-text: #E8E4F0;
-  --color-text-secondary: #9B95B0;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-success: #4ADE80;
+  --color-bg: #0B0F1E;
+  --color-bg-secondary: #111631;
+  --color-bg-card: #161B3A;
+  --color-bg-card-hover: #1C2245;
+  --color-primary: #7C5CFC;
+  --color-primary-soft: rgba(124, 92, 252, 0.12);
+  --color-primary-glow: rgba(124, 92, 252, 0.25);
+  --color-accent: #38BDF8;
+  --color-accent-soft: rgba(56, 189, 248, 0.12);
+  --color-text: #E8ECF4;
+  --color-text-secondary: #8B92AB;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-success: #34D399;
   --color-warning: #FBBF24;
 }
 
@@ -38,12 +42,56 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: "DM Sans", sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+}
+
+/* ── Focus ring ── */
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Message slide-in animation ── */
+@keyframes messageSlideIn {
+  0%   { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-message-in {
+  animation: messageSlideIn 0.25s ease-out both;
+}
+
+/* ── Card hover transition ── */
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.card-hover:hover { transform: translateY(-1px); }
+.card-hover:active { transform: translateY(0); }
+
+/* ── Typing dots ── */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+.animate-typing-dot {
+  animation: typingBounce 1.2s ease-in-out infinite;
 }
 
 /* ── Splash keyframes ── */
 
-/* Logo drops in with a bouncy overshoot */
 @keyframes splashLogoDrop {
   0%   { opacity: 0; transform: translateY(-60px) scale(0.3) rotate(-15deg); }
   60%  { opacity: 1; transform: translateY(8px) scale(1.08) rotate(3deg); }
@@ -51,54 +99,46 @@ body {
   100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
 }
 
-/* Each letter slides up into view */
 @keyframes splashLetterReveal {
   0%   { opacity: 0; transform: translateY(24px) scale(0.5); }
   60%  { opacity: 1; transform: translateY(-3px) scale(1.05); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Tagline fade + slide up */
 @keyframes splashFadeSlideUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 0.7; transform: translateY(0); }
 }
 
-/* Orbit rings expand outward and fade */
 @keyframes splashOrbitExpand {
   0%   { opacity: 0; transform: translate(-50%, -50%) scale(0); }
   40%  { opacity: 0.5; }
   100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* Background gradient pulse */
 @keyframes splashBgPulse {
   0%   { opacity: 0; }
   40%  { opacity: 0.6; }
   100% { opacity: 0.2; }
 }
 
-/* Logo glow */
 @keyframes splashGlow {
   0%   { opacity: 0; transform: scale(0.5); }
   50%  { opacity: 0.8; transform: scale(1.2); }
   100% { opacity: 0.4; transform: scale(1); }
 }
 
-/* Floating particles rise upward */
 @keyframes splashParticleFloat {
   0%   { opacity: 0; transform: translateY(0) scale(0); }
   20%  { opacity: 0.7; transform: scale(1); }
   100% { opacity: 0; transform: translateY(-85vh) scale(0.3); }
 }
 
-/* Loading bar fills across */
 @keyframes splashLoadingBar {
   from { width: 0%; }
   to   { width: 100%; }
 }
 
-/* Final curtain exit — scales down and fades */
 @keyframes splashCurtainExit {
   0%   { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(1.08); filter: blur(8px); }

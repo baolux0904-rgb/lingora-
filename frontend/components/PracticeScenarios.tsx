@@ -21,41 +21,46 @@ interface PracticeScenariosProps {
 
 export default function PracticeScenarios({ onSelect }: PracticeScenariosProps) {
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-3">
       <h3
-        className="font-sora font-semibold text-[14px] px-1"
+        className="font-sora font-semibold text-[15px] px-1"
         style={{ color: "var(--color-text-secondary)" }}
       >
         Practice a scenario
       </h3>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         {SCENARIOS.map((s) => (
           <button
             key={s.id}
             onClick={() => onSelect(s.id)}
-            className="flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-150 hover:scale-[1.01] active:scale-[0.99] text-left"
+            className="flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 card-hover text-left"
             style={{
               backgroundColor: "var(--color-bg-card)",
               border: "1px solid var(--color-border)",
             }}
           >
-            <span className="text-2xl flex-shrink-0">{s.emoji}</span>
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
+              style={{ background: "var(--color-primary-soft)" }}
+            >
+              {s.emoji}
+            </div>
             <div className="flex-1 min-w-0">
               <p
-                className="font-semibold text-[14px]"
+                className="font-semibold text-[15px]"
                 style={{ color: "var(--color-text)" }}
               >
                 {s.title}
               </p>
               <p
-                className="text-[12px] mt-0.5"
+                className="text-[13px] mt-0.5"
                 style={{ color: "var(--color-text-secondary)" }}
               >
                 {s.description}
               </p>
             </div>
             <span className="flex-shrink-0" style={{ color: "var(--color-text-secondary)" }}>
-              <IconArrowRight size={14} />
+              <IconArrowRight size={16} />
             </span>
           </button>
         ))}

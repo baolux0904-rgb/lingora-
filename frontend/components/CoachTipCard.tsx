@@ -19,35 +19,34 @@ export default function CoachTipCard() {
 
   return (
     <div
-      className="relative flex items-start gap-3 p-4 rounded-xl"
+      className="relative flex items-start gap-3.5 p-5 rounded-2xl"
       style={{
         backgroundColor: "var(--color-primary-soft)",
         border: "1px solid var(--color-border)",
+        borderLeft: "3px solid var(--color-primary)",
       }}
     >
-      {/* Mascot icon */}
       <img
         src="/lingona-logo.png"
         alt=""
-        className="w-8 h-8 object-contain flex-shrink-0 mt-0.5"
+        className="w-9 h-9 object-contain flex-shrink-0 mt-0.5"
       />
 
       <div className="flex-1 min-w-0">
         <p
-          className="font-semibold text-[12px] mb-1"
+          className="font-semibold text-[13px] mb-1"
           style={{ color: "var(--color-primary)" }}
         >
           Coach tip
         </p>
         <p
-          className="text-[13px] leading-relaxed"
+          className="text-[14px] leading-relaxed"
           style={{ color: "var(--color-text)" }}
         >
           {tip}
         </p>
       </div>
 
-      {/* Dismiss */}
       <button
         onClick={() => setDismissed(true)}
         className="flex-shrink-0 p-1 rounded-md transition-colors hover:opacity-70"

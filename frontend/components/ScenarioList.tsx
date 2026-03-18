@@ -1,23 +1,13 @@
 "use client";
 
-/**
- * ScenarioList.tsx
- *
- * Scenario browser with category filter pills.
- * Fetches real scenarios from the API and displays them as cards.
- */
-
 import React, { useState } from "react";
 import { useScenarios } from "@/hooks/useScenarios";
 import type { Scenario } from "@/lib/types";
 
-// ─── Props ────────────────────────────────────────────────────────────
-
 interface ScenarioListProps {
   onSelect: (scenario: Scenario) => void;
+  excludeExam?: boolean;
 }
-
-// ─── Category pills ───────────────────────────────────────────────────
 
 const CATEGORIES = [
   { key: undefined, label: "All" },
@@ -27,37 +17,33 @@ const CATEGORIES = [
   { key: "work", label: "Work" },
   { key: "social", label: "Social" },
   { key: "academic", label: "Academic" },
-  { key: "exam", label: "🎓 Exam" },
 ] as const;
-
-// ─── Difficulty badge colors ──────────────────────────────────────────
 
 function difficultyColor(d: string) {
   switch (d) {
     case "beginner":
-      return { bg: "rgba(74, 222, 128, 0.15)", text: "#4ade80" };
+      return { bg: "rgba(52,211,153,0.15)", text: "#34D399" };
     case "intermediate":
-      return { bg: "rgba(251, 191, 36, 0.15)", text: "#fbbf24" };
+      return { bg: "rgba(251,191,36,0.15)", text: "#fbbf24" };
     case "advanced":
-      return { bg: "rgba(248, 113, 113, 0.15)", text: "#f87171" };
+      return { bg: "rgba(248,113,113,0.15)", text: "#f87171" };
     default:
-      return { bg: "rgba(148, 163, 184, 0.15)", text: "#94a3b8" };
+      return { bg: "rgba(139,146,171,0.15)", text: "#8B92AB" };
   }
 }
 
-// ─── Component ────────────────────────────────────────────────────────
+export default function ScenarioList({ onSelect, excludeExam }: ScenarioListProps) {
+  const [activeCategory, setActiveCategory] = useState<string | undefined>(undefined);
+  const { scenarios: rawScenarios, loading, error } = useScenarios(activeCategory);
 
-export default function ScenarioList({ onSelect }: ScenarioListProps) {
-  const [activeCategory, setActiveCategory] = useState<string | undefined>(
-    undefined,
-  );
-  const { scenarios, loading, error } = useScenarios(activeCategory);
+  const scenarios = excludeExam
+    ? rawScenarios.filter((s) => s.exam_type !== "ielts")
+    : rawScenarios;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Header */}
+    <div className="flex flex-col gap-5">
       <h2
-        className="text-lg font-sora font-bold"
+        className="text-xl font-sora font-bold"
         style={{ color: "var(--color-text)" }}
       >
         Speak Scenarios
@@ -76,11 +62,9 @@ export default function ScenarioList({ onSelect }: ScenarioListProps) {
                   ? "var(--color-primary)"
                   : "var(--color-bg-card)",
                 color: isActive ? "#fff" : "var(--color-text-secondary)",
-                border: isActive
-                  ? "none"
-                  : "1px solid var(--color-border)",
+                border: isActive ? "none" : "1px solid var(--color-border)",
               }}
-              className="px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 transition-colors"
+              className="px-4 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap shrink-0 transition-all duration-200"
             >
               {cat.label}
             </button>
@@ -88,57 +72,42 @@ export default function ScenarioList({ onSelect }: ScenarioListProps) {
         })}
       </div>
 
-      {/* Loading */}
       {loading && (
-        <div className="flex items-center justify-center py-12">
+        <div className="flex items-center justify-center py-16">
           <div
-            style={{
-              borderColor: "var(--color-border)",
-              borderTopColor: "var(--color-primary)",
-            }}
+            style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-primary)" }}
             className="w-8 h-8 border-2 rounded-full animate-spin"
           />
         </div>
       )}
 
-      {/* Error */}
       {error && (
-        <div
-          className="text-center py-8"
-          style={{ color: "var(--color-warning)" }}
-        >
-          ⚠️ {error}
+        <div className="text-center py-10 text-[15px]" style={{ color: "var(--color-warning)" }}>
+          {error}
         </div>
       )}
 
-      {/* Scenario cards */}
       {!loading && !error && (
         <div className="flex flex-col gap-3">
           {scenarios.length === 0 && (
-            <div
-              className="text-center py-8 text-sm"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
+            <div className="text-center py-10 text-[15px]" style={{ color: "var(--color-text-secondary)" }}>
               No scenarios found for this category.
             </div>
           )}
 
-          {scenarios.map((scenario) => {
+          {scenarios.map((scenario, i) => {
             const dc = difficultyColor(scenario.difficulty);
-            const isIelts = scenario.exam_type === "ielts";
             return (
               <button
                 key={scenario.id}
                 onClick={() => onSelect(scenario)}
+                className="flex items-center gap-4 p-4 rounded-2xl text-left transition-all duration-200 card-hover animate-fadeSlideUp"
                 style={{
                   background: "var(--color-bg-card)",
-                  border: isIelts
-                    ? "1px solid rgba(251, 191, 36, 0.5)"
-                    : "1px solid var(--color-border)",
+                  border: "1px solid var(--color-border)",
+                  animationDelay: `${i * 50}ms`,
                 }}
-                className="flex items-center gap-3 p-4 rounded-xl text-left hover:opacity-90 transition-opacity"
               >
-                {/* Emoji */}
                 <div
                   className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
                   style={{ background: "var(--color-primary-soft)" }}
@@ -146,62 +115,24 @@ export default function ScenarioList({ onSelect }: ScenarioListProps) {
                   {scenario.emoji}
                 </div>
 
-                {/* Text */}
                 <div className="flex-1 min-w-0">
-                  <div
-                    className="font-semibold text-sm truncate"
-                    style={{ color: "var(--color-text)" }}
-                  >
+                  <div className="font-semibold text-[15px] truncate" style={{ color: "var(--color-text)" }}>
                     {scenario.title}
                   </div>
-                  <div
-                    className="text-xs mt-0.5 line-clamp-1"
-                    style={{ color: "var(--color-text-secondary)" }}
-                  >
+                  <div className="text-[13px] mt-0.5 line-clamp-1" style={{ color: "var(--color-text-secondary)" }}>
                     {scenario.description}
                   </div>
-
-                  {/* Meta row */}
-                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    {isIelts && (
-                      <span
-                        className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                        style={{
-                          background: "rgba(251, 191, 36, 0.15)",
-                          color: "#fbbf24",
-                        }}
-                      >
-                        EXAM
-                      </span>
-                    )}
-                    <span
-                      className="text-[10px] font-medium px-2 py-0.5 rounded-full"
-                      style={{ background: dc.bg, color: dc.text }}
-                    >
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: dc.bg, color: dc.text }}>
                       {scenario.difficulty}
                     </span>
-                    <span
-                      className="text-[10px]"
-                      style={{ color: "var(--color-text-secondary)" }}
-                    >
+                    <span className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>
                       ~{scenario.expected_turns} turns
                     </span>
                   </div>
                 </div>
 
-                {/* Arrow */}
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ color: "var(--color-text-secondary)" }}
-                  className="shrink-0"
-                >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-secondary)" }} className="shrink-0">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>

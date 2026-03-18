@@ -9,16 +9,20 @@ interface StartSpeakingCardProps {
 export default function StartSpeakingCard({ onStart }: StartSpeakingCardProps) {
   return (
     <div
-      className="relative rounded-2xl p-6 flex flex-col items-center text-center gap-4 overflow-hidden"
+      className="relative rounded-2xl p-7 flex flex-col items-center text-center gap-5 overflow-hidden"
       style={{
-        background: "linear-gradient(135deg, var(--color-primary), #6C4FD6)",
-        minHeight: "260px",
+        background: "linear-gradient(135deg, var(--color-primary) 0%, #5B3FBF 50%, #3B2D8F 100%)",
+        minHeight: "270px",
       }}
     >
       {/* Subtle glow circle */}
       <div
-        className="absolute top-[-40px] right-[-40px] w-[180px] h-[180px] rounded-full opacity-20"
+        className="absolute top-[-40px] right-[-40px] w-[200px] h-[200px] rounded-full opacity-15"
         style={{ background: "radial-gradient(circle, var(--color-accent), transparent)" }}
+      />
+      <div
+        className="absolute bottom-[-30px] left-[-30px] w-[120px] h-[120px] rounded-full opacity-10"
+        style={{ background: "radial-gradient(circle, #fff, transparent)" }}
       />
 
       {/* Mascot */}
@@ -35,7 +39,7 @@ export default function StartSpeakingCard({ onStart }: StartSpeakingCardProps) {
         <h2 className="font-sora font-bold text-[22px] text-white leading-tight">
           Ready to speak?
         </h2>
-        <p className="text-white/70 text-sm mt-1">
+        <p className="text-white/60 text-[15px] mt-1.5">
           Practice English with your AI coach
         </p>
       </div>
@@ -47,7 +51,7 @@ export default function StartSpeakingCard({ onStart }: StartSpeakingCardProps) {
         style={{
           backgroundColor: "white",
           color: "var(--color-primary)",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
         }}
       >
         <IconMic size={18} />

@@ -12,6 +12,7 @@ import LessonsSection from "@/components/LessonsSection";
 import ScenarioList from "@/components/ScenarioList";
 import ScenarioConversation from "@/components/ScenarioConversation";
 import IeltsConversation from "@/components/IeltsConversation";
+import ExamScreen from "@/components/ExamScreen";
 import SpeakingMetrics from "@/components/SpeakingMetrics";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useProgress } from "@/hooks/useProgress";
@@ -44,13 +45,10 @@ export default function HomePage() {
 
   const handleScenarioSelect = (scenarioOrId: Scenario | string) => {
     if (typeof scenarioOrId === "string") {
-      // From homepage PracticeScenarios — switch to speak tab
       setActiveTab("speak");
     } else if (scenarioOrId.exam_type === "ielts") {
-      // IELTS scenario — open dedicated IELTS conversation UI
       setIeltsScenario(scenarioOrId);
     } else {
-      // Regular scenario — open standard conversation
       setActiveScenario(scenarioOrId);
     }
   };
@@ -63,9 +61,7 @@ export default function HomePage() {
     refetchGamification();
   };
 
-  // Coach card action — deep-link to specific scenario when possible, else navigate to tab
   const handleFocusAction = async (rec: FocusRecommendation) => {
-    // Deep-link: open a specific scenario conversation directly
     if (rec.scenarioId && rec.actionTarget === "speak") {
       try {
         const scenarios = await getScenarios();
@@ -75,11 +71,9 @@ export default function HomePage() {
           return;
         }
       } catch {
-        // Fall through to tab navigation on any fetch error
+        // Fall through to tab navigation
       }
     }
-
-    // Default: navigate to the target tab
     setActiveTab(rec.actionTarget);
   };
 
@@ -109,13 +103,12 @@ export default function HomePage() {
     <div className="flex flex-col min-h-dvh" style={{ backgroundColor: "var(--color-bg)" }}>
       <Topbar streak={displayStreak} />
 
-      {/* Scroll area — account for bottom nav */}
-      <main className="flex-1 overflow-y-auto pb-20">
-        <div className="max-w-lg mx-auto px-4 py-5">
+      <main className="flex-1 overflow-y-auto pb-24">
+        <div className="max-w-xl mx-auto px-5 py-6">
 
           {/* ── HOME TAB ── */}
           {activeTab === "home" && (
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-6">
               <StartSpeakingCard onStart={handleStartSpeaking} />
               <TodayFocusCard
                 recommendations={focusRecs}
@@ -127,17 +120,27 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* ── SPEAK TAB — Scenario browser ── */}
+          {/* ── SPEAK TAB — Scenario browser (no exam scenarios) ── */}
           {activeTab === "speak" && (
-            <ScenarioList onSelect={(scenario) => handleScenarioSelect(scenario)} />
+            <ScenarioList
+              onSelect={(scenario) => handleScenarioSelect(scenario)}
+              excludeExam
+            />
           )}
 
           {/* ── PRACTICE TAB — Lesson-based practice ── */}
           {activeTab === "practice" && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <LessonsSection onLessonComplete={refetchGamification} />
               <LessonsPage apiLessons={apiLessons} />
             </div>
+          )}
+
+          {/* ── EXAM TAB ── */}
+          {activeTab === "exam" && (
+            <ExamScreen
+              onStartIelts={(scenario) => setIeltsScenario(scenario)}
+            />
           )}
 
           {/* ── PROFILE TAB ── */}

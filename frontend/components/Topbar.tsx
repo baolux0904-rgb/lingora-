@@ -10,18 +10,20 @@ interface TopbarProps {
 export default function Topbar({ streak = 0 }: TopbarProps) {
   return (
     <header
-      className="h-14 px-5 flex items-center justify-between gap-4 flex-shrink-0"
+      className="h-16 px-5 flex items-center justify-between gap-4 flex-shrink-0"
       style={{
-        backgroundColor: "var(--color-bg)",
+        backgroundColor: "var(--color-bg-card)",
         borderBottom: "1px solid var(--color-border)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
       }}
     >
       {/* Left — Streak badge */}
       <div
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12.5px] font-semibold"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold"
         style={{
           backgroundColor: "rgba(251,191,36,0.1)",
-          border: "1px solid rgba(251,191,36,0.2)",
+          border: "1px solid rgba(251,191,36,0.18)",
           color: "#F59E0B",
         }}
       >
@@ -31,14 +33,14 @@ export default function Topbar({ streak = 0 }: TopbarProps) {
 
       {/* Center — Brand */}
       <span
-        className="font-sora font-bold text-[15px] tracking-[-0.3px]"
+        className="font-sora font-bold text-[17px] tracking-[-0.3px]"
         style={{ color: "var(--color-text)" }}
       >
         Lingona
       </span>
 
       {/* Right — Avatar + Theme */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         <ThemeToggle />
         <div
           className="w-8 h-8 rounded-full flex items-center justify-center font-sora font-bold text-[11px] text-white"
