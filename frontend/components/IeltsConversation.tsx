@@ -3,16 +3,14 @@
 /**
  * IeltsConversation.tsx
  *
- * IELTS Speaking test simulation — designed as an EXAM interface, not a chat.
+ * REBUILT — Immersive IELTS Speaking exam simulation.
  *
- * Structure:
- *  - Examiner avatar + question block (not chat bubbles)
- *  - Answer area with voice-first input
- *  - Progress stepper showing Part 1 → 2 → 3
- *  - Session transcript that builds naturally
- *  - TTS-ready architecture (examiner speaks questions aloud)
- *
- * Phases: loading → part1 → part2_prep → part2_speaking → part3 → ending → summary
+ * Architecture:
+ *  - Backend state machine controls Part 1/2/3 transitions (NOT keyword detection)
+ *  - Deterministic flow: Part 1 (5 Q&A) → Part 2 (cue card + prep + speak) → Part 3 (5 Q&A)
+ *  - TTS auto-play → mic auto-start lifecycle (no stuck states)
+ *  - Voice-first with text fallback
+ *  - Dark immersive UI — exam room atmosphere
  */
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -28,368 +26,42 @@ import type {
   Scenario,
   ConversationTurn,
   EndSessionResult,
-  IeltsPhase,
   IeltsCueCard,
 } from "@/lib/types";
-import IeltsTimer from "./IeltsTimer";
 import ScenarioSummary from "./ScenarioSummary";
 import { useVoiceInput } from "@/hooks/useVoiceInput";
 
 // ─── Constants ─────────────────────────────────────────────────────────────
 
-const PART1_MAX_TURNS = 6;
-const PART3_MAX_TURNS = 5;
-const PREP_SECONDS     = 60;
-const SPEAKING_SECONDS = 120;
-const STORAGE_KEY      = "ielts-session";
+type ExamPhase =
+  | "entering"     // fade-in intro sequence
+  | "part1"        // interview questions
+  | "part2_intro"  // "now let's move to part 2" transition
+  | "part2_prep"   // cue card + 60s countdown
+  | "part2_speak"  // 2-minute speaking window
+  | "part3"        // discussion questions
+  | "ending"       // scoring analysis
+  | "summary"      // results
+  | "error";
 
-/** Natural delay range (ms) before showing examiner response — feels human */
-const EXAMINER_DELAY_MIN = 1200;
-const EXAMINER_DELAY_MAX = 2400;
+const PART1_QUESTIONS = 5;
+const PART3_QUESTIONS = 5;
+const PREP_SECONDS = 60;
+const SPEAK_SECONDS = 120;
 
-const SAFE_SCORE_DEFAULTS: EndSessionResult = {
-  overallScore:  60,
-  fluency:       60,
-  vocabulary:    60,
-  grammar:       60,
-  coachFeedback: "Good effort! Keep practicing to build your fluency and confidence.",
-  turnFeedback:  [],
-  turnCount:     0,
-  wordCount:     0,
-  durationMs:    0,
+const SAFE_SCORES: EndSessionResult = {
+  overallScore: 60,
+  fluency: 60,
+  vocabulary: 60,
+  grammar: 60,
+  coachFeedback: "Good effort! Keep practicing to build your fluency.",
+  turnFeedback: [],
+  turnCount: 0,
+  wordCount: 0,
+  durationMs: 0,
 };
 
-const PART_LABELS: Record<string, { name: string; desc: string }> = {
-  part1: { name: "Part 1 — Introduction", desc: "Answer questions about familiar topics" },
-  part2: { name: "Part 2 — Long Turn", desc: "Speak about a given topic for 2 minutes" },
-  part3: { name: "Part 3 — Discussion", desc: "Discuss abstract ideas related to Part 2" },
-};
-
-// ─── Cue cards ─────────────────────────────────────────────────────────────
-
-const CUE_CARDS: IeltsCueCard[] = [
-  { topic: "Describe a place you would like to visit", prompts: ["Where the place is", "How you heard about it", "What you would do there", "Why you would like to visit it"] },
-  { topic: "Describe a person who has inspired you", prompts: ["Who this person is", "How you know them", "What they have done that inspired you", "Why they have been important to you"] },
-  { topic: "Describe a skill you would like to learn", prompts: ["What the skill is", "Why you want to learn it", "How you would learn it", "How useful this skill would be for you"] },
-  { topic: "Describe a memorable journey you have made", prompts: ["Where you went", "Who you went with", "What happened during the journey", "Why this journey was memorable"] },
-  { topic: "Describe a book or film you have enjoyed", prompts: ["What it is about", "When you read or watched it", "What you liked about it", "Why you would recommend it to others"] },
-  { topic: "Describe a time you helped someone", prompts: ["Who you helped", "Why they needed help", "How you helped them", "How you felt afterwards"] },
-  { topic: "Describe a tradition in your country", prompts: ["What the tradition is", "How long it has existed", "How it is celebrated or practised", "Why it is important"] },
-  { topic: "Describe a piece of technology you use often", prompts: ["What it is", "How often you use it", "What you use it for", "Why it is important to you"] },
-];
-
-function pickRandomCueCard(): IeltsCueCard {
-  return CUE_CARDS[Math.floor(Math.random() * CUE_CARDS.length)];
-}
-
-// ─── Phase detection ────────────────────────────────────────────────────────
-
-function detectPhaseTransition(
-  aiText: string,
-  currentPhase: IeltsPhase,
-  part1TurnCount: number,
-  part3TurnCount: number,
-): IeltsPhase | null {
-  const lower = aiText.toLowerCase();
-
-  if (currentPhase === "part1") {
-    const toP2 =
-      lower.includes("part 2") || lower.includes("part two") ||
-      lower.includes("cue card") || lower.includes("long turn");
-    if (toP2 || part1TurnCount >= PART1_MAX_TURNS) return "part2_prep";
-  }
-
-  if (currentPhase === "part2_speaking") {
-    const toP3 =
-      lower.includes("part 3") || lower.includes("part three") || lower.includes("discussion");
-    if (toP3) return "part3";
-  }
-
-  if (currentPhase === "part3") {
-    const keywordEnd =
-      lower.includes("end of") || lower.includes("thank you very much") ||
-      lower.includes("that concludes") || lower.includes("end of the speaking");
-    if (keywordEnd || part3TurnCount >= PART3_MAX_TURNS) return "ending";
-  }
-
-  return null;
-}
-
-// ─── localStorage helpers ───────────────────────────────────────────────────
-
-interface StoredSession {
-  scenarioId: string;
-  sessionId: string;
-  phase: IeltsPhase;
-  turns: ConversationTurn[];
-  cueCard: IeltsCueCard | null;
-  part1TurnCount: number;
-  part3TurnCount: number;
-}
-
-function saveSession(data: StoredSession) {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-}
-
-function loadSession(scenarioId: string): StoredSession | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed: StoredSession = JSON.parse(raw);
-    return parsed.scenarioId === scenarioId ? parsed : null;
-  } catch { return null; }
-}
-
-function clearSession() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
-}
-
-// ─── Examiner Avatar ────────────────────────────────────────────────────────
-
-function ExaminerAvatar({ speaking = false, size = "md" }: { speaking?: boolean; size?: "sm" | "md" }) {
-  const s = size === "sm" ? 36 : 48;
-  return (
-    <div
-      className={`shrink-0 rounded-full flex items-center justify-center ${speaking ? "animate-examiner-pulse" : ""}`}
-      style={{
-        width: s,
-        height: s,
-        background: "linear-gradient(135deg, var(--color-examiner), var(--color-primary))",
-        boxShadow: speaking ? "0 0 16px var(--color-examiner-soft)" : "none",
-      }}
-    >
-      <svg width={s * 0.45} height={s * 0.45} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
-      </svg>
-    </div>
-  );
-}
-
-// ─── Progress Stepper ───────────────────────────────────────────────────────
-
-function ProgressStepper({ phase, part1TurnCount, part3TurnCount }: { phase: IeltsPhase; part1TurnCount: number; part3TurnCount: number }) {
-  const parts = [
-    { key: "part1", label: "Part 1", number: 1 },
-    { key: "part2", label: "Part 2", number: 2 },
-    { key: "part3", label: "Part 3", number: 3 },
-  ];
-
-  function getActivePart(p: IeltsPhase): string {
-    if (p === "part1") return "part1";
-    if (p === "part2_prep" || p === "part2_speaking") return "part2";
-    return "part3";
-  }
-
-  const active = getActivePart(phase);
-
-  return (
-    <div className="flex items-center gap-1">
-      {parts.map((p, i) => {
-        const isActive = p.key === active;
-        const isPast =
-          (p.key === "part1" && (active === "part2" || active === "part3")) ||
-          (p.key === "part2" && active === "part3");
-
-        return (
-          <React.Fragment key={p.key}>
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-300"
-              style={{
-                background: isActive ? "var(--color-examiner-soft)" : isPast ? "rgba(52,211,153,0.08)" : "transparent",
-                color: isActive ? "var(--color-examiner)" : isPast ? "var(--color-success)" : "var(--color-text-secondary)",
-                border: isActive ? "1px solid var(--color-examiner)" : "1px solid transparent",
-              }}
-            >
-              {isPast ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              ) : (
-                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold" style={{
-                  background: isActive ? "var(--color-examiner)" : "var(--color-border)",
-                  color: isActive ? "#fff" : "var(--color-text-secondary)",
-                }}>
-                  {p.number}
-                </span>
-              )}
-              {p.label}
-            </div>
-            {i < parts.length - 1 && (
-              <div className="w-3 h-px" style={{ background: isPast ? "var(--color-success)" : "var(--color-border)" }} />
-            )}
-          </React.Fragment>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── Question counter ───────────────────────────────────────────────────────
-
-function QuestionCounter({ current, total }: { current: number; total: number }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[11px] font-medium" style={{ color: "var(--color-text-secondary)" }}>
-        Question
-      </span>
-      <span className="text-[12px] font-bold" style={{ color: "var(--color-examiner)" }}>
-        {current}
-      </span>
-      <span className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>/</span>
-      <span className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>{total}</span>
-    </div>
-  );
-}
-
-// ─── Transcript entry ───────────────────────────────────────────────────────
-
-function TranscriptEntry({ question, answer, index }: { question: string; answer: string; index: number }) {
-  return (
-    <div className="flex flex-col gap-2 exam-answer-appear">
-      <div className="flex items-start gap-2.5">
-        <ExaminerAvatar size="sm" />
-        <div className="flex-1 min-w-0">
-          <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-examiner)" }}>
-            Question {index}
-          </div>
-          <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-            {question}
-          </p>
-        </div>
-      </div>
-      <div className="ml-[46px]">
-        <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-primary)" }}>
-          Your answer
-        </div>
-        <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text)" }}>
-          {answer}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Examiner Question Block ────────────────────────────────────────────────
-
-function ExaminerQuestion({ content, isSpeaking }: { content: string; isSpeaking?: boolean }) {
-  return (
-    <div className="flex items-start gap-3.5 exam-question-appear">
-      <ExaminerAvatar speaking={isSpeaking} />
-      <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--color-examiner)" }}>
-          Examiner
-        </div>
-        <div
-          className="rounded-2xl p-4"
-          style={{
-            background: "var(--color-examiner-soft)",
-            borderLeft: "3px solid var(--color-examiner)",
-          }}
-        >
-          <p className="text-[16px] font-medium leading-relaxed" style={{ color: "var(--color-text)" }}>
-            {content}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Cue card display ───────────────────────────────────────────────────────
-
-function CueCardDisplay({ card }: { card: IeltsCueCard }) {
-  return (
-    <div
-      className="rounded-2xl p-5 animate-phase-in"
-      style={{
-        background: "var(--color-bg-card)",
-        border: "1px solid var(--color-border)",
-        borderTop: "3px solid var(--color-examiner)",
-      }}
-    >
-      <div className="flex items-center gap-2 mb-3">
-        <ExaminerAvatar size="sm" />
-        <div>
-          <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--color-examiner)" }}>
-            Task Card
-          </div>
-          <div className="text-[10px]" style={{ color: "var(--color-text-secondary)" }}>Part 2 — Long Turn</div>
-        </div>
-      </div>
-      <p className="text-[16px] font-semibold mb-3.5 leading-snug" style={{ color: "var(--color-text)" }}>
-        {card.topic}
-      </p>
-      <div className="text-[11px] font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
-        You should say:
-      </div>
-      <ul className="flex flex-col gap-2 mb-4">
-        {card.prompts.map((prompt, i) => (
-          <li key={i} className="flex gap-2.5 items-start">
-            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5" style={{ background: "var(--color-examiner-soft)", color: "var(--color-examiner)" }}>
-              {i + 1}
-            </span>
-            <span className="text-[14px] leading-relaxed" style={{ color: "var(--color-text)" }}>
-              {prompt}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <div className="flex items-center gap-2 pt-3" style={{ borderTop: "1px solid var(--color-border)" }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-        </svg>
-        <span className="text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
-          1 minute to prepare, then speak for up to 2 minutes
-        </span>
-      </div>
-    </div>
-  );
-}
-
-// ─── Voice input button (large, central) ────────────────────────────────────
-
-function VoiceButton({ voice, disabled, size = "md" }: {
-  voice: { isSupported: boolean; isRecording: boolean; startRecording: () => void; stopRecording: () => void };
-  disabled: boolean;
-  size?: "sm" | "md" | "lg";
-}) {
-  if (!voice.isSupported) return null;
-
-  const dims = size === "lg" ? "w-16 h-16" : size === "md" ? "w-12 h-12" : "w-10 h-10";
-  const iconSize = size === "lg" ? 24 : size === "md" ? 20 : 16;
-
-  return (
-    <div className="relative flex items-center justify-center">
-      {voice.isRecording && (
-        <div className="absolute inset-0 rounded-full animate-recording-pulse" style={{ background: "rgba(239,68,68,0.2)" }} />
-      )}
-      <button
-        onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
-        disabled={disabled}
-        title={voice.isRecording ? "Stop recording" : "Tap to speak"}
-        className={`${dims} rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-40`}
-        style={{
-          background: voice.isRecording
-            ? "linear-gradient(135deg, #ef4444, #dc2626)"
-            : "linear-gradient(135deg, var(--color-examiner), var(--color-primary))",
-          color: "#fff",
-          boxShadow: voice.isRecording
-            ? "0 4px 16px rgba(239,68,68,0.3)"
-            : "0 4px 16px var(--color-primary-glow)",
-        }}
-      >
-        {voice.isRecording ? (
-          <svg width={iconSize * 0.7} height={iconSize * 0.7} viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="3" /></svg>
-        ) : (
-          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-          </svg>
-        )}
-      </button>
-    </div>
-  );
-}
-
-// ─── Props ──────────────────────────────────────────────────────────────────
+// ─── Props ─────────────────────────────────────────────────────────────────
 
 interface IeltsConversationProps {
   scenario: Scenario;
@@ -397,7 +69,7 @@ interface IeltsConversationProps {
   onComplete?: () => void;
 }
 
-// ─── Main component ─────────────────────────────────────────────────────────
+// ─── Main Component ────────────────────────────────────────────────────────
 
 export default function IeltsConversation({
   scenario,
@@ -406,117 +78,134 @@ export default function IeltsConversation({
 }: IeltsConversationProps) {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => !!s.user);
-  const [phase, setPhase]               = useState<IeltsPhase>("loading");
-  const [sessionId, setSessionId]       = useState<string | null>(null);
-  const [turns, setTurns]               = useState<ConversationTurn[]>([]);
-  const [cueCard, setCueCard]           = useState<IeltsCueCard | null>(null);
-  const [part1TurnCount, setPart1TurnCount] = useState(0);
-  const [part3TurnCount, setPart3TurnCount] = useState(0);
-  const [isTyping, setIsTyping]         = useState(false);
-  const [inputText, setInputText]       = useState("");
-  const [scores, setScores]             = useState<EndSessionResult | null>(null);
-  const [errorMsg, setErrorMsg]         = useState<string | null>(null);
 
-  const startTimeRef  = useRef<number>(Date.now());
-  const scrollRef     = useRef<HTMLDivElement>(null);
-  const inputRef      = useRef<HTMLTextAreaElement>(null);
-
+  // ── Core state ──
+  const [phase, setPhase] = useState<ExamPhase>("entering");
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [turns, setTurns] = useState<ConversationTurn[]>([]);
+  const [cueCard, setCueCard] = useState<IeltsCueCard | null>(null);
+  const [userTurnCount, setUserTurnCount] = useState(0);
+  const [inputText, setInputText] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const [examinerSpeaking, setExaminerSpeaking] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [scores, setScores] = useState<EndSessionResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Voice input — populates inputText, user sends manually
+  // Part 2 timer
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Refs
+  const startTimeRef = useRef(Date.now());
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const micEnabledRef = useRef(true);
+
+  // Voice input
   const voice = useVoiceInput(
     useCallback((transcript: string) => {
       setInputText((prev) => (prev ? prev + " " + transcript : transcript));
     }, [])
   );
 
-  // Auto-scroll
+  // ── Auto-scroll ──
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [turns, isTyping, phase]);
+  }, [turns, isProcessing, phase]);
 
-  /**
-   * Play examiner's question aloud via TTS, then optionally auto-start mic.
-   * Gracefully falls back to no audio if TTS is unavailable.
-   */
-  const playExaminerVoice = useCallback(async (text: string, autoMic = true) => {
+  // ── Timer logic ──
+  useEffect(() => {
+    if (!timerActive || timerSeconds <= 0) return;
+    timerRef.current = setInterval(() => {
+      setTimerSeconds((s) => {
+        if (s <= 1) {
+          setTimerActive(false);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerActive, timerSeconds]);
+
+  // ── Cleanup on unmount ──
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  // ─── TTS Playback ───────────────────────────────────────────────────────
+
+  const playTTS = useCallback(async (text: string, autoMic = true) => {
     setExaminerSpeaking(true);
+    micEnabledRef.current = false;
+
     try {
       const blob = await synthesizeSpeech(text);
       if (blob && blob.size > 0) {
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
         audioRef.current = audio;
+
         audio.onended = () => {
           URL.revokeObjectURL(url);
           setExaminerSpeaking(false);
           audioRef.current = null;
-          // Auto-start mic after examiner finishes speaking
+          micEnabledRef.current = true;
+          // Auto-start mic after examiner finishes
           if (autoMic && voice.isSupported && !voice.isRecording) {
-            voice.startRecording();
+            setTimeout(() => voice.startRecording(), 300);
           }
         };
         audio.onerror = () => {
           URL.revokeObjectURL(url);
           setExaminerSpeaking(false);
           audioRef.current = null;
+          micEnabledRef.current = true;
         };
-        await audio.play().catch(() => setExaminerSpeaking(false));
+        await audio.play().catch(() => {
+          setExaminerSpeaking(false);
+          micEnabledRef.current = true;
+        });
       } else {
-        // No TTS — just clear speaking state after a brief moment
-        setTimeout(() => setExaminerSpeaking(false), 800);
+        // No TTS available — brief pause then enable mic
+        setTimeout(() => {
+          setExaminerSpeaking(false);
+          micEnabledRef.current = true;
+          if (autoMic && voice.isSupported && !voice.isRecording) {
+            voice.startRecording();
+          }
+        }, 600);
       }
     } catch {
       setExaminerSpeaking(false);
+      micEnabledRef.current = true;
     }
   }, [voice]);
 
-  /** Natural delay — returns a promise that resolves after a random human-like pause */
-  function examinerDelay(): Promise<void> {
-    const ms = EXAMINER_DELAY_MIN + Math.random() * (EXAMINER_DELAY_MAX - EXAMINER_DELAY_MIN);
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  // Cleanup TTS audio on unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
-
-  // ── Session init ──────────────────────────────────────────────────────────
+  // ─── Session Init ───────────────────────────────────────────────────────
 
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
-      // Gate behind authentication — exam features require a logged-in user
       if (!useAuthStore.getState().accessToken) {
         setErrorMsg("Please log in to start the exam.");
         setPhase("error");
         return;
       }
 
-      const saved = loadSession(scenario.id);
-      if (saved && saved.sessionId) {
-        if (!cancelled) {
-          setSessionId(saved.sessionId);
-          setTurns(saved.turns ?? []);
-          setCueCard(saved.cueCard);
-          setPart1TurnCount(saved.part1TurnCount ?? 0);
-          setPart3TurnCount(saved.part3TurnCount ?? 0);
-          setPhase(saved.phase ?? "part1");
-        }
-        return;
-      }
-
       try {
+        // Entering sequence — 2s dramatic pause
+        await new Promise((r) => setTimeout(r, 2000));
+        if (cancelled) return;
+
         const result = await startScenarioSession(scenario.id);
         if (cancelled) return;
 
@@ -534,30 +223,22 @@ export default function IeltsConversation({
         setSessionId(result.sessionId);
         setTurns(mappedTurns);
 
-        // Brief pause before revealing part 1 — feels like entering an exam room
-        await examinerDelay();
-        if (cancelled) return;
+        // Store cue card from backend
+        if (result.cueCard) {
+          setCueCard(result.cueCard);
+        }
 
         setPhase("part1");
-        saveSession({
-          scenarioId: scenario.id,
-          sessionId: result.sessionId,
-          phase: "part1",
-          turns: mappedTurns,
-          cueCard: null,
-          part1TurnCount: 0,
-          part3TurnCount: 0,
-        });
 
-        // Auto-play TTS for the first examiner question
+        // Play the first examiner question via TTS
         const firstAi = mappedTurns.find((t) => t.role === "assistant");
         if (firstAi) {
-          playExaminerVoice(firstAi.content, true);
+          await new Promise((r) => setTimeout(r, 500));
+          if (!cancelled) playTTS(firstAi.content, true);
         }
       } catch (err: unknown) {
         if (cancelled) return;
-        const msg = err instanceof Error ? err.message : "Failed to start session";
-        setErrorMsg(msg);
+        setErrorMsg(err instanceof Error ? err.message : "Failed to start session");
         setPhase("error");
       }
     }
@@ -566,34 +247,32 @@ export default function IeltsConversation({
     return () => { cancelled = true; };
   }, [scenario.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── End session ───────────────────────────────────────────────────────────
+  // ─── End Session ────────────────────────────────────────────────────────
 
   const handleEndSession = useCallback(async (sid: string) => {
     setPhase("ending");
-    clearSession();
     try {
       const durationMs = Date.now() - startTimeRef.current;
-      // Start scoring + show ending UI for at least 2.5s (feels like real analysis)
       const [result] = await Promise.all([
         endScenarioSession(sid, durationMs),
-        new Promise((r) => setTimeout(r, 2500)),
+        new Promise((r) => setTimeout(r, 3000)), // minimum 3s analysis feel
       ]);
       setScores(result as EndSessionResult);
       onComplete?.();
     } catch {
-      setScores({ ...SAFE_SCORE_DEFAULTS });
+      setScores({ ...SAFE_SCORES });
     } finally {
       setPhase("summary");
     }
   }, [onComplete]);
 
-  // ── Send message ──────────────────────────────────────────────────────────
+  // ─── Submit Turn ────────────────────────────────────────────────────────
 
   const handleSend = useCallback(async () => {
     const content = inputText.trim();
-    if (!sessionId || !content || isTyping) return;
+    if (!sessionId || !content || isProcessing) return;
 
-    // Stop recording and TTS if active
+    // Stop recording + TTS
     if (voice.isRecording) voice.stopRecording();
     if (audioRef.current) {
       audioRef.current.pause();
@@ -602,8 +281,9 @@ export default function IeltsConversation({
     }
 
     setInputText("");
-    setIsTyping(true);
+    setIsProcessing(true);
 
+    // Optimistic user turn
     const tempId = `temp-${Date.now()}`;
     const optimistic: ConversationTurn = {
       id: tempId,
@@ -617,13 +297,9 @@ export default function IeltsConversation({
     };
     setTurns((prev) => [...prev, optimistic]);
 
-    const newPart1Count = phase === "part1" ? part1TurnCount + 1 : part1TurnCount;
-    const newPart3Count = phase === "part3" ? part3TurnCount + 1 : part3TurnCount;
-
     try {
       const result = await submitScenarioTurn(sessionId, content);
 
-      // Show user turn immediately, but hold back AI response for natural feel
       const userTurn: ConversationTurn = {
         id: `user-${result.userTurn.turnIndex}`,
         turnIndex: result.userTurn.turnIndex,
@@ -634,15 +310,6 @@ export default function IeltsConversation({
         feedback: null,
         createdAt: result.userTurn.createdAt,
       };
-
-      // Replace optimistic user message with confirmed
-      setTurns((prev) => {
-        const withoutTemp = prev.filter((t) => t.id !== tempId);
-        return [...withoutTemp, userTurn];
-      });
-
-      // Natural examiner thinking delay
-      await examinerDelay();
 
       const aiTurn: ConversationTurn = {
         id: `ai-${result.aiTurn.turnIndex}`,
@@ -655,53 +322,61 @@ export default function IeltsConversation({
         createdAt: result.aiTurn.createdAt,
       };
 
-      const confirmedTurns = [userTurn, aiTurn];
-
+      // Replace optimistic + add AI turn
       setTurns((prev) => {
-        const withoutTemp = prev.filter((t) => t.id !== tempId && t.id !== userTurn.id);
-        return [...withoutTemp, ...confirmedTurns];
+        const cleaned = prev.filter((t) => t.id !== tempId);
+        return [...cleaned, userTurn, aiTurn];
       });
 
-      // Play examiner response via TTS (auto-starts mic after)
-      playExaminerVoice(result.aiTurn.content, true);
+      const newUserCount = userTurnCount + 1;
+      setUserTurnCount(newUserCount);
 
-      if (phase === "part1") setPart1TurnCount(newPart1Count);
-      if (phase === "part3") setPart3TurnCount(newPart3Count);
+      // ── State machine transitions (driven by backend ieltsState) ──
+      const state = result.ieltsState;
 
-      const nextPhase = detectPhaseTransition(
-        result.aiTurn.content,
-        phase,
-        newPart1Count,
-        newPart3Count,
-      );
-
-      const allTurns = turns.filter((t) => t.id !== tempId).concat(confirmedTurns);
-
-      if (nextPhase === "part2_prep") {
-        const card = pickRandomCueCard();
-        setCueCard(card);
-        setPhase("part2_prep");
-        setPart1TurnCount(0);
-        saveSession({ scenarioId: scenario.id, sessionId, phase: "part2_prep", turns: allTurns, cueCard: card, part1TurnCount: 0, part3TurnCount: newPart3Count });
-      } else if (nextPhase === "part3") {
-        setPhase("part3");
-        setPart3TurnCount(0);
-        saveSession({ scenarioId: scenario.id, sessionId, phase: "part3", turns: allTurns, cueCard, part1TurnCount: newPart1Count, part3TurnCount: 0 });
-      } else if (nextPhase === "ending") {
-        await handleEndSession(sessionId);
+      if (state) {
+        if (state.part === 2 && state.phase === "transition") {
+          // Transition to Part 2
+          setPhase("part2_intro");
+          // Play transition announcement, then show cue card
+          await playTTS(result.aiTurn.content, false);
+          await new Promise((r) => setTimeout(r, 1500));
+          setPhase("part2_prep");
+          setTimerSeconds(PREP_SECONDS);
+          setTimerActive(true);
+        } else if (state.part === 2 && state.phase === "follow_up") {
+          // After Part 2 speaking, examiner asks follow-up
+          await new Promise((r) => setTimeout(r, 800));
+          playTTS(result.aiTurn.content, true);
+        } else if (state.part === 3 && state.questionIndex === 0) {
+          // Transition to Part 3
+          setPhase("part3");
+          await new Promise((r) => setTimeout(r, 800));
+          playTTS(result.aiTurn.content, true);
+        } else if (state.phase === "complete") {
+          // Test complete
+          await playTTS(result.aiTurn.content, false);
+          await new Promise((r) => setTimeout(r, 1000));
+          await handleEndSession(sessionId);
+        } else {
+          // Normal question — play TTS
+          await new Promise((r) => setTimeout(r, 600));
+          playTTS(result.aiTurn.content, true);
+        }
       } else {
-        saveSession({ scenarioId: scenario.id, sessionId, phase, turns: allTurns, cueCard, part1TurnCount: newPart1Count, part3TurnCount: newPart3Count });
+        // Non-IELTS scenario fallback
+        await new Promise((r) => setTimeout(r, 600));
+        playTTS(result.aiTurn.content, true);
       }
     } catch {
       setTurns((prev) => prev.filter((t) => t.id !== tempId));
     } finally {
-      setIsTyping(false);
+      setIsProcessing(false);
       inputRef.current?.focus();
     }
-  }, [sessionId, inputText, isTyping, turns, phase, part1TurnCount, part3TurnCount, cueCard, scenario.id, handleEndSession, voice]);
+  }, [sessionId, inputText, isProcessing, turns, userTurnCount, voice, playTTS, handleEndSession]);
 
-  // ── Key handler ───────────────────────────────────────────────────────────
-
+  // ── Key handler ──
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -709,117 +384,104 @@ export default function IeltsConversation({
     }
   };
 
-  // ── Phase handlers ────────────────────────────────────────────────────────
-
-  const handlePrepSkip = () => {
-    setPhase("part2_speaking");
-    saveSession({ scenarioId: scenario.id, sessionId: sessionId!, phase: "part2_speaking", turns, cueCard, part1TurnCount, part3TurnCount });
-  };
-
-  const handleSpeakingEnd = useCallback(async () => {
-    if (sessionId && !isTyping) {
-      setIsTyping(true);
-      try {
-        await submitScenarioTurn(sessionId, "[No spoken response provided]");
-      } catch { /* ignore */ } finally {
-        setIsTyping(false);
+  // ── Timer expiry handlers ──
+  useEffect(() => {
+    if (timerSeconds === 0 && !timerActive && phase === "part2_prep") {
+      // Prep time expired → auto-start speaking
+      setPhase("part2_speak");
+      setTimerSeconds(SPEAK_SECONDS);
+      setTimerActive(true);
+      // Auto-start mic
+      if (voice.isSupported && !voice.isRecording) {
+        voice.startRecording();
       }
     }
-    setPhase("part3");
-    setPart3TurnCount(0);
-    saveSession({ scenarioId: scenario.id, sessionId: sessionId!, phase: "part3", turns, cueCard, part1TurnCount, part3TurnCount: 0 });
-  }, [sessionId, isTyping, scenario.id, turns, cueCard, part1TurnCount, part3TurnCount]);
+  }, [timerSeconds, timerActive, phase, voice]);
 
-  const handlePrepExpire = useCallback(() => {
-    setPhase("part2_speaking");
-    saveSession({ scenarioId: scenario.id, sessionId: sessionId!, phase: "part2_speaking", turns, cueCard, part1TurnCount, part3TurnCount });
-  }, [scenario.id, sessionId, turns, cueCard, part1TurnCount, part3TurnCount]);
+  // Part 2 speaking timer expiry
+  useEffect(() => {
+    if (timerSeconds === 0 && !timerActive && phase === "part2_speak") {
+      handlePart2End();
+    }
+  }, [timerSeconds, timerActive, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSpeakingExpire = useCallback(() => {
-    handleSpeakingEnd();
-  }, [handleSpeakingEnd]);
+  const handlePart2End = useCallback(async () => {
+    if (!sessionId || isProcessing) return;
 
-  const handleManualEnd = useCallback(() => {
-    if (sessionId) handleEndSession(sessionId);
-  }, [sessionId, handleEndSession]);
+    if (voice.isRecording) voice.stopRecording();
+    setTimerActive(false);
 
-  const handleNewTest = useCallback(async () => {
-    clearSession();
-    setPhase("loading");
-    setTurns([]);
-    setCueCard(null);
-    setPart1TurnCount(0);
-    setPart3TurnCount(0);
+    // Send the user's Part 2 response (or placeholder)
+    const content = inputText.trim() || "[Speaking completed]";
     setInputText("");
-    setScores(null);
-    setErrorMsg(null);
-    setIsTyping(false);
-    startTimeRef.current = Date.now();
+    setIsProcessing(true);
+
     try {
-      const result = await startScenarioSession(scenario.id);
-      const mappedTurns: ConversationTurn[] = (result.turns ?? []).map((t: { turnIndex: number; role: string; content: string; createdAt: string }) => ({
-        id: `init-${t.turnIndex}`,
-        turnIndex: t.turnIndex,
-        role: t.role as "user" | "assistant",
-        content: t.content,
+      const result = await submitScenarioTurn(sessionId, content);
+
+      const userTurn: ConversationTurn = {
+        id: `user-${result.userTurn.turnIndex}`,
+        turnIndex: result.userTurn.turnIndex,
+        role: "user",
+        content: result.userTurn.content,
         audioStorageKey: null,
         scores: null,
         feedback: null,
-        createdAt: t.createdAt,
-      }));
-      setSessionId(result.sessionId);
-      setTurns(mappedTurns);
-      setPhase("part1");
-      saveSession({
-        scenarioId: scenario.id,
-        sessionId: result.sessionId,
-        phase: "part1",
-        turns: mappedTurns,
-        cueCard: null,
-        part1TurnCount: 0,
-        part3TurnCount: 0,
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to start session";
-      setErrorMsg(msg);
-      setPhase("error");
+        createdAt: result.userTurn.createdAt,
+      };
+      const aiTurn: ConversationTurn = {
+        id: `ai-${result.aiTurn.turnIndex}`,
+        turnIndex: result.aiTurn.turnIndex,
+        role: "assistant",
+        content: result.aiTurn.content,
+        audioStorageKey: null,
+        scores: null,
+        feedback: null,
+        createdAt: result.aiTurn.createdAt,
+      };
+
+      setTurns((prev) => [...prev, userTurn, aiTurn]);
+      setUserTurnCount((c) => c + 1);
+
+      // Follow-up question → then transition to Part 3
+      await new Promise((r) => setTimeout(r, 800));
+      playTTS(result.aiTurn.content, true);
+
+      // After follow-up answer, backend will transition to Part 3
+    } catch { /* ignore */ } finally {
+      setIsProcessing(false);
     }
-  }, [scenario.id]);
+  }, [sessionId, isProcessing, inputText, voice, playTTS]);
 
-  // ─── Derived state ──────────────────────────────────────────────────────
-
-  // Extract Q&A pairs for transcript
-  function extractQAPairs(turnsList: ConversationTurn[]) {
-    const pairs: Array<{ question: string; answer: string; index: number }> = [];
-    let latestQuestion: string | null = null;
-    let qIndex = 0;
-
-    for (let i = 0; i < turnsList.length; i++) {
-      const turn = turnsList[i];
-      if (turn.role === "assistant") {
-        const nextTurn = turnsList[i + 1];
-        if (nextTurn && nextTurn.role === "user") {
-          qIndex++;
-          pairs.push({ question: turn.content, answer: nextTurn.content, index: qIndex });
-          i++;
-        } else {
-          latestQuestion = turn.content;
-        }
-      }
+  const handlePrepSkip = () => {
+    setTimerActive(false);
+    setPhase("part2_speak");
+    setTimerSeconds(SPEAK_SECONDS);
+    setTimerActive(true);
+    if (voice.isSupported) {
+      setTimeout(() => voice.startRecording(), 300);
     }
+  };
 
-    return { pairs, latestQuestion };
+  // ── Derived ──
+  const currentPart = phase === "part1" ? 1 : (phase.startsWith("part2") ? 2 : 3);
+  const latestExaminerMsg = [...turns].reverse().find((t) => t.role === "assistant");
+  const latestUserMsg = [...turns].reverse().find((t) => t.role === "user");
+
+  // Q&A pairs for transcript
+  const qaPairs: Array<{ q: string; a: string; idx: number }> = [];
+  for (let i = 0; i < turns.length - 1; i++) {
+    if (turns[i].role === "assistant" && turns[i + 1]?.role === "user") {
+      qaPairs.push({ q: turns[i].content, a: turns[i + 1].content, idx: qaPairs.length + 1 });
+      i++;
+    }
   }
 
-  // Current part label
-  function getActivePart(): string {
-    if (phase === "part1") return "part1";
-    if (phase === "part2_prep" || phase === "part2_speaking") return "part2";
-    return "part3";
-  }
-
-  const activePart = getActivePart();
-  const partInfo = PART_LABELS[activePart] ?? PART_LABELS.part1;
+  // Timer format
+  const timerMin = Math.floor(timerSeconds / 60);
+  const timerSec = timerSeconds % 60;
+  const timerDisplay = `${timerMin}:${timerSec.toString().padStart(2, "0")}`;
+  const timerUrgent = timerSeconds <= 10 && timerSeconds > 0;
 
   // ─── Render ──────────────────────────────────────────────────────────────
 
@@ -827,29 +489,16 @@ export default function IeltsConversation({
     return <ScenarioSummary result={scores} onClose={onClose} />;
   }
 
-  const showInput = phase === "part1" || phase === "part2_speaking" || phase === "part3";
-
-  const currentQ = phase === "part1" ? part1TurnCount + 1 : phase === "part3" ? part3TurnCount + 1 : 0;
-  const totalQ = phase === "part1" ? PART1_MAX_TURNS : PART3_MAX_TURNS;
+  const showInput = phase === "part1" || phase === "part2_speak" || phase === "part3";
 
   return (
-    <div
-      style={{ background: "var(--color-bg)" }}
-      className="fixed inset-0 z-50 flex flex-col bg-exam"
-    >
-      {/* ── Header ── */}
-      <div
-        className="shrink-0"
-        style={{
-          background: "var(--color-bg-card)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
+    <div className="fixed inset-0 z-50 flex flex-col ielts-exam-bg">
+      {/* ── Top Bar ── */}
+      <div className="shrink-0 ielts-header">
         <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center hover:opacity-70 transition-opacity"
-            style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}
+            className="w-8 h-8 rounded-lg flex items-center justify-center ielts-btn-ghost"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
@@ -857,126 +506,115 @@ export default function IeltsConversation({
           </button>
 
           <div className="flex-1 min-w-0">
-            <div className="font-sora font-bold text-[14px]" style={{ color: "var(--color-text)" }}>
+            <div className="font-sora font-bold text-[14px] text-white">
               IELTS Speaking Test
             </div>
-            <div className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>
-              {partInfo.name}
+            <div className="text-[11px] text-white/50">
+              {phase === "part1" ? "Part 1 — Introduction" :
+               phase.startsWith("part2") ? "Part 2 — Long Turn" :
+               phase === "part3" ? "Part 3 — Discussion" :
+               ""}
             </div>
           </div>
 
-          {phase !== "loading" && phase !== "ending" && phase !== "summary" && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleNewTest}
-                className="px-3 py-1.5 rounded-lg text-[11px] font-semibold hover:opacity-80 transition-opacity"
-                style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
-              >
-                Restart
-              </button>
-              {phase === "part3" && (
-                <button
-                  onClick={handleManualEnd}
-                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold hover:opacity-90 transition-opacity"
-                  style={{ background: "var(--color-examiner)", color: "#fff" }}
+          {/* Part indicator pills */}
+          {(phase === "part1" || phase.startsWith("part2") || phase === "part3") && (
+            <div className="flex gap-1">
+              {[1, 2, 3].map((p) => (
+                <div
+                  key={p}
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-500 ${
+                    p === currentPart ? "ielts-part-active" :
+                    p < currentPart ? "ielts-part-done" :
+                    "ielts-part-future"
+                  }`}
                 >
-                  End Test
-                </button>
-              )}
+                  {p < currentPart ? "✓" : p}
+                </div>
+              ))}
             </div>
           )}
         </div>
-
-        {/* Progress stepper */}
-        {(phase === "part1" || phase === "part2_prep" || phase === "part2_speaking" || phase === "part3") && (
-          <div className="flex items-center justify-between px-4 pb-3">
-            <ProgressStepper phase={phase} part1TurnCount={part1TurnCount} part3TurnCount={part3TurnCount} />
-            {(phase === "part1" || phase === "part3") && (
-              <QuestionCounter current={currentQ} total={totalQ} />
-            )}
-          </div>
-        )}
       </div>
 
-      {/* ── Scrollable body ── */}
+      {/* ── Main Content ── */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="max-w-xl mx-auto px-4 py-5 flex flex-col gap-5">
+        <div className="max-w-lg mx-auto px-4 py-6 flex flex-col gap-5">
 
-          {/* Loading — entering the exam room */}
-          {phase === "loading" && (
-            <div className="flex-1 flex flex-col items-center justify-center gap-6 py-20 animate-phase-in">
-              <div className="relative">
-                <ExaminerAvatar size="md" speaking />
-                <div className="absolute -inset-3 rounded-full animate-examiner-pulse" style={{ background: "var(--color-examiner-soft)", opacity: 0.3 }} />
+          {/* ═══ ENTERING ═══ */}
+          {phase === "entering" && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-8 py-24 animate-fadeIn">
+              {/* Soundwave orb */}
+              <div className="ielts-orb ielts-orb-breathing">
+                <div className="ielts-orb-inner">
+                  <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect x="4" y="12" width="3" height="8" rx="1.5" fill="white" opacity="0.6"/>
+                    <rect x="9.5" y="8" width="3" height="16" rx="1.5" fill="white" opacity="0.8"/>
+                    <rect x="15" y="4" width="3" height="24" rx="1.5" fill="white"/>
+                    <rect x="20.5" y="8" width="3" height="16" rx="1.5" fill="white" opacity="0.8"/>
+                    <rect x="26" y="12" width="3" height="8" rx="1.5" fill="white" opacity="0.6"/>
+                  </svg>
+                </div>
               </div>
               <div className="text-center">
-                <p className="font-sora font-bold text-[17px]" style={{ color: "var(--color-text)" }}>
-                  Entering exam room...
+                <p className="font-sora font-bold text-[20px] text-white">
+                  Entering exam room
                 </p>
-                <p className="text-[13px] mt-2 max-w-[280px] mx-auto leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                  Your examiner is reviewing your profile. The test will begin shortly.
+                <p className="text-[14px] mt-3 text-white/40 max-w-[280px] mx-auto leading-relaxed">
+                  Your examiner is preparing. The test will begin shortly.
                 </p>
               </div>
-              <div className="flex gap-1.5 mt-2">
-                {[0, 200, 400].map((delay) => (
-                  <span key={delay} style={{ background: "var(--color-examiner)", animationDelay: `${delay}ms` }} className="w-2 h-2 rounded-full animate-typing-dot opacity-60" />
+              <div className="flex gap-2">
+                {[0, 200, 400].map((d) => (
+                  <span key={d} className="ielts-dot" style={{ animationDelay: `${d}ms` }} />
                 ))}
               </div>
             </div>
           )}
 
-          {/* Error */}
+          {/* ═══ ERROR ═══ */}
           {phase === "error" && (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 py-20">
+            <div className="flex-1 flex flex-col items-center justify-center gap-5 py-24">
               <div className="text-[40px]">{!isAuthenticated ? "🔒" : "⚠️"}</div>
-              <div style={{ color: "var(--color-warning)" }} className="text-lg font-medium text-center">
+              <p className="text-white/70 text-[16px] font-medium text-center">
                 {errorMsg || "Something went wrong"}
-              </div>
+              </p>
               <div className="flex gap-3">
                 {!isAuthenticated && (
-                  <button
-                    onClick={() => router.push("/login")}
-                    className="px-6 py-2.5 rounded-xl text-[14px] font-semibold transition-all"
-                    style={{ background: "var(--color-examiner)", color: "#fff" }}
-                  >
+                  <button onClick={() => router.push("/login")} className="ielts-btn-primary px-6 py-2.5 rounded-xl text-[14px] font-semibold">
                     Sign In
                   </button>
                 )}
-                <button onClick={onClose} style={{ color: "var(--color-examiner)" }} className="underline text-[15px]">
-                  Go back
-                </button>
+                <button onClick={onClose} className="text-white/50 underline text-[14px]">Go back</button>
               </div>
             </div>
           )}
 
-          {/* Ending — score analysis moment */}
+          {/* ═══ ENDING ═══ */}
           {phase === "ending" && (
-            <div className="flex-1 flex flex-col items-center justify-center gap-6 py-20 animate-phase-in">
-              <div className="relative">
-                <ExaminerAvatar speaking />
-                <div className="absolute -inset-4 rounded-full" style={{ background: "var(--color-examiner-soft)", opacity: 0.15, animation: "examinerPulse 2s ease-in-out infinite" }} />
+            <div className="flex-1 flex flex-col items-center justify-center gap-8 py-24 animate-fadeIn">
+              <div className="ielts-orb ielts-orb-analyzing">
+                <div className="ielts-orb-inner">
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                  </svg>
+                </div>
               </div>
               <div className="text-center">
-                <p className="font-sora font-bold text-[17px]" style={{ color: "var(--color-text)" }}>
-                  That concludes the speaking test
+                <p className="font-sora font-bold text-[18px] text-white">
+                  Analysing your performance
                 </p>
-                <p className="text-[13px] mt-2 max-w-[260px] mx-auto leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                  Your examiner is analysing your fluency, vocabulary, and grammar...
+                <p className="text-[13px] mt-2 text-white/40 max-w-[260px] mx-auto">
+                  Evaluating fluency, vocabulary, grammar, and coherence...
                 </p>
               </div>
-              {/* Animated score bars loading */}
-              <div className="w-48 flex flex-col gap-2 mt-2">
-                {["Fluency", "Vocabulary", "Grammar"].map((label, i) => (
-                  <div key={label} className="flex items-center gap-2">
-                    <span className="text-[10px] w-16 text-right" style={{ color: "var(--color-text-secondary)" }}>{label}</span>
-                    <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>
-                      <div
-                        className="h-full rounded-full"
-                        style={{
-                          background: "var(--color-examiner)",
-                          animation: `scoreBarLoad 2s ease-in-out ${i * 0.3}s infinite`,
-                        }}
-                      />
+              {/* Score bar loading animation */}
+              <div className="w-52 flex flex-col gap-3 mt-2">
+                {["Fluency", "Vocabulary", "Grammar", "Coherence"].map((label, i) => (
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-[10px] w-20 text-right text-white/30 uppercase tracking-wider">{label}</span>
+                    <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
+                      <div className="ielts-score-loading" style={{ animationDelay: `${i * 0.2}s` }} />
                     </div>
                   </div>
                 ))}
@@ -984,16 +622,67 @@ export default function IeltsConversation({
             </div>
           )}
 
-          {/* ── Part 2 Prep ── */}
+          {/* ═══ PART 2 INTRO ═══ */}
+          {phase === "part2_intro" && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-6 py-20 animate-fadeIn">
+              <div className="ielts-orb ielts-orb-speaking">
+                <div className="ielts-orb-inner">
+                  <span className="text-[20px] font-bold text-white">2</span>
+                </div>
+              </div>
+              <p className="font-sora font-bold text-[18px] text-white text-center">
+                Moving to Part 2
+              </p>
+              <p className="text-[13px] text-white/40 text-center max-w-[260px]">
+                You will receive a task card. You have 1 minute to prepare.
+              </p>
+            </div>
+          )}
+
+          {/* ═══ PART 2 PREP ═══ */}
           {phase === "part2_prep" && cueCard && (
-            <div className="flex flex-col gap-5 animate-phase-in">
-              <CueCardDisplay card={cueCard} />
-              <div className="flex flex-col items-center gap-4">
-                <IeltsTimer seconds={PREP_SECONDS} onExpire={handlePrepExpire} label="Preparation time" />
+            <div className="flex flex-col gap-5 animate-fadeIn">
+              {/* Cue Card — official exam look */}
+              <div className="ielts-cue-card">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-2 h-2 rounded-full bg-indigo-400" />
+                  <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-indigo-300">
+                    Task Card
+                  </span>
+                </div>
+                <p className="text-[18px] font-semibold text-white leading-snug mb-4">
+                  {cueCard.topic}
+                </p>
+                <p className="text-[11px] font-medium text-white/40 uppercase tracking-wider mb-3">
+                  You should say:
+                </p>
+                <ul className="flex flex-col gap-2.5">
+                  {cueCard.prompts.map((prompt, i) => (
+                    <li key={i} className="flex gap-3 items-start">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5 bg-indigo-500/20 text-indigo-300">
+                        {i + 1}
+                      </span>
+                      <span className="text-[14px] text-white/80 leading-relaxed">{prompt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Timer + controls */}
+              <div className="flex flex-col items-center gap-5">
+                <div className={`ielts-timer ${timerUrgent ? "ielts-timer-urgent" : ""}`}>
+                  <span className="text-[11px] uppercase tracking-wider text-white/40 mb-1">Preparation time</span>
+                  <span className="font-mono text-[36px] font-bold text-white">{timerDisplay}</span>
+                </div>
+
+                {/* Heartbeat pulse when timer is low */}
+                {timerUrgent && (
+                  <div className="ielts-heartbeat" />
+                )}
+
                 <button
                   onClick={handlePrepSkip}
-                  className="px-8 py-3 rounded-xl text-[14px] font-semibold hover:opacity-90 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{ background: "var(--color-examiner)", color: "#fff", boxShadow: "0 4px 16px var(--color-primary-glow)" }}
+                  className="ielts-btn-primary px-8 py-3 rounded-xl text-[14px] font-semibold"
                 >
                   I&apos;m Ready — Start Speaking
                 </button>
@@ -1001,30 +690,55 @@ export default function IeltsConversation({
             </div>
           )}
 
-          {/* ── Part 2 Speaking ── */}
-          {phase === "part2_speaking" && cueCard && (
-            <div className="flex flex-col gap-5 animate-phase-in">
-              <CueCardDisplay card={cueCard} />
-              <div className="flex flex-col items-center gap-4">
-                <IeltsTimer seconds={SPEAKING_SECONDS} onExpire={handleSpeakingExpire} label="Speaking time remaining" />
+          {/* ═══ PART 2 SPEAKING ═══ */}
+          {phase === "part2_speak" && cueCard && (
+            <div className="flex flex-col gap-5 animate-fadeIn">
+              {/* Compact cue card reminder */}
+              <div className="ielts-cue-card-mini">
+                <span className="text-[10px] uppercase tracking-wider text-indigo-300 font-bold">Topic:</span>
+                <span className="text-[13px] text-white/80 ml-2">{cueCard.topic}</span>
+              </div>
 
-                {/* Central mic button for Part 2 */}
-                <VoiceButton voice={voice} disabled={isTyping} size="lg" />
+              {/* Timer */}
+              <div className="flex flex-col items-center gap-5">
+                <div className={`ielts-timer ${timerUrgent ? "ielts-timer-urgent" : ""}`}>
+                  <span className="text-[11px] uppercase tracking-wider text-white/40 mb-1">Speaking time</span>
+                  <span className="font-mono text-[36px] font-bold text-white">{timerDisplay}</span>
+                </div>
 
-                {voice.isRecording && voice.interimTranscript && (
-                  <div
-                    className="px-4 py-2 rounded-xl text-[14px] italic text-center max-w-sm"
-                    style={{ background: "var(--color-examiner-soft)", color: "var(--color-text)" }}
+                {/* Central mic orb */}
+                <div className="relative">
+                  {voice.isRecording && (
+                    <div className="absolute -inset-4 rounded-full ielts-mic-pulse" />
+                  )}
+                  <button
+                    onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
+                    disabled={isProcessing || !voice.isSupported}
+                    className={`ielts-mic-btn ${voice.isRecording ? "ielts-mic-active" : ""}`}
                   >
+                    {voice.isRecording ? (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                    ) : (
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                        <line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+
+                {/* Live transcript */}
+                {voice.isRecording && voice.interimTranscript && (
+                  <div className="ielts-live-transcript">
                     {voice.interimTranscript}
                   </div>
                 )}
 
                 <button
-                  onClick={handleSpeakingEnd}
-                  disabled={isTyping}
-                  className="px-6 py-2 rounded-xl text-[13px] font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
-                  style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
+                  onClick={handlePart2End}
+                  disabled={isProcessing}
+                  className="ielts-btn-ghost px-6 py-2 rounded-xl text-[13px] text-white/50 hover:text-white/70"
                 >
                   Finish Speaking
                 </button>
@@ -1032,115 +746,131 @@ export default function IeltsConversation({
             </div>
           )}
 
-          {/* ── Part 1 & 3: Exam Q&A interface ── */}
-          {(phase === "part1" || phase === "part3") && (() => {
-            const { pairs, latestQuestion } = extractQAPairs(turns);
-            return (
-              <div className="flex flex-col gap-5">
-                {/* Part description on first question */}
-                {pairs.length === 0 && (
-                  <div className="text-center py-2 animate-phase-in">
-                    <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
-                      {partInfo.desc}
-                    </p>
+          {/* ═══ PART 1 & 3: Q&A Interface ═══ */}
+          {(phase === "part1" || phase === "part3") && (
+            <div className="flex flex-col gap-4">
+              {/* Previous Q&A transcript (collapsed) */}
+              {qaPairs.length > 1 && (
+                <div className="ielts-transcript">
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-white/20 mb-3">
+                    Previous responses
                   </div>
-                )}
-
-                {/* Previous Q&A transcript */}
-                {pairs.length > 0 && (
-                  <div
-                    className="rounded-2xl p-4 flex flex-col gap-4"
-                    style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-                  >
-                    <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
-                      Session Transcript
+                  {qaPairs.slice(0, -1).map((pair) => (
+                    <div key={pair.idx} className="mb-3 last:mb-0">
+                      <p className="text-[11px] text-white/30 mb-0.5">Q{pair.idx}: {pair.q}</p>
+                      <p className="text-[12px] text-white/50">{pair.a}</p>
                     </div>
-                    {pairs.map((pair) => (
-                      <TranscriptEntry key={pair.index} question={pair.question} answer={pair.answer} index={pair.index} />
-                    ))}
+                  ))}
+                </div>
+              )}
+
+              {/* Current examiner question */}
+              {latestExaminerMsg && !isProcessing && (
+                <div className="ielts-question-block animate-questionIn">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`ielts-examiner-avatar ${examinerSpeaking ? "ielts-examiner-speaking" : ""}`}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-indigo-300">Examiner</span>
+                      {examinerSpeaking && (
+                        <span className="ml-2 text-[9px] text-indigo-400 animate-pulse">Speaking...</span>
+                      )}
+                    </div>
                   </div>
-                )}
+                  <p className="text-[17px] font-medium text-white leading-relaxed">
+                    {latestExaminerMsg.content}
+                  </p>
+                </div>
+              )}
 
-                {/* Current question from examiner */}
-                {latestQuestion && (
-                  <ExaminerQuestion content={latestQuestion} isSpeaking={examinerSpeaking} />
-                )}
-
-                {/* Thinking indicator */}
-                {isTyping && (
-                  <div className="flex items-center gap-3 px-2">
-                    <ExaminerAvatar size="sm" speaking />
+              {/* Examiner thinking */}
+              {isProcessing && (
+                <div className="ielts-question-block animate-fadeIn">
+                  <div className="flex items-center gap-3">
+                    <div className="ielts-examiner-avatar ielts-examiner-speaking">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                      </svg>
+                    </div>
                     <div className="flex gap-1.5">
-                      {[0, 200, 400].map((delay) => (
-                        <span key={delay} style={{ background: "var(--color-examiner)", animationDelay: `${delay}ms` }} className="w-2 h-2 rounded-full animate-typing-dot opacity-60" />
+                      {[0, 200, 400].map((d) => (
+                        <span key={d} className="ielts-dot" style={{ animationDelay: `${d}ms` }} />
                       ))}
                     </div>
                   </div>
-                )}
-              </div>
-            );
-          })()}
+                </div>
+              )}
+
+              {/* Last user answer */}
+              {latestUserMsg && qaPairs.length > 0 && (
+                <div className="ielts-user-answer animate-answerIn">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400/60">Your answer</span>
+                  <p className="text-[14px] text-white/70 mt-1">{latestUserMsg.content}</p>
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </div>
 
-      {/* ── Input area ── */}
+      {/* ── Input Area ── */}
       {showInput && (
-        <div
-          className="shrink-0"
-          style={{ background: "var(--color-bg-card)", borderTop: "1px solid var(--color-border)" }}
-        >
-          <div className="max-w-xl mx-auto px-4 py-3.5">
-            {/* Label */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-primary)" }}>
-                Your Answer
-              </span>
-              {voice.isRecording && (
-                <span className="text-[10px] font-semibold flex items-center gap-1.5" style={{ color: "#ef4444" }}>
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                  Recording
-                </span>
-              )}
-            </div>
-
-            {/* Live transcript */}
-            {voice.isRecording && voice.interimTranscript && (
-              <div
-                className="mb-2 px-3 py-2 rounded-xl text-[13px] italic"
-                style={{ background: "var(--color-examiner-soft)", color: "var(--color-text)" }}
-              >
-                {voice.interimTranscript}
+        <div className="shrink-0 ielts-input-bar">
+          <div className="max-w-lg mx-auto px-4 py-3">
+            {/* Voice recording indicator */}
+            {voice.isRecording && (
+              <div className="flex items-center gap-2 mb-2 animate-fadeIn">
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-[11px] text-red-400 font-medium">Recording</span>
+                {voice.interimTranscript && (
+                  <span className="text-[12px] text-white/40 italic truncate flex-1">{voice.interimTranscript}</span>
+                )}
               </div>
             )}
 
-            {/* Input row */}
             <div className="flex items-end gap-2">
-              <VoiceButton voice={voice} disabled={isTyping} size="sm" />
+              {/* Mic button */}
+              {voice.isSupported && (
+                <button
+                  onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
+                  disabled={isProcessing || examinerSpeaking}
+                  className={`ielts-mic-btn-sm ${voice.isRecording ? "ielts-mic-active" : ""}`}
+                >
+                  {voice.isRecording ? (
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                      <line x1="12" y1="19" x2="12" y2="23"/>
+                    </svg>
+                  )}
+                </button>
+              )}
 
+              {/* Text input */}
               <textarea
                 ref={inputRef}
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type or speak your answer..."
+                placeholder={examinerSpeaking ? "Examiner is speaking..." : "Type or speak your answer..."}
+                disabled={examinerSpeaking}
                 rows={2}
-                className="flex-1 resize-none rounded-xl px-3.5 py-2.5 text-[15px] outline-none transition-colors placeholder:opacity-40"
-                style={{
-                  background: "var(--color-bg-secondary)",
-                  color: "var(--color-text)",
-                  border: "1px solid var(--color-border)",
-                }}
+                className="ielts-textarea"
               />
 
+              {/* Send button */}
               <button
-                onClick={() => handleSend()}
-                disabled={!inputText.trim() || isTyping}
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 disabled:opacity-30"
-                style={{
-                  background: inputText.trim() && !isTyping ? "var(--color-examiner)" : "var(--color-border)",
-                  color: inputText.trim() && !isTyping ? "#fff" : "var(--color-text-secondary)",
-                }}
+                onClick={handleSend}
+                disabled={!inputText.trim() || isProcessing || examinerSpeaking}
+                className="ielts-send-btn"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
@@ -1149,8 +879,8 @@ export default function IeltsConversation({
             </div>
 
             {!voice.isSupported && (
-              <p className="text-[11px] mt-2 text-center" style={{ color: "var(--color-text-secondary)" }}>
-                Voice input requires Chrome or Edge. You can type your answers instead.
+              <p className="text-[10px] mt-2 text-center text-white/25">
+                Voice input requires Chrome or Edge
               </p>
             )}
           </div>

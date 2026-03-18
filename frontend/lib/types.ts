@@ -174,12 +174,22 @@ export interface StartSessionResult {
   title: string;
   emoji: string;
   category: string;
+  cueCard?: IeltsCueCard;
   turns: ConversationTurn[];
+}
+
+export interface IeltsState {
+  part: number;
+  phase: string;
+  questionIndex: number;
+  totalQuestions: number;
+  cueCard?: IeltsCueCard;
 }
 
 export interface SubmitTurnResult {
   userTurn: ConversationTurn;
   aiTurn: ConversationTurn;
+  ieltsState?: IeltsState;
 }
 
 export interface TurnFeedback {

@@ -230,6 +230,25 @@ async function findSessionTurns(sessionId) {
   return result.rows;
 }
 
+// ---------------------------------------------------------------------------
+// In-memory session metadata (for IELTS state machine — no DB migration needed)
+// Cleared when session completes or is abandoned. Safe for monolith.
+// ---------------------------------------------------------------------------
+
+const _sessionMeta = new Map();
+
+function updateSessionMeta(sessionId, meta) {
+  _sessionMeta.set(sessionId, meta);
+}
+
+function getSessionMeta(sessionId) {
+  return _sessionMeta.get(sessionId) || null;
+}
+
+function clearSessionMeta(sessionId) {
+  _sessionMeta.delete(sessionId);
+}
+
 module.exports = {
   findAllScenarios,
   findScenarioById,
@@ -240,4 +259,7 @@ module.exports = {
   abandonActiveSession,
   insertTurn,
   findSessionTurns,
+  updateSessionMeta,
+  getSessionMeta,
+  clearSessionMeta,
 };
