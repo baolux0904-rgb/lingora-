@@ -13,7 +13,7 @@ import ScenarioList from "@/components/ScenarioList";
 import ScenarioConversation from "@/components/ScenarioConversation";
 import IeltsConversation from "@/components/IeltsConversation";
 import ExamScreen from "@/components/ExamScreen";
-import SpeakingMetrics from "@/components/SpeakingMetrics";
+import ProfileScreen from "@/components/ProfileScreen";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useProgress } from "@/hooks/useProgress";
 import { useLessons } from "@/hooks/useLessons";
@@ -99,8 +99,14 @@ export default function HomePage() {
     );
   }
 
+  const bgClass =
+    activeTab === "home" ? "bg-home" :
+    activeTab === "speak" ? "bg-speak" :
+    activeTab === "exam" ? "bg-exam" :
+    activeTab === "practice" ? "bg-practice" : "";
+
   return (
-    <div className={`flex flex-col min-h-dvh ${activeTab === "home" ? "bg-home" : activeTab === "speak" ? "bg-speak" : activeTab === "exam" ? "bg-exam" : activeTab === "practice" ? "bg-practice" : ""}`} style={{ backgroundColor: "var(--color-bg)" }}>
+    <div className={`flex flex-col min-h-dvh ${bgClass}`} style={{ backgroundColor: "var(--color-bg)" }}>
       <Topbar streak={displayStreak} />
 
       <main className="flex-1 overflow-y-auto pb-24">
@@ -145,18 +151,12 @@ export default function HomePage() {
 
           {/* ── PROFILE TAB ── */}
           {activeTab === "profile" && (
-            <div className="flex flex-col gap-6">
-              <SpeakingMetrics
-                data={metrics ?? {
-                  trend: [],
-                  totalAttempts: 0,
-                  averageScore: 0,
-                  bestScore: 0,
-                  recentScore: null,
-                }}
-                loading={metricsLoading}
-              />
-            </div>
+            <ProfileScreen
+              userId={userId}
+              metrics={metrics}
+              metricsLoading={metricsLoading}
+              gamification={gamification}
+            />
           )}
 
         </div>

@@ -1,5 +1,13 @@
 "use client";
 
+/**
+ * ExamScreen.tsx
+ *
+ * IELTS exam hub — shows available exam modules with a focused,
+ * exam-appropriate design. Not just a list of cards — it should
+ * feel like you're about to enter a real test environment.
+ */
+
 import { useState, useEffect } from "react";
 import { IconMic, IconHeadphones, IconOpenBook, IconPen } from "./Icons";
 import { getScenarios } from "@/lib/api";
@@ -16,16 +24,18 @@ interface ExamModule {
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   available: boolean;
   accentColor: string;
+  duration: string;
 }
 
 const EXAM_MODULES: ExamModule[] = [
   {
     id: "speaking",
     title: "IELTS Speaking",
-    subtitle: "Full 3-part speaking test simulation with AI examiner",
+    subtitle: "Full 3-part speaking test with AI examiner",
     Icon: IconMic,
     available: true,
     accentColor: "#7C5CFC",
+    duration: "11–14 min",
   },
   {
     id: "listening",
@@ -34,6 +44,7 @@ const EXAM_MODULES: ExamModule[] = [
     Icon: IconHeadphones,
     available: false,
     accentColor: "#38BDF8",
+    duration: "30 min",
   },
   {
     id: "reading",
@@ -42,6 +53,7 @@ const EXAM_MODULES: ExamModule[] = [
     Icon: IconOpenBook,
     available: false,
     accentColor: "#34D399",
+    duration: "60 min",
   },
   {
     id: "writing",
@@ -50,6 +62,7 @@ const EXAM_MODULES: ExamModule[] = [
     Icon: IconPen,
     available: false,
     accentColor: "#FBBF24",
+    duration: "60 min",
   },
 ];
 
@@ -82,100 +95,111 @@ export default function ExamScreen({ onStartIelts }: ExamScreenProps) {
         >
           Exam Practice
         </h2>
-        <p
-          className="text-sm mt-1"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          Prepare for English proficiency exams
+        <p className="text-[13px] mt-1" style={{ color: "var(--color-text-secondary)" }}>
+          Simulate real exam conditions with AI-powered assessment
         </p>
       </div>
 
-      {/* Exam cards */}
-      <div className="flex flex-col gap-4">
-        {EXAM_MODULES.map((mod) => {
-          const isAvailable = mod.available;
-          const isLoading = mod.id === "speaking" && loading;
-
-          return (
-            <button
-              key={mod.id}
-              onClick={() => {
-                if (isAvailable && ieltsScenario) {
-                  onStartIelts(ieltsScenario);
-                }
-              }}
-              disabled={!isAvailable || isLoading || (mod.id === "speaking" && !ieltsScenario)}
-              className="relative flex items-center gap-4 p-5 rounded-2xl text-left transition-all duration-200 card-hover disabled:cursor-default disabled:hover:transform-none"
-              style={{
-                background: "var(--color-bg-card)",
-                border: isAvailable
-                  ? `1px solid ${mod.accentColor}30`
-                  : "1px solid var(--color-border)",
-                opacity: isAvailable ? 1 : 0.6,
-              }}
-            >
-              {/* Icon */}
+      {/* IELTS Speaking — featured card */}
+      {EXAM_MODULES.filter(m => m.available).map((mod) => {
+        const isLoading = mod.id === "speaking" && loading;
+        return (
+          <button
+            key={mod.id}
+            onClick={() => {
+              if (ieltsScenario) onStartIelts(ieltsScenario);
+            }}
+            disabled={isLoading || (mod.id === "speaking" && !ieltsScenario)}
+            className="relative overflow-hidden rounded-2xl p-5 text-left transition-all duration-200 card-hover disabled:cursor-default disabled:hover:transform-none"
+            style={{
+              background: `linear-gradient(135deg, ${mod.accentColor}15 0%, var(--color-bg-card) 100%)`,
+              border: `1px solid ${mod.accentColor}30`,
+            }}
+          >
+            <div className="flex items-start gap-4">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
                 style={{
-                  background: isAvailable
-                    ? `${mod.accentColor}18`
-                    : "var(--color-primary-soft)",
-                  color: isAvailable ? mod.accentColor : "var(--color-text-secondary)",
+                  background: `${mod.accentColor}18`,
+                  color: mod.accentColor,
                 }}
               >
-                <mod.Icon size={22} />
+                <mod.Icon size={26} />
               </div>
-
-              {/* Text */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="font-semibold text-[15px]"
-                    style={{ color: "var(--color-text)" }}
-                  >
-                    {mod.title}
-                  </span>
-                  {!isAvailable && (
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                      style={{
-                        background: "var(--color-primary-soft)",
-                        color: "var(--color-text-secondary)",
-                      }}
-                    >
-                      Coming Soon
-                    </span>
-                  )}
+                <div className="font-sora font-bold text-[16px] mb-0.5" style={{ color: "var(--color-text)" }}>
+                  {mod.title}
                 </div>
-                <p
-                  className="text-sm mt-0.5 leading-relaxed"
-                  style={{ color: "var(--color-text-secondary)" }}
-                >
+                <p className="text-[13px] leading-relaxed mb-2.5" style={{ color: "var(--color-text-secondary)" }}>
                   {mod.subtitle}
                 </p>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: `${mod.accentColor}15`, color: mod.accentColor }}
+                  >
+                    {mod.duration}
+                  </span>
+                  <span
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-full"
+                    style={{ background: `${mod.accentColor}15`, color: mod.accentColor }}
+                  >
+                    3 parts
+                  </span>
+                </div>
               </div>
+              <svg
+                width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: mod.accentColor }}
+                className="shrink-0 mt-1"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </button>
+        );
+      })}
 
-              {/* Arrow for available */}
-              {isAvailable && (
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  style={{ color: mod.accentColor }}
-                  className="shrink-0"
-                >
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              )}
-            </button>
-          );
-        })}
+      {/* Coming soon modules */}
+      <div>
+        <div className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-secondary)" }}>
+          Coming Soon
+        </div>
+        <div className="flex flex-col gap-2.5">
+          {EXAM_MODULES.filter(m => !m.available).map((mod) => (
+            <div
+              key={mod.id}
+              className="flex items-center gap-3.5 p-3.5 rounded-xl"
+              style={{
+                background: "var(--color-bg-card)",
+                border: "1px solid var(--color-border)",
+                opacity: 0.5,
+              }}
+            >
+              <div
+                className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: "var(--color-primary-soft)", color: "var(--color-text-secondary)" }}
+              >
+                <mod.Icon size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-[14px]" style={{ color: "var(--color-text)" }}>
+                  {mod.title}
+                </div>
+                <div className="text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
+                  {mod.duration}
+                </div>
+              </div>
+              <span
+                className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0"
+                style={{ background: "var(--color-primary-soft)", color: "var(--color-text-secondary)" }}
+              >
+                Soon
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

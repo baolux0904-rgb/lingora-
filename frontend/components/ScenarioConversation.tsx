@@ -3,9 +3,9 @@
 /**
  * ScenarioConversation.tsx
  *
- * Full-screen conversation UI for AI role-play scenarios.
- * Premium chat-bubble layout with voice input support.
- * Scores hidden during conversation — only shown on session summary.
+ * AI role-play conversation for speaking practice scenarios.
+ * Designed as a guided speaking session — AI partner + your responses,
+ * not a generic chat app.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -30,6 +30,23 @@ interface ScenarioConversationProps {
 
 type Phase = "loading" | "conversation" | "ending" | "summary" | "error";
 
+// ── AI Partner Avatar ────────────────────────────────────────────────────────
+
+function PartnerAvatar({ speaking = false }: { speaking?: boolean }) {
+  return (
+    <div
+      className={`w-9 h-9 shrink-0 rounded-full flex items-center justify-center ${speaking ? "animate-examiner-pulse" : ""}`}
+      style={{
+        background: "linear-gradient(135deg, var(--color-accent), var(--color-primary))",
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+  );
+}
+
 export default function ScenarioConversation({
   scenario,
   onClose,
@@ -44,7 +61,7 @@ export default function ScenarioConversation({
   const [summary, setSummary] = useState<EndSessionResult | null>(null);
   const [startTime] = useState(() => Date.now());
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Voice input — populates inputText, user sends manually
@@ -54,9 +71,11 @@ export default function ScenarioConversation({
     }, [])
   );
 
-  // Auto-scroll to bottom on new turns
+  // Auto-scroll
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [turns, sending]);
 
   // Start session on mount
@@ -86,20 +105,22 @@ export default function ScenarioConversation({
         setPhase("error");
       });
 
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [scenario.id]);
 
   // Submit a user message
   const handleSend = useCallback(async () => {
     if (!sessionId || !inputText.trim() || sending) return;
 
+    // Stop recording if active
+    if (voice.isRecording) {
+      voice.stopRecording();
+    }
+
     const message = inputText.trim();
     setInputText("");
     setSending(true);
 
-    // Optimistic: add user turn immediately
     const tempUserTurn: ConversationTurn = {
       id: `temp-${Date.now()}`,
       turnIndex: turns.length,
@@ -141,15 +162,14 @@ export default function ScenarioConversation({
         ];
       });
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to send message";
+      const msg = err instanceof Error ? err.message : "Failed to send message";
       setError(msg);
       setTurns((prev) => prev.filter((t) => t.id !== tempUserTurn.id));
     } finally {
       setSending(false);
       inputRef.current?.focus();
     }
-  }, [sessionId, inputText, sending, turns.length]);
+  }, [sessionId, inputText, sending, turns.length, voice]);
 
   // End conversation and get scores
   const handleEndConversation = useCallback(async () => {
@@ -163,14 +183,12 @@ export default function ScenarioConversation({
       setPhase("summary");
       onComplete?.();
     } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to end session";
+      const msg = err instanceof Error ? err.message : "Failed to end session";
       setError(msg);
       setPhase("error");
     }
   }, [sessionId, startTime, onComplete]);
 
-  // Handle Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -196,258 +214,201 @@ export default function ScenarioConversation({
           background: "var(--color-bg-card)",
           borderBottom: "1px solid var(--color-border)",
         }}
-        className="flex items-center gap-3 px-5 py-3.5 shrink-0"
+        className="flex items-center gap-3 px-4 py-3 shrink-0"
       >
         <button
           onClick={onClose}
-          style={{ color: "var(--color-text-secondary)" }}
-          className="text-xl hover:opacity-70 transition-opacity"
+          className="w-8 h-8 rounded-lg flex items-center justify-center hover:opacity-70 transition-opacity"
+          style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}
         >
-          ✕
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
         </button>
-        <div className="flex-1 min-w-0">
-          <div
-            style={{ color: "var(--color-text)" }}
-            className="font-semibold text-[15px] truncate"
-          >
-            {scenario.emoji} {scenario.title}
-          </div>
-          <div
-            style={{ color: "var(--color-text-secondary)" }}
-            className="text-[12px]"
-          >
-            {scenario.difficulty} · {scenario.category}
+        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+          <PartnerAvatar />
+          <div className="min-w-0">
+            <div style={{ color: "var(--color-text)" }} className="font-semibold text-[14px] truncate">
+              {scenario.title}
+            </div>
+            <div style={{ color: "var(--color-text-secondary)" }} className="text-[11px]">
+              {scenario.difficulty} · {scenario.category} · {userTurnCount} turns
+            </div>
           </div>
         </div>
         {phase === "conversation" && userTurnCount >= 2 && (
           <button
             onClick={handleEndConversation}
-            style={{
-              background: "var(--color-primary)",
-              color: "#fff",
-            }}
-            className="px-4 py-2 rounded-xl text-[13px] font-semibold hover:opacity-90 transition-opacity"
+            style={{ background: "var(--color-primary)", color: "#fff" }}
+            className="px-3.5 py-1.5 rounded-lg text-[12px] font-semibold hover:opacity-90 transition-opacity"
           >
-            End Chat
+            End Session
           </button>
         )}
       </div>
 
-      {/* ── Chat area ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-        {/* Loading state */}
-        {phase === "loading" && (
-          <div className="flex items-center justify-center h-full">
-            <div
-              style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-primary)" }}
-              className="w-8 h-8 border-2 rounded-full animate-spin"
-            />
-          </div>
-        )}
-
-        {/* Error state */}
-        {phase === "error" && (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div style={{ color: "var(--color-warning)" }} className="text-lg">
-              {error || "Something went wrong"}
+      {/* ── Conversation area ── */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div className="max-w-xl mx-auto px-4 py-5 space-y-4">
+          {/* Loading */}
+          {phase === "loading" && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 animate-phase-in">
+              <PartnerAvatar speaking />
+              <p className="text-[14px]" style={{ color: "var(--color-text-secondary)" }}>Starting conversation...</p>
+              <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-primary)" }} />
             </div>
-            <button onClick={onClose} style={{ color: "var(--color-primary)" }} className="underline text-[15px]">
-              Go back
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* Ending state */}
-        {phase === "ending" && (
-          <div className="flex flex-col items-center justify-center h-full gap-3">
-            <div
-              style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-primary)" }}
-              className="w-8 h-8 border-2 rounded-full animate-spin"
-            />
-            <div style={{ color: "var(--color-text-secondary)" }} className="text-[15px]">
-              Analyzing your conversation...
+          {/* Error */}
+          {phase === "error" && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <div style={{ color: "var(--color-warning)" }} className="text-lg">{error || "Something went wrong"}</div>
+              <button onClick={onClose} style={{ color: "var(--color-primary)" }} className="underline text-[15px]">Go back</button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Chat bubbles */}
-        {(phase === "conversation" || phase === "ending") &&
-          turns.map((turn) => (
-            <div
-              key={turn.id}
-              className={`flex animate-message-in ${turn.role === "user" ? "justify-end" : "justify-start"}`}
-            >
+          {/* Ending */}
+          {phase === "ending" && (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 animate-phase-in">
+              <PartnerAvatar speaking />
+              <p className="text-[15px]" style={{ color: "var(--color-text-secondary)" }}>Analysing your conversation...</p>
+              <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-primary)" }} />
+            </div>
+          )}
+
+          {/* Messages */}
+          {(phase === "conversation" || phase === "ending") &&
+            turns.map((turn) => (
               <div
-                style={{
-                  background:
-                    turn.role === "user"
-                      ? "var(--color-primary)"
-                      : "var(--color-bg-card)",
-                  color:
-                    turn.role === "user" ? "#fff" : "var(--color-text)",
-                  border:
-                    turn.role === "assistant"
-                      ? "1px solid var(--color-border)"
-                      : "none",
-                  borderLeft:
-                    turn.role === "assistant"
-                      ? "3px solid var(--color-accent)"
-                      : "none",
-                }}
-                className={`max-w-[70%] px-4 py-3 text-[15px] leading-relaxed ${
-                  turn.role === "user"
-                    ? "rounded-2xl rounded-br-md"
-                    : "rounded-2xl rounded-bl-md"
-                }`}
+                key={turn.id}
+                className={`flex gap-2.5 animate-message-in ${turn.role === "user" ? "flex-row-reverse" : "flex-row"}`}
               >
-                {turn.content}
+                {turn.role === "assistant" && <PartnerAvatar />}
+                <div
+                  style={{
+                    background: turn.role === "user" ? "var(--color-primary)" : "var(--color-bg-card)",
+                    color: turn.role === "user" ? "#fff" : "var(--color-text)",
+                    border: turn.role === "assistant" ? "1px solid var(--color-border)" : "none",
+                  }}
+                  className={`max-w-[72%] px-4 py-3 text-[15px] leading-relaxed ${
+                    turn.role === "user" ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"
+                  }`}
+                >
+                  {turn.content}
+                </div>
+              </div>
+            ))}
+
+          {/* Typing indicator */}
+          {sending && (
+            <div className="flex gap-2.5 animate-message-in">
+              <PartnerAvatar speaking />
+              <div
+                style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+                className="px-4 py-3 rounded-2xl rounded-bl-md"
+              >
+                <div className="flex gap-1.5">
+                  {[0, 200, 400].map((delay) => (
+                    <span
+                      key={delay}
+                      style={{ background: "var(--color-text-secondary)", animationDelay: `${delay}ms` }}
+                      className="w-2 h-2 rounded-full animate-typing-dot"
+                    />
+                  ))}
+                </div>
               </div>
             </div>
-          ))}
-
-        {/* Typing indicator */}
-        {sending && (
-          <div className="flex justify-start animate-message-in">
-            <div
-              style={{
-                background: "var(--color-bg-card)",
-                border: "1px solid var(--color-border)",
-              }}
-              className="px-4 py-3 rounded-2xl rounded-bl-md"
-            >
-              <div className="flex gap-1.5">
-                {[0, 200, 400].map((delay) => (
-                  <span
-                    key={delay}
-                    style={{
-                      background: "var(--color-text-secondary)",
-                      animationDelay: `${delay}ms`,
-                    }}
-                    className="w-2 h-2 rounded-full animate-typing-dot"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div ref={chatEndRef} />
+          )}
+        </div>
       </div>
 
       {/* ── Input area ── */}
       {phase === "conversation" && (
         <div
-          style={{
-            background: "var(--color-bg-card)",
-            borderTop: "1px solid var(--color-border)",
-          }}
-          className="px-5 py-4 shrink-0"
+          style={{ background: "var(--color-bg-card)", borderTop: "1px solid var(--color-border)" }}
+          className="shrink-0"
         >
-          {userTurnCount < 2 && (
-            <div
-              style={{ color: "var(--color-text-secondary)" }}
-              className="text-[12px] text-center mb-3"
-            >
-              Reply at least 2 times before ending the chat
-            </div>
-          )}
-
-          {/* Live transcript preview while recording */}
-          {voice.isRecording && voice.interimTranscript && (
-            <div
-              className="mb-3 px-3 py-2 rounded-xl text-[13px] italic"
-              style={{
-                background: "var(--color-primary-soft)",
-                color: "var(--color-text-secondary)",
-                border: "1px solid var(--color-border)",
-              }}
-            >
-              🎤 &ldquo;{voice.interimTranscript}&rdquo;
-            </div>
-          )}
-
-          <div className="flex items-end gap-2.5">
-            {/* Mic button */}
-            {voice.isSupported && (
-              <button
-                onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
-                disabled={sending}
-                title={voice.isRecording ? "Stop recording" : "Speak your answer"}
-                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-50"
-                style={{
-                  background: voice.isRecording
-                    ? "#ef4444"
-                    : "var(--color-primary-soft)",
-                  color: voice.isRecording ? "#fff" : "var(--color-primary)",
-                  boxShadow: voice.isRecording
-                    ? "0 0 12px rgba(239,68,68,0.3)"
-                    : "none",
-                }}
-              >
-                {voice.isRecording ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <rect x="4" y="4" width="16" height="16" rx="2" />
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                )}
-              </button>
+          <div className="max-w-xl mx-auto px-4 py-3.5">
+            {userTurnCount < 2 && (
+              <div style={{ color: "var(--color-text-secondary)" }} className="text-[11px] text-center mb-2">
+                Reply at least 2 times to end the conversation
+              </div>
             )}
 
-            <textarea
-              ref={inputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={voice.isSupported ? "Type or use mic..." : "Type your reply..."}
-              rows={1}
-              disabled={sending}
-              style={{
-                background: "var(--color-primary-soft)",
-                color: "var(--color-text)",
-                border: "1px solid var(--color-border)",
-              }}
-              className="flex-1 resize-none rounded-xl px-4 py-3 text-[15px] outline-none focus:border-[color:var(--color-primary)] transition-colors placeholder:opacity-50"
-            />
-            <button
-              onClick={handleSend}
-              disabled={!inputText.trim() || sending}
-              style={{
-                background: inputText.trim() && !sending
-                  ? "var(--color-primary)"
-                  : "var(--color-border)",
-                color: inputText.trim() && !sending
-                  ? "#fff"
-                  : "var(--color-text-secondary)",
-              }}
-              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors disabled:opacity-50"
-            >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+            {/* Live transcript */}
+            {voice.isRecording && voice.interimTranscript && (
+              <div
+                className="mb-2 px-3 py-2 rounded-xl text-[13px] italic"
+                style={{ background: "var(--color-primary-soft)", color: "var(--color-text)" }}
               >
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
-            </button>
-          </div>
+                {voice.interimTranscript}
+              </div>
+            )}
 
-          {!voice.isSupported && (
-            <p className="text-[11px] mt-2 text-center" style={{ color: "var(--color-text-secondary)" }}>
-              Voice input requires Chrome or Edge.
-            </p>
-          )}
+            <div className="flex items-end gap-2">
+              {/* Mic button */}
+              {voice.isSupported && (
+                <div className="relative flex items-center justify-center">
+                  {voice.isRecording && (
+                    <div className="absolute inset-0 rounded-xl animate-recording-pulse" style={{ background: "rgba(239,68,68,0.15)" }} />
+                  )}
+                  <button
+                    onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
+                    disabled={sending}
+                    title={voice.isRecording ? "Stop recording" : "Speak"}
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-40"
+                    style={{
+                      background: voice.isRecording ? "linear-gradient(135deg, #ef4444, #dc2626)" : "var(--color-primary-soft)",
+                      color: voice.isRecording ? "#fff" : "var(--color-primary)",
+                    }}
+                  >
+                    {voice.isRecording ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="3" /></svg>
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              <textarea
+                ref={inputRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type or speak your reply..."
+                rows={1}
+                className="flex-1 resize-none rounded-xl px-3.5 py-2.5 text-[15px] outline-none transition-colors placeholder:opacity-40"
+                style={{
+                  background: "var(--color-bg-secondary)",
+                  color: "var(--color-text)",
+                  border: "1px solid var(--color-border)",
+                }}
+              />
+
+              <button
+                onClick={handleSend}
+                disabled={!inputText.trim() || sending}
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 disabled:opacity-30"
+                style={{
+                  background: inputText.trim() && !sending ? "var(--color-primary)" : "var(--color-border)",
+                  color: inputText.trim() && !sending ? "#fff" : "var(--color-text-secondary)",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </button>
+            </div>
+
+            {!voice.isSupported && (
+              <p className="text-[11px] mt-2 text-center" style={{ color: "var(--color-text-secondary)" }}>
+                Voice input requires Chrome or Edge.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

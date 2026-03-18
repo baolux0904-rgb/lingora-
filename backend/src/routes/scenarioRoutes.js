@@ -5,8 +5,8 @@
  * Public: list and view scenarios.
  * Protected (JWT): session management and conversation turns.
  *
- * IMPORTANT: /sessions routes are mounted BEFORE /:scenarioId
- * to prevent "sessions" from being captured as a scenarioId param.
+ * IMPORTANT: Named routes (/sessions, /tts) are mounted BEFORE /:scenarioId
+ * to prevent them from being captured as a scenarioId param.
  */
 
 const { Router } = require("express");
@@ -28,6 +28,11 @@ router.post("/sessions/:sessionId/turns", verifyToken, scenarioController.submit
 
 // POST /api/v1/scenarios/sessions/:sessionId/end
 router.post("/sessions/:sessionId/end", verifyToken, scenarioController.endSession);
+
+// ---- TTS (text-to-speech for examiner voice, MUST come before /:scenarioId) --
+
+// POST /api/v1/scenarios/tts
+router.post("/tts", verifyToken, scenarioController.synthesizeSpeech);
 
 // ---- Scenario catalogue (public) -----------------------------------------
 

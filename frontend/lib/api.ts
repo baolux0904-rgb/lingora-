@@ -571,6 +571,31 @@ export async function getScenarioHistory(): Promise<SessionDetail[]> {
 }
 
 // ---------------------------------------------------------------------------
+// API functions — TTS (Text-to-Speech for examiner voice)
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /api/v1/scenarios/tts — synthesize speech from text.
+ * Returns audio blob (mp3) or null if TTS is not available (204).
+ */
+export async function synthesizeSpeech(text: string): Promise<Blob | null> {
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${BASE_URL}/scenarios/tts`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ text }),
+  });
+
+  if (res.status === 204) return null; // TTS not available (mock mode)
+  if (!res.ok) return null; // Graceful fallback — never block the exam flow
+
+  return res.blob();
+}
+
+// ---------------------------------------------------------------------------
 // API functions — Auth
 // ---------------------------------------------------------------------------
 

@@ -203,6 +203,37 @@ async function getUserSessions(req, res, next) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// POST /api/v1/scenarios/tts
+// ---------------------------------------------------------------------------
+
+/**
+ * Synthesize speech from text using the TTS provider.
+ * Returns audio/mpeg binary or 204 if TTS is not available.
+ */
+async function synthesizeSpeech(req, res, next) {
+  try {
+    const { createTtsProvider } = require("../providers/tts/ttsProvider");
+    const tts = createTtsProvider();
+
+    if (!tts.isAvailable()) {
+      return res.status(204).end(); // No audio available (mock mode)
+    }
+
+    const { text, voice } = req.body;
+    if (!text || typeof text !== "string" || text.length > 2000) {
+      return sendError(res, { status: 400, message: "text is required (max 2000 chars)" });
+    }
+
+    const audioBuffer = await tts.synthesize(text, { voice });
+    res.set("Content-Type", "audio/mpeg");
+    res.set("Content-Length", audioBuffer.length);
+    return res.send(audioBuffer);
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listScenarios,
   getScenario,
@@ -211,4 +242,5 @@ module.exports = {
   endSession,
   getSession,
   getUserSessions,
+  synthesizeSpeech,
 };

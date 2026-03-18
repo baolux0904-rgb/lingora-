@@ -3,8 +3,16 @@
 /**
  * IeltsConversation.tsx
  *
- * Full IELTS Speaking test simulation (Part 1 → Part 2 → Part 3 → Summary).
- * Premium chat UI with voice input that populates the input field (user sends manually).
+ * IELTS Speaking test simulation — designed as an EXAM interface, not a chat.
+ *
+ * Structure:
+ *  - Examiner avatar + question block (not chat bubbles)
+ *  - Answer area with voice-first input
+ *  - Progress stepper showing Part 1 → 2 → 3
+ *  - Session transcript that builds naturally
+ *  - TTS-ready architecture (examiner speaks questions aloud)
+ *
+ * Phases: loading → part1 → part2_prep → part2_speaking → part3 → ending → summary
  */
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -44,41 +52,23 @@ const SAFE_SCORE_DEFAULTS: EndSessionResult = {
   durationMs:    0,
 };
 
+const PART_LABELS: Record<string, { name: string; desc: string }> = {
+  part1: { name: "Part 1 — Introduction", desc: "Answer questions about familiar topics" },
+  part2: { name: "Part 2 — Long Turn", desc: "Speak about a given topic for 2 minutes" },
+  part3: { name: "Part 3 — Discussion", desc: "Discuss abstract ideas related to Part 2" },
+};
+
 // ─── Cue cards ─────────────────────────────────────────────────────────────
 
 const CUE_CARDS: IeltsCueCard[] = [
-  {
-    topic: "Describe a place you would like to visit",
-    prompts: ["Where the place is", "How you heard about it", "What you would do there", "Why you would like to visit it"],
-  },
-  {
-    topic: "Describe a person who has inspired you",
-    prompts: ["Who this person is", "How you know them", "What they have done that inspired you", "Why they have been important to you"],
-  },
-  {
-    topic: "Describe a skill you would like to learn",
-    prompts: ["What the skill is", "Why you want to learn it", "How you would learn it", "How useful this skill would be for you"],
-  },
-  {
-    topic: "Describe a memorable journey you have made",
-    prompts: ["Where you went", "Who you went with", "What happened during the journey", "Why this journey was memorable"],
-  },
-  {
-    topic: "Describe a book or film you have enjoyed",
-    prompts: ["What it is about", "When you read or watched it", "What you liked about it", "Why you would recommend it to others"],
-  },
-  {
-    topic: "Describe a time you helped someone",
-    prompts: ["Who you helped", "Why they needed help", "How you helped them", "How you felt afterwards"],
-  },
-  {
-    topic: "Describe a tradition in your country",
-    prompts: ["What the tradition is", "How long it has existed", "How it is celebrated or practised", "Why it is important"],
-  },
-  {
-    topic: "Describe a piece of technology you use often",
-    prompts: ["What it is", "How often you use it", "What you use it for", "Why it is important to you"],
-  },
+  { topic: "Describe a place you would like to visit", prompts: ["Where the place is", "How you heard about it", "What you would do there", "Why you would like to visit it"] },
+  { topic: "Describe a person who has inspired you", prompts: ["Who this person is", "How you know them", "What they have done that inspired you", "Why they have been important to you"] },
+  { topic: "Describe a skill you would like to learn", prompts: ["What the skill is", "Why you want to learn it", "How you would learn it", "How useful this skill would be for you"] },
+  { topic: "Describe a memorable journey you have made", prompts: ["Where you went", "Who you went with", "What happened during the journey", "Why this journey was memorable"] },
+  { topic: "Describe a book or film you have enjoyed", prompts: ["What it is about", "When you read or watched it", "What you liked about it", "Why you would recommend it to others"] },
+  { topic: "Describe a time you helped someone", prompts: ["Who you helped", "Why they needed help", "How you helped them", "How you felt afterwards"] },
+  { topic: "Describe a tradition in your country", prompts: ["What the tradition is", "How long it has existed", "How it is celebrated or practised", "Why it is important"] },
+  { topic: "Describe a piece of technology you use often", prompts: ["What it is", "How often you use it", "What you use it for", "Why it is important to you"] },
 ];
 
 function pickRandomCueCard(): IeltsCueCard {
@@ -147,13 +137,35 @@ function clearSession() {
   try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
 }
 
-// ─── Part indicator ─────────────────────────────────────────────────────────
+// ─── Examiner Avatar ────────────────────────────────────────────────────────
 
-function PartIndicator({ phase, part1TurnCount, part3TurnCount }: { phase: IeltsPhase; part1TurnCount: number; part3TurnCount: number }) {
+function ExaminerAvatar({ speaking = false, size = "md" }: { speaking?: boolean; size?: "sm" | "md" }) {
+  const s = size === "sm" ? 36 : 48;
+  return (
+    <div
+      className={`shrink-0 rounded-full flex items-center justify-center ${speaking ? "animate-examiner-pulse" : ""}`}
+      style={{
+        width: s,
+        height: s,
+        background: "linear-gradient(135deg, var(--color-examiner), var(--color-primary))",
+        boxShadow: speaking ? "0 0 16px var(--color-examiner-soft)" : "none",
+      }}
+    >
+      <svg width={s * 0.45} height={s * 0.45} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+  );
+}
+
+// ─── Progress Stepper ───────────────────────────────────────────────────────
+
+function ProgressStepper({ phase, part1TurnCount, part3TurnCount }: { phase: IeltsPhase; part1TurnCount: number; part3TurnCount: number }) {
   const parts = [
-    { key: "part1", label: "Introduction", number: 1 },
-    { key: "part2", label: "Long Turn", number: 2 },
-    { key: "part3", label: "Discussion", number: 3 },
+    { key: "part1", label: "Part 1", number: 1 },
+    { key: "part2", label: "Part 2", number: 2 },
+    { key: "part3", label: "Part 3", number: 3 },
   ];
 
   function getActivePart(p: IeltsPhase): string {
@@ -164,59 +176,38 @@ function PartIndicator({ phase, part1TurnCount, part3TurnCount }: { phase: Ielts
 
   const active = getActivePart(phase);
 
-  function getQuestionLabel(): string | null {
-    if (active === "part1") return `Q${part1TurnCount + 1} of ${PART1_MAX_TURNS}`;
-    if (active === "part3") return `Q${part3TurnCount + 1} of ${PART3_MAX_TURNS}`;
-    return null;
-  }
-
-  const qLabel = getQuestionLabel();
-
   return (
-    <div className="flex items-center justify-center gap-2 py-4 px-5">
+    <div className="flex items-center gap-1">
       {parts.map((p, i) => {
         const isActive = p.key === active;
         const isPast =
           (p.key === "part1" && (active === "part2" || active === "part3")) ||
           (p.key === "part2" && active === "part3");
+
         return (
           <React.Fragment key={p.key}>
-            <div className="flex flex-col items-center gap-1.5">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold transition-all duration-300"
-                style={{
-                  background: isActive
-                    ? "var(--color-primary)"
-                    : isPast
-                    ? "var(--color-success)"
-                    : "var(--color-border)",
-                  color: isActive || isPast ? "#fff" : "var(--color-text-secondary)",
-                  boxShadow: isActive ? "0 0 12px var(--color-primary-glow)" : "none",
-                }}
-              >
-                {isPast ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                ) : (
-                  p.number
-                )}
-              </div>
-              <span
-                className="text-[10px] font-semibold"
-                style={{ color: isActive ? "var(--color-primary)" : "var(--color-text-secondary)" }}
-              >
-                {p.label}
-              </span>
-              {isActive && qLabel && (
-                <span className="text-[9px] font-medium" style={{ color: "var(--color-text-secondary)" }}>
-                  {qLabel}
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all duration-300"
+              style={{
+                background: isActive ? "var(--color-examiner-soft)" : isPast ? "rgba(52,211,153,0.08)" : "transparent",
+                color: isActive ? "var(--color-examiner)" : isPast ? "var(--color-success)" : "var(--color-text-secondary)",
+                border: isActive ? "1px solid var(--color-examiner)" : "1px solid transparent",
+              }}
+            >
+              {isPast ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              ) : (
+                <span className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold" style={{
+                  background: isActive ? "var(--color-examiner)" : "var(--color-border)",
+                  color: isActive ? "#fff" : "var(--color-text-secondary)",
+                }}>
+                  {p.number}
                 </span>
               )}
+              {p.label}
             </div>
             {i < parts.length - 1 && (
-              <div
-                className="flex-1 h-0.5 max-w-[40px] rounded-full mt-[-20px]"
-                style={{ background: isPast ? "var(--color-success)" : "var(--color-border)" }}
-              />
+              <div className="w-3 h-px" style={{ background: isPast ? "var(--color-success)" : "var(--color-border)" }} />
             )}
           </React.Fragment>
         );
@@ -225,82 +216,73 @@ function PartIndicator({ phase, part1TurnCount, part3TurnCount }: { phase: Ielts
   );
 }
 
-// ─── Exam UI components ─────────────────────────────────────────────────────
+// ─── Question counter ───────────────────────────────────────────────────────
 
-function extractQAPairs(turns: ConversationTurn[]): {
-  pairs: Array<{ question: string; answer: string; index: number }>;
-  latestQuestion: string | null;
-} {
-  const pairs: Array<{ question: string; answer: string; index: number }> = [];
-  let latestQuestion: string | null = null;
-  let qIndex = 0;
-
-  for (let i = 0; i < turns.length; i++) {
-    const turn = turns[i];
-    if (turn.role === "assistant") {
-      const nextTurn = turns[i + 1];
-      if (nextTurn && nextTurn.role === "user") {
-        qIndex++;
-        pairs.push({ question: turn.content, answer: nextTurn.content, index: qIndex });
-        i++;
-      } else {
-        latestQuestion = turn.content;
-      }
-    }
-  }
-
-  return { pairs, latestQuestion };
-}
-
-function ExamQuestionBlock({ content }: { content: string }) {
+function QuestionCounter({ current, total }: { current: number; total: number }) {
   return (
-    <div
-      className="mx-5 rounded-2xl p-5 animate-message-in"
-      style={{
-        background: "var(--color-bg-card)",
-        border: "1px solid var(--color-border)",
-        borderLeft: "4px solid var(--color-primary)",
-      }}
-    >
-      <div
-        className="text-[11px] font-bold uppercase tracking-wider mb-2"
-        style={{ color: "var(--color-primary)" }}
-      >
+    <div className="flex items-center gap-1.5">
+      <span className="text-[11px] font-medium" style={{ color: "var(--color-text-secondary)" }}>
         Question
-      </div>
-      <p
-        className="text-[16px] font-medium leading-relaxed"
-        style={{ color: "var(--color-text)" }}
-      >
-        {content}
-      </p>
+      </span>
+      <span className="text-[12px] font-bold" style={{ color: "var(--color-examiner)" }}>
+        {current}
+      </span>
+      <span className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>/</span>
+      <span className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>{total}</span>
     </div>
   );
 }
 
-function CompactQAHistory({ pairs }: { pairs: Array<{ question: string; answer: string; index: number }> }) {
-  if (pairs.length === 0) return null;
+// ─── Transcript entry ───────────────────────────────────────────────────────
+
+function TranscriptEntry({ question, answer, index }: { question: string; answer: string; index: number }) {
   return (
-    <div
-      className="mx-5 rounded-2xl p-4 flex flex-col gap-3 max-h-[200px] overflow-y-auto"
-      style={{
-        background: "var(--color-bg-card)",
-        border: "1px solid var(--color-border)",
-      }}
-    >
-      <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
-        Previous Questions
-      </div>
-      {pairs.map((pair) => (
-        <div key={pair.index} className="flex flex-col gap-0.5">
-          <div className="text-[12px] font-medium" style={{ color: "var(--color-text-secondary)" }}>
-            Q{pair.index}: {pair.question}
+    <div className="flex flex-col gap-2 exam-answer-appear">
+      <div className="flex items-start gap-2.5">
+        <ExaminerAvatar size="sm" />
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-examiner)" }}>
+            Question {index}
           </div>
-          <div className="text-[12px]" style={{ color: "var(--color-text-secondary)", opacity: 0.7 }}>
-            A: {pair.answer}
-          </div>
+          <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+            {question}
+          </p>
         </div>
-      ))}
+      </div>
+      <div className="ml-[46px]">
+        <div className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--color-primary)" }}>
+          Your answer
+        </div>
+        <p className="text-[13px] leading-relaxed" style={{ color: "var(--color-text)" }}>
+          {answer}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Examiner Question Block ────────────────────────────────────────────────
+
+function ExaminerQuestion({ content, isSpeaking }: { content: string; isSpeaking?: boolean }) {
+  return (
+    <div className="flex items-start gap-3.5 exam-question-appear">
+      <ExaminerAvatar speaking={isSpeaking} />
+      <div className="flex-1 min-w-0">
+        <div className="text-[10px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--color-examiner)" }}>
+          Examiner
+        </div>
+        <div
+          className="rounded-2xl p-4"
+          style={{
+            background: "var(--color-examiner-soft)",
+            borderLeft: "3px solid var(--color-examiner)",
+          }}
+        >
+          <p className="text-[16px] font-medium leading-relaxed" style={{ color: "var(--color-text)" }}>
+            {content}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -310,37 +292,92 @@ function CompactQAHistory({ pairs }: { pairs: Array<{ question: string; answer: 
 function CueCardDisplay({ card }: { card: IeltsCueCard }) {
   return (
     <div
-      className="mx-5 rounded-2xl p-5 mb-2"
+      className="rounded-2xl p-5 animate-phase-in"
       style={{
         background: "var(--color-bg-card)",
         border: "1px solid var(--color-border)",
+        borderTop: "3px solid var(--color-examiner)",
       }}
     >
-      <div
-        className="text-[11px] font-bold uppercase tracking-wider mb-2.5"
-        style={{ color: "var(--color-primary)" }}
-      >
-        Cue Card — Part 2
+      <div className="flex items-center gap-2 mb-3">
+        <ExaminerAvatar size="sm" />
+        <div>
+          <div className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "var(--color-examiner)" }}>
+            Task Card
+          </div>
+          <div className="text-[10px]" style={{ color: "var(--color-text-secondary)" }}>Part 2 — Long Turn</div>
+        </div>
       </div>
-      <p
-        className="text-[15px] font-semibold mb-3 leading-snug"
-        style={{ color: "var(--color-text)" }}
-      >
+      <p className="text-[16px] font-semibold mb-3.5 leading-snug" style={{ color: "var(--color-text)" }}>
         {card.topic}
       </p>
-      <ul className="flex flex-col gap-2">
+      <div className="text-[11px] font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+        You should say:
+      </div>
+      <ul className="flex flex-col gap-2 mb-4">
         {card.prompts.map((prompt, i) => (
-          <li key={i} className="flex gap-2 items-start">
-            <span className="mt-0.5 shrink-0 text-[10px]" style={{ color: "var(--color-primary)" }}>▸</span>
-            <span className="text-[13px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+          <li key={i} className="flex gap-2.5 items-start">
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 mt-0.5" style={{ background: "var(--color-examiner-soft)", color: "var(--color-examiner)" }}>
+              {i + 1}
+            </span>
+            <span className="text-[14px] leading-relaxed" style={{ color: "var(--color-text)" }}>
               {prompt}
             </span>
           </li>
         ))}
       </ul>
-      <p className="text-[11px] mt-3.5" style={{ color: "var(--color-text-secondary)" }}>
-        You will have 1 minute to prepare, then speak for up to 2 minutes.
-      </p>
+      <div className="flex items-center gap-2 pt-3" style={{ borderTop: "1px solid var(--color-border)" }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span className="text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
+          1 minute to prepare, then speak for up to 2 minutes
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Voice input button (large, central) ────────────────────────────────────
+
+function VoiceButton({ voice, disabled, size = "md" }: {
+  voice: { isSupported: boolean; isRecording: boolean; startRecording: () => void; stopRecording: () => void };
+  disabled: boolean;
+  size?: "sm" | "md" | "lg";
+}) {
+  if (!voice.isSupported) return null;
+
+  const dims = size === "lg" ? "w-16 h-16" : size === "md" ? "w-12 h-12" : "w-10 h-10";
+  const iconSize = size === "lg" ? 24 : size === "md" ? 20 : 16;
+
+  return (
+    <div className="relative flex items-center justify-center">
+      {voice.isRecording && (
+        <div className="absolute inset-0 rounded-full animate-recording-pulse" style={{ background: "rgba(239,68,68,0.2)" }} />
+      )}
+      <button
+        onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
+        disabled={disabled}
+        title={voice.isRecording ? "Stop recording" : "Tap to speak"}
+        className={`${dims} rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-40`}
+        style={{
+          background: voice.isRecording
+            ? "linear-gradient(135deg, #ef4444, #dc2626)"
+            : "linear-gradient(135deg, var(--color-examiner), var(--color-primary))",
+          color: "#fff",
+          boxShadow: voice.isRecording
+            ? "0 4px 16px rgba(239,68,68,0.3)"
+            : "0 4px 16px var(--color-primary-glow)",
+        }}
+      >
+        {voice.isRecording ? (
+          <svg width={iconSize * 0.7} height={iconSize * 0.7} viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="3" /></svg>
+        ) : (
+          <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        )}
+      </button>
     </div>
   );
 }
@@ -372,7 +409,7 @@ export default function IeltsConversation({
   const [errorMsg, setErrorMsg]         = useState<string | null>(null);
 
   const startTimeRef  = useRef<number>(Date.now());
-  const chatEndRef    = useRef<HTMLDivElement>(null);
+  const scrollRef     = useRef<HTMLDivElement>(null);
   const inputRef      = useRef<HTMLTextAreaElement>(null);
 
   // Voice input — populates inputText, user sends manually
@@ -382,10 +419,12 @@ export default function IeltsConversation({
     }, [])
   );
 
-  // Auto-scroll on new turns
+  // Auto-scroll
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [turns, isTyping]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [turns, isTyping, phase]);
 
   // ── Session init ──────────────────────────────────────────────────────────
 
@@ -467,6 +506,11 @@ export default function IeltsConversation({
   const handleSend = useCallback(async () => {
     const content = inputText.trim();
     if (!sessionId || !content || isTyping) return;
+
+    // Stop recording if active
+    if (voice.isRecording) {
+      voice.stopRecording();
+    }
 
     setInputText("");
     setIsTyping(true);
@@ -551,7 +595,7 @@ export default function IeltsConversation({
       setIsTyping(false);
       inputRef.current?.focus();
     }
-  }, [sessionId, inputText, isTyping, turns, phase, part1TurnCount, part3TurnCount, cueCard, scenario.id, handleEndSession]);
+  }, [sessionId, inputText, isTyping, turns, phase, part1TurnCount, part3TurnCount, cueCard, scenario.id, handleEndSession, voice]);
 
   // ── Key handler ───────────────────────────────────────────────────────────
 
@@ -562,14 +606,12 @@ export default function IeltsConversation({
     }
   };
 
-  // ── Part 2 prep skip ──────────────────────────────────────────────────────
+  // ── Phase handlers ────────────────────────────────────────────────────────
 
   const handlePrepSkip = () => {
     setPhase("part2_speaking");
     saveSession({ scenarioId: scenario.id, sessionId: sessionId!, phase: "part2_speaking", turns, cueCard, part1TurnCount, part3TurnCount });
   };
-
-  // ── Part 2 speaking end ───────────────────────────────────────────────────
 
   const handleSpeakingEnd = useCallback(async () => {
     if (sessionId && !isTyping) {
@@ -641,6 +683,41 @@ export default function IeltsConversation({
     }
   }, [scenario.id]);
 
+  // ─── Derived state ──────────────────────────────────────────────────────
+
+  // Extract Q&A pairs for transcript
+  function extractQAPairs(turnsList: ConversationTurn[]) {
+    const pairs: Array<{ question: string; answer: string; index: number }> = [];
+    let latestQuestion: string | null = null;
+    let qIndex = 0;
+
+    for (let i = 0; i < turnsList.length; i++) {
+      const turn = turnsList[i];
+      if (turn.role === "assistant") {
+        const nextTurn = turnsList[i + 1];
+        if (nextTurn && nextTurn.role === "user") {
+          qIndex++;
+          pairs.push({ question: turn.content, answer: nextTurn.content, index: qIndex });
+          i++;
+        } else {
+          latestQuestion = turn.content;
+        }
+      }
+    }
+
+    return { pairs, latestQuestion };
+  }
+
+  // Current part label
+  function getActivePart(): string {
+    if (phase === "part1") return "part1";
+    if (phase === "part2_prep" || phase === "part2_speaking") return "part2";
+    return "part3";
+  }
+
+  const activePart = getActivePart();
+  const partInfo = PART_LABELS[activePart] ?? PART_LABELS.part1;
+
   // ─── Render ──────────────────────────────────────────────────────────────
 
   if (phase === "summary" && scores) {
@@ -648,7 +725,9 @@ export default function IeltsConversation({
   }
 
   const showInput = phase === "part1" || phase === "part2_speaking" || phase === "part3";
-  const showEndButton = phase === "part3";
+
+  const currentQ = phase === "part1" ? part1TurnCount + 1 : phase === "part3" ? part3TurnCount + 1 : 0;
+  const totalQ = phase === "part1" ? PART1_MAX_TURNS : PART3_MAX_TURNS;
 
   return (
     <div
@@ -657,271 +736,275 @@ export default function IeltsConversation({
     >
       {/* ── Header ── */}
       <div
+        className="shrink-0"
         style={{
           background: "var(--color-bg-card)",
           borderBottom: "1px solid var(--color-border)",
         }}
-        className="shrink-0"
       >
-        <div className="flex items-center gap-3 px-5 py-3.5">
+        <div className="flex items-center gap-3 px-4 py-3">
           <button
             onClick={onClose}
-            style={{ color: "var(--color-text-secondary)" }}
-            className="text-xl hover:opacity-70 transition-opacity"
+            className="w-8 h-8 rounded-lg flex items-center justify-center hover:opacity-70 transition-opacity"
+            style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}
           >
-            ✕
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
           </button>
+
           <div className="flex-1 min-w-0">
-            <div style={{ color: "var(--color-text)" }} className="font-semibold text-[15px] truncate">
+            <div className="font-sora font-bold text-[14px]" style={{ color: "var(--color-text)" }}>
               IELTS Speaking Test
             </div>
-            <div style={{ color: "var(--color-text-secondary)" }} className="text-[12px]">
-              {phase === "part1" ? "Part 1 — Introduction"
-                : phase === "part2_prep" || phase === "part2_speaking" ? "Part 2 — Long Turn"
-                : phase === "part3" ? "Part 3 — Discussion"
-                : "Exam"}
+            <div className="text-[11px]" style={{ color: "var(--color-text-secondary)" }}>
+              {partInfo.name}
             </div>
           </div>
+
           {phase !== "loading" && phase !== "ending" && phase !== "summary" && (
-            <button
-              onClick={handleNewTest}
-              style={{
-                background: "var(--color-bg-secondary)",
-                color: "var(--color-text-secondary)",
-                border: "1px solid var(--color-border)",
-              }}
-              className="px-3 py-2 rounded-xl text-[12px] font-semibold hover:opacity-80 transition-opacity shrink-0"
-            >
-              New Test
-            </button>
-          )}
-          {showEndButton && (
-            <button
-              onClick={handleManualEnd}
-              style={{ background: "var(--color-primary)", color: "#fff" }}
-              className="px-4 py-2 rounded-xl text-[13px] font-semibold hover:opacity-90 transition-opacity shrink-0"
-            >
-              End Test
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleNewTest}
+                className="px-3 py-1.5 rounded-lg text-[11px] font-semibold hover:opacity-80 transition-opacity"
+                style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+              >
+                Restart
+              </button>
+              {phase === "part3" && (
+                <button
+                  onClick={handleManualEnd}
+                  className="px-3 py-1.5 rounded-lg text-[11px] font-semibold hover:opacity-90 transition-opacity"
+                  style={{ background: "var(--color-examiner)", color: "#fff" }}
+                >
+                  End Test
+                </button>
+              )}
+            </div>
           )}
         </div>
 
+        {/* Progress stepper */}
         {(phase === "part1" || phase === "part2_prep" || phase === "part2_speaking" || phase === "part3") && (
-          <PartIndicator phase={phase} part1TurnCount={part1TurnCount} part3TurnCount={part3TurnCount} />
+          <div className="flex items-center justify-between px-4 pb-3">
+            <ProgressStepper phase={phase} part1TurnCount={part1TurnCount} part3TurnCount={part3TurnCount} />
+            {(phase === "part1" || phase === "part3") && (
+              <QuestionCounter current={currentQ} total={totalQ} />
+            )}
+          </div>
         )}
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto flex flex-col">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div className="max-w-xl mx-auto px-4 py-5 flex flex-col gap-5">
 
-        {phase === "loading" && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-primary)" }} />
-          </div>
-        )}
-
-        {phase === "error" && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3 px-5">
-            <div style={{ color: "var(--color-warning)" }} className="text-lg">{errorMsg || "Something went wrong"}</div>
-            <button onClick={onClose} style={{ color: "var(--color-primary)" }} className="underline text-[15px]">Go back</button>
-          </div>
-        )}
-
-        {phase === "ending" && (
-          <div className="flex-1 flex flex-col items-center justify-center gap-3">
-            <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-primary)" }} />
-            <div style={{ color: "var(--color-text-secondary)" }} className="text-[15px]">Analysing your test...</div>
-          </div>
-        )}
-
-        {/* Part 2 Prep */}
-        {phase === "part2_prep" && cueCard && (
-          <div className="flex flex-col gap-4 pt-5">
-            <CueCardDisplay card={cueCard} />
-            <div className="flex flex-col items-center gap-3 px-5">
-              <IeltsTimer seconds={PREP_SECONDS} onExpire={handlePrepExpire} label="Preparation time" />
-              <button
-                onClick={handlePrepSkip}
-                style={{ background: "var(--color-primary)", color: "#fff" }}
-                className="px-6 py-2.5 rounded-xl text-[14px] font-semibold hover:opacity-90 transition-opacity"
-              >
-                Start Speaking
-              </button>
+          {/* Loading */}
+          {phase === "loading" && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 py-20 animate-phase-in">
+              <ExaminerAvatar size="md" speaking />
+              <div className="text-center">
+                <p className="text-[15px] font-medium" style={{ color: "var(--color-text)" }}>
+                  Preparing your speaking test...
+                </p>
+                <p className="text-[13px] mt-1" style={{ color: "var(--color-text-secondary)" }}>
+                  Your examiner will be with you shortly
+                </p>
+              </div>
+              <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-examiner)" }} />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Part 2 Speaking */}
-        {phase === "part2_speaking" && cueCard && (
-          <div className="flex flex-col gap-4 pt-4">
-            <CueCardDisplay card={cueCard} />
-            <div className="flex flex-col items-center gap-2.5 px-5">
-              <IeltsTimer seconds={SPEAKING_SECONDS} onExpire={handleSpeakingExpire} label="Speaking time" />
-              <button
-                onClick={handleSpeakingEnd}
-                disabled={isTyping}
-                style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
-                className="px-5 py-2 rounded-xl text-[13px] font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
-              >
-                I&apos;m Done Speaking
-              </button>
+          {/* Error */}
+          {phase === "error" && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 py-20">
+              <div style={{ color: "var(--color-warning)" }} className="text-lg">{errorMsg || "Something went wrong"}</div>
+              <button onClick={onClose} style={{ color: "var(--color-examiner)" }} className="underline text-[15px]">Go back</button>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Exam Q&A interface (Parts 1 & 3) */}
-        {(phase === "part1" || phase === "part3") && (() => {
-          const { pairs, latestQuestion } = extractQAPairs(turns);
-          return (
-            <div className="flex flex-col gap-4 py-5">
-              <CompactQAHistory pairs={pairs} />
-              {latestQuestion && <ExamQuestionBlock content={latestQuestion} />}
-              {isTyping && (
-                <div className="flex justify-center py-3">
-                  <div className="flex gap-1.5">
-                    {[0, 200, 400].map((delay) => (
-                      <span key={delay} style={{ background: "var(--color-text-secondary)", animationDelay: `${delay}ms` }} className="w-2 h-2 rounded-full animate-typing-dot" />
+          {/* Ending */}
+          {phase === "ending" && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 py-20 animate-phase-in">
+              <ExaminerAvatar speaking />
+              <div className="text-center">
+                <p className="text-[15px] font-medium" style={{ color: "var(--color-text)" }}>Analysing your performance...</p>
+                <p className="text-[13px] mt-1" style={{ color: "var(--color-text-secondary)" }}>Your examiner is reviewing your answers</p>
+              </div>
+              <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: "var(--color-border)", borderTopColor: "var(--color-examiner)" }} />
+            </div>
+          )}
+
+          {/* ── Part 2 Prep ── */}
+          {phase === "part2_prep" && cueCard && (
+            <div className="flex flex-col gap-5 animate-phase-in">
+              <CueCardDisplay card={cueCard} />
+              <div className="flex flex-col items-center gap-4">
+                <IeltsTimer seconds={PREP_SECONDS} onExpire={handlePrepExpire} label="Preparation time" />
+                <button
+                  onClick={handlePrepSkip}
+                  className="px-8 py-3 rounded-xl text-[14px] font-semibold hover:opacity-90 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  style={{ background: "var(--color-examiner)", color: "#fff", boxShadow: "0 4px 16px var(--color-primary-glow)" }}
+                >
+                  I&apos;m Ready — Start Speaking
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Part 2 Speaking ── */}
+          {phase === "part2_speaking" && cueCard && (
+            <div className="flex flex-col gap-5 animate-phase-in">
+              <CueCardDisplay card={cueCard} />
+              <div className="flex flex-col items-center gap-4">
+                <IeltsTimer seconds={SPEAKING_SECONDS} onExpire={handleSpeakingExpire} label="Speaking time remaining" />
+
+                {/* Central mic button for Part 2 */}
+                <VoiceButton voice={voice} disabled={isTyping} size="lg" />
+
+                {voice.isRecording && voice.interimTranscript && (
+                  <div
+                    className="px-4 py-2 rounded-xl text-[14px] italic text-center max-w-sm"
+                    style={{ background: "var(--color-examiner-soft)", color: "var(--color-text)" }}
+                  >
+                    {voice.interimTranscript}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSpeakingEnd}
+                  disabled={isTyping}
+                  className="px-6 py-2 rounded-xl text-[13px] font-medium hover:opacity-80 transition-opacity disabled:opacity-50"
+                  style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
+                >
+                  Finish Speaking
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Part 1 & 3: Exam Q&A interface ── */}
+          {(phase === "part1" || phase === "part3") && (() => {
+            const { pairs, latestQuestion } = extractQAPairs(turns);
+            return (
+              <div className="flex flex-col gap-5">
+                {/* Part description on first question */}
+                {pairs.length === 0 && (
+                  <div className="text-center py-2 animate-phase-in">
+                    <p className="text-[13px]" style={{ color: "var(--color-text-secondary)" }}>
+                      {partInfo.desc}
+                    </p>
+                  </div>
+                )}
+
+                {/* Previous Q&A transcript */}
+                {pairs.length > 0 && (
+                  <div
+                    className="rounded-2xl p-4 flex flex-col gap-4"
+                    style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+                      Session Transcript
+                    </div>
+                    {pairs.map((pair) => (
+                      <TranscriptEntry key={pair.index} question={pair.question} answer={pair.answer} index={pair.index} />
                     ))}
                   </div>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-          );
-        })()}
+                )}
 
-        {/* Part 2 speaking — keep chat style for free-form talk */}
-        {phase === "part2_speaking" && (
-          <div className="px-5 py-5 space-y-4">
-            {turns.map((turn) => (
-              <div
-                key={turn.id}
-                className={`flex animate-message-in ${turn.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  style={{
-                    background: turn.role === "user" ? "var(--color-primary)" : "var(--color-bg-card)",
-                    color: turn.role === "user" ? "#fff" : "var(--color-text)",
-                    border: turn.role === "assistant" ? "1px solid var(--color-border)" : "none",
-                    borderLeft: turn.role === "assistant" ? "3px solid var(--color-accent)" : "none",
-                  }}
-                  className={`max-w-[70%] px-4 py-3 text-[15px] leading-relaxed ${
-                    turn.role === "user" ? "rounded-2xl rounded-br-md" : "rounded-2xl rounded-bl-md"
-                  }`}
-                >
-                  {turn.content}
-                </div>
-              </div>
-            ))}
+                {/* Current question from examiner */}
+                {latestQuestion && (
+                  <ExaminerQuestion content={latestQuestion} isSpeaking={!isTyping} />
+                )}
 
-            {isTyping && (
-              <div className="flex justify-start animate-message-in">
-                <div
-                  style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-                  className="px-4 py-3 rounded-2xl rounded-bl-md"
-                >
-                  <div className="flex gap-1.5">
-                    {[0, 200, 400].map((delay) => (
-                      <span key={delay} style={{ background: "var(--color-text-secondary)", animationDelay: `${delay}ms` }} className="w-2 h-2 rounded-full animate-typing-dot" />
-                    ))}
+                {/* Thinking indicator */}
+                {isTyping && (
+                  <div className="flex items-center gap-3 px-2">
+                    <ExaminerAvatar size="sm" speaking />
+                    <div className="flex gap-1.5">
+                      {[0, 200, 400].map((delay) => (
+                        <span key={delay} style={{ background: "var(--color-examiner)", animationDelay: `${delay}ms` }} className="w-2 h-2 rounded-full animate-typing-dot opacity-60" />
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            )}
+            );
+          })()}
 
-            <div ref={chatEndRef} />
-          </div>
-        )}
+        </div>
       </div>
 
       {/* ── Input area ── */}
       {showInput && (
         <div
+          className="shrink-0"
           style={{ background: "var(--color-bg-card)", borderTop: "1px solid var(--color-border)" }}
-          className="px-5 py-4 shrink-0"
         >
-          {phase !== "part2_speaking" && (
-            <div
-              className="text-[11px] font-bold uppercase tracking-wider mb-2"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
-              Your Answer
+          <div className="max-w-xl mx-auto px-4 py-3.5">
+            {/* Label */}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-primary)" }}>
+                Your Answer
+              </span>
+              {voice.isRecording && (
+                <span className="text-[10px] font-semibold flex items-center gap-1.5" style={{ color: "#ef4444" }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  Recording
+                </span>
+              )}
             </div>
-          )}
 
-          {phase === "part2_speaking" && (
-            <div style={{ color: "var(--color-text-secondary)" }} className="text-[12px] text-center mb-3">
-              Tap the mic to speak, or type your response below
-            </div>
-          )}
-
-          {/* Live transcript preview */}
-          {voice.isRecording && voice.interimTranscript && (
-            <div
-              className="mb-3 px-3 py-2 rounded-xl text-[13px] italic"
-              style={{ background: "var(--color-primary-soft)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
-            >
-              🎤 &ldquo;{voice.interimTranscript}&rdquo;
-            </div>
-          )}
-
-          <div className="flex items-end gap-2.5">
-            {voice.isSupported && (
-              <button
-                onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
-                disabled={isTyping}
-                title={voice.isRecording ? "Stop recording" : "Speak your answer"}
-                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all disabled:opacity-50"
-                style={{
-                  background: voice.isRecording ? "#ef4444" : "var(--color-primary-soft)",
-                  color: voice.isRecording ? "#fff" : "var(--color-primary)",
-                  boxShadow: voice.isRecording ? "0 0 12px rgba(239,68,68,0.3)" : "none",
-                }}
+            {/* Live transcript */}
+            {voice.isRecording && voice.interimTranscript && (
+              <div
+                className="mb-2 px-3 py-2 rounded-xl text-[13px] italic"
+                style={{ background: "var(--color-examiner-soft)", color: "var(--color-text)" }}
               >
-                {voice.isRecording ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2" /></svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                )}
-              </button>
+                {voice.interimTranscript}
+              </div>
             )}
 
-            <textarea
-              ref={inputRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Answer the question above..."
-              rows={2}
-              disabled={isTyping}
-              style={{
-                background: "var(--color-primary-soft)",
-                color: "var(--color-text)",
-                border: "1px solid var(--color-border)",
-              }}
-              className="flex-1 resize-none rounded-xl px-4 py-3 text-[15px] outline-none focus:border-[color:var(--color-primary)] transition-colors placeholder:opacity-50"
-            />
+            {/* Input row */}
+            <div className="flex items-end gap-2">
+              <VoiceButton voice={voice} disabled={isTyping} size="sm" />
+
+              <textarea
+                ref={inputRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Type or speak your answer..."
+                rows={2}
+                className="flex-1 resize-none rounded-xl px-3.5 py-2.5 text-[15px] outline-none transition-colors placeholder:opacity-40"
+                style={{
+                  background: "var(--color-bg-secondary)",
+                  color: "var(--color-text)",
+                  border: "1px solid var(--color-border)",
+                }}
+              />
+
+              <button
+                onClick={() => handleSend()}
+                disabled={!inputText.trim() || isTyping}
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all duration-200 disabled:opacity-30"
+                style={{
+                  background: inputText.trim() && !isTyping ? "var(--color-examiner)" : "var(--color-border)",
+                  color: inputText.trim() && !isTyping ? "#fff" : "var(--color-text-secondary)",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </button>
+            </div>
+
+            {!voice.isSupported && (
+              <p className="text-[11px] mt-2 text-center" style={{ color: "var(--color-text-secondary)" }}>
+                Voice input requires Chrome or Edge. You can type your answers instead.
+              </p>
+            )}
           </div>
-
-          <button
-            onClick={() => handleSend()}
-            disabled={!inputText.trim() || isTyping}
-            style={{
-              background: inputText.trim() && !isTyping ? "var(--color-primary)" : "var(--color-border)",
-              color: inputText.trim() && !isTyping ? "#fff" : "var(--color-text-secondary)",
-            }}
-            className="w-full mt-3 py-3 rounded-xl font-semibold text-[14px] transition-colors disabled:opacity-50"
-          >
-            Submit Answer
-          </button>
-
-          {!voice.isSupported && (
-            <p className="text-[11px] mt-2 text-center" style={{ color: "var(--color-text-secondary)" }}>
-              Voice input requires Chrome or Edge.
-            </p>
-          )}
         </div>
       )}
     </div>
