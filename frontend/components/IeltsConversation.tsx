@@ -272,6 +272,12 @@ export default function IeltsConversation({
     const content = inputText.trim();
     if (!sessionId || !content || isProcessing) return;
 
+    // During Part 2 speaking, redirect to handlePart2End
+    if (phase === "part2_speak") {
+      handlePart2End();
+      return;
+    }
+
     // Stop recording + TTS
     if (voice.isRecording) voice.stopRecording();
     if (audioRef.current) {
@@ -335,31 +341,81 @@ export default function IeltsConversation({
       const state = result.ieltsState;
 
       if (state) {
-        if (state.part === 2 && state.phase === "transition") {
-          // Transition to Part 2
+        console.log(`[ielts-ui] part=${state.part} phase=${state.phase} qIdx=${state.questionIndex}`);
+
+        if (state.phase === "transition_to_part2") {
+          // Examiner announces Part 2 → play TTS → show transition
           setPhase("part2_intro");
-          // Play transition announcement, then show cue card
           await playTTS(result.aiTurn.content, false);
-          await new Promise((r) => setTimeout(r, 1500));
+          await new Promise((r) => setTimeout(r, 2500));
+          // Auto-advance: send a placeholder to get the cue_card state
+          setIsProcessing(false);
+          const cueResult = await submitScenarioTurn(sessionId, "[READY FOR PART 2]");
+          if (cueResult.ieltsState?.phase === "cue_card") {
+            if (cueResult.ieltsState.cueCard) setCueCard(cueResult.ieltsState.cueCard);
+            setPhase("part2_prep");
+            setTimerSeconds(PREP_SECONDS);
+            setTimerActive(true);
+            await new Promise((r) => setTimeout(r, 500));
+            playTTS(cueResult.aiTurn.content, false);
+          }
+
+        } else if (state.phase === "cue_card") {
+          // Show cue card + prep timer
           setPhase("part2_prep");
           setTimerSeconds(PREP_SECONDS);
           setTimerActive(true);
-        } else if (state.part === 2 && state.phase === "follow_up") {
-          // After Part 2 speaking, examiner asks follow-up
+          // Play the cue card instruction
+          await new Promise((r) => setTimeout(r, 500));
+          playTTS(result.aiTurn.content, false);
+
+        } else if (state.phase === "long_turn") {
+          // User's 2-minute speaking window
+          setPhase("part2_speak");
+          setTimerSeconds(SPEAK_SECONDS);
+          setTimerActive(true);
+          await new Promise((r) => setTimeout(r, 500));
+          playTTS(result.aiTurn.content, false);
+          // Auto-start mic after TTS finishes (handled in playTTS onended)
+
+        } else if (state.phase === "follow_up") {
+          // Examiner asks 1 follow-up after long turn — switch to Q&A mode
+          setPhase("part1"); // Reuse part1 layout for follow-up Q&A
+          setTimerActive(false);
+          setTimerSeconds(0);
           await new Promise((r) => setTimeout(r, 800));
           playTTS(result.aiTurn.content, true);
-        } else if (state.part === 3 && state.questionIndex === 0) {
-          // Transition to Part 3
+
+        } else if (state.phase === "transition_to_part3") {
+          // Transition to Part 3 — show transition, then auto-advance
           setPhase("part3");
-          await new Promise((r) => setTimeout(r, 800));
-          playTTS(result.aiTurn.content, true);
+          await playTTS(result.aiTurn.content, false);
+          await new Promise((r) => setTimeout(r, 2000));
+          // Auto-advance: send a placeholder to get the first Part 3 question
+          setIsProcessing(false);
+          const p3Result = await submitScenarioTurn(sessionId, "[READY FOR PART 3]");
+          if (p3Result.ieltsState) {
+            const aiT: ConversationTurn = {
+              id: `ai-${p3Result.aiTurn.turnIndex}`,
+              turnIndex: p3Result.aiTurn.turnIndex,
+              role: "assistant",
+              content: p3Result.aiTurn.content,
+              audioStorageKey: null, scores: null, feedback: null,
+              createdAt: p3Result.aiTurn.createdAt,
+            };
+            setTurns((prev) => [...prev, aiT]);
+            await new Promise((r) => setTimeout(r, 500));
+            playTTS(p3Result.aiTurn.content, true);
+          }
+
         } else if (state.phase === "complete") {
           // Test complete
           await playTTS(result.aiTurn.content, false);
           await new Promise((r) => setTimeout(r, 1000));
           await handleEndSession(sessionId);
+
         } else {
-          // Normal question — play TTS
+          // Normal question (Part 1 or Part 3) — play TTS
           await new Promise((r) => setTimeout(r, 600));
           playTTS(result.aiTurn.content, true);
         }
@@ -368,7 +424,8 @@ export default function IeltsConversation({
         await new Promise((r) => setTimeout(r, 600));
         playTTS(result.aiTurn.content, true);
       }
-    } catch {
+    } catch (err) {
+      console.error("[ielts-ui] handleSend error:", err);
       setTurns((prev) => prev.filter((t) => t.id !== tempId));
     } finally {
       setIsProcessing(false);
@@ -384,26 +441,7 @@ export default function IeltsConversation({
     }
   };
 
-  // ── Timer expiry handlers ──
-  useEffect(() => {
-    if (timerSeconds === 0 && !timerActive && phase === "part2_prep") {
-      // Prep time expired → auto-start speaking
-      setPhase("part2_speak");
-      setTimerSeconds(SPEAK_SECONDS);
-      setTimerActive(true);
-      // Auto-start mic
-      if (voice.isSupported && !voice.isRecording) {
-        voice.startRecording();
-      }
-    }
-  }, [timerSeconds, timerActive, phase, voice]);
-
-  // Part 2 speaking timer expiry
-  useEffect(() => {
-    if (timerSeconds === 0 && !timerActive && phase === "part2_speak") {
-      handlePart2End();
-    }
-  }, [timerSeconds, timerActive, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Timer expiry handlers are defined after handlePrepSkip and handlePart2End below
 
   const handlePart2End = useCallback(async () => {
     if (!sessionId || isProcessing) return;
@@ -443,25 +481,94 @@ export default function IeltsConversation({
       setTurns((prev) => [...prev, userTurn, aiTurn]);
       setUserTurnCount((c) => c + 1);
 
-      // Follow-up question → then transition to Part 3
-      await new Promise((r) => setTimeout(r, 800));
-      playTTS(result.aiTurn.content, true);
-
-      // After follow-up answer, backend will transition to Part 3
-    } catch { /* ignore */ } finally {
+      // Check the IELTS state from the response
+      const state = result.ieltsState;
+      if (state) {
+        console.log(`[ielts-ui] handlePart2End: part=${state.part} phase=${state.phase}`);
+        if (state.phase === "long_turn") {
+          // Backend was still at cue_card when we submitted — re-submit to advance
+          setIsProcessing(false);
+          const retry = await submitScenarioTurn(sessionId, "[Speaking completed]");
+          if (retry.ieltsState?.phase === "follow_up") {
+            const followAi: ConversationTurn = {
+              id: `ai-${retry.aiTurn.turnIndex}`, turnIndex: retry.aiTurn.turnIndex,
+              role: "assistant", content: retry.aiTurn.content,
+              audioStorageKey: null, scores: null, feedback: null,
+              createdAt: retry.aiTurn.createdAt,
+            };
+            setTurns((prev) => [...prev, followAi]);
+            setPhase("part1");
+            setTimerActive(false);
+            setTimerSeconds(0);
+            await new Promise((r) => setTimeout(r, 800));
+            playTTS(retry.aiTurn.content, true);
+          }
+        } else if (state.phase === "follow_up") {
+          // Show follow-up as Q&A (reuse part1 layout)
+          setPhase("part1");
+          setTimerActive(false);
+          setTimerSeconds(0);
+          await new Promise((r) => setTimeout(r, 800));
+          playTTS(result.aiTurn.content, true);
+        } else if (state.phase === "transition_to_part3") {
+          setPhase("part3");
+          await playTTS(result.aiTurn.content, false);
+          await new Promise((r) => setTimeout(r, 2000));
+          setIsProcessing(false);
+          const p3Result = await submitScenarioTurn(sessionId, "[READY FOR PART 3]");
+          if (p3Result.ieltsState) {
+            const p3Turn: ConversationTurn = {
+              id: `ai-${p3Result.aiTurn.turnIndex}`,
+              turnIndex: p3Result.aiTurn.turnIndex,
+              role: "assistant",
+              content: p3Result.aiTurn.content,
+              audioStorageKey: null, scores: null, feedback: null,
+              createdAt: p3Result.aiTurn.createdAt,
+            };
+            setTurns((prev) => [...prev, p3Turn]);
+            await new Promise((r) => setTimeout(r, 500));
+            playTTS(p3Result.aiTurn.content, true);
+          }
+        }
+      } else {
+        // Fallback: play the follow-up question
+        await new Promise((r) => setTimeout(r, 800));
+        playTTS(result.aiTurn.content, true);
+      }
+    } catch (err) { console.error("[ielts-ui] handlePart2End error:", err); } finally {
       setIsProcessing(false);
     }
   }, [sessionId, isProcessing, inputText, voice, playTTS]);
 
-  const handlePrepSkip = () => {
+  const handlePrepSkip = useCallback(async () => {
+    if (!sessionId) return;
     setTimerActive(false);
     setPhase("part2_speak");
     setTimerSeconds(SPEAK_SECONDS);
     setTimerActive(true);
+    // Advance backend from cue_card → long_turn
+    try {
+      await submitScenarioTurn(sessionId, "[PREPARATION COMPLETE]");
+    } catch (err) {
+      console.error("[ielts-ui] handlePrepSkip advance error:", err);
+    }
     if (voice.isSupported) {
       setTimeout(() => voice.startRecording(), 300);
     }
-  };
+  }, [sessionId, voice]);
+
+  // ── Timer expiry handlers ──
+  useEffect(() => {
+    if (timerSeconds === 0 && !timerActive && phase === "part2_prep") {
+      handlePrepSkip();
+    }
+  }, [timerSeconds, timerActive, phase, handlePrepSkip]);
+
+  useEffect(() => {
+    if (timerSeconds === 0 && !timerActive && phase === "part2_speak") {
+      handlePart2End();
+    }
+  }, [timerSeconds, timerActive, phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived ──
   const currentPart = phase === "part1" ? 1 : (phase.startsWith("part2") ? 2 : 3);

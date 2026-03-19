@@ -1,15 +1,14 @@
 /**
  * scenarioService.js
  *
- * Orchestrates the scenario speaking practice flow:
- *   1. List / get scenario definitions
- *   2. Start a conversation session (AI opening turn)
- *   3. Accept user turns, generate AI responses
- *   4. End session with scoring and feedback
+ * Orchestrates scenario speaking practice + IELTS speaking exam.
  *
- * IELTS sessions use a deterministic state machine — the backend controls
- * part transitions, NOT the AI. The AI receives explicit instructions about
- * which part/phase it is in and what question to ask next.
+ * IELTS sessions use an EXPLICIT STATE MACHINE:
+ *  - State is persisted in DB (session_meta JSONB column)
+ *  - Each submitTurn call reads the current state, processes the turn,
+ *    then EXPLICITLY advances to the next state
+ *  - Turn count is NOT used to derive state — state drives everything
+ *  - State transitions are logged for auditability
  */
 
 const { createAiProvider } = require("../providers/ai/aiProvider");
@@ -18,13 +17,12 @@ const scenarioRepository = require("../repositories/scenarioRepository");
 const ai = createAiProvider();
 
 // ---------------------------------------------------------------------------
-// IELTS State Machine Constants
+// IELTS Constants
 // ---------------------------------------------------------------------------
 
-const IELTS_PART1_QUESTIONS = 5; // 4-6 questions, we use 5
+const IELTS_PART1_QUESTIONS = 5;
 const IELTS_PART3_QUESTIONS = 5;
 
-// Cue cards — backend owns these, not frontend
 const IELTS_CUE_CARDS = [
   { topic: "Describe a place you would like to visit", prompts: ["Where the place is", "How you heard about it", "What you would do there", "Why you would like to visit it"] },
   { topic: "Describe a person who has inspired you", prompts: ["Who this person is", "How you know them", "What they have done that inspired you", "Why they have been important to you"] },
@@ -36,11 +34,119 @@ const IELTS_CUE_CARDS = [
   { topic: "Describe a piece of technology you use often", prompts: ["What it is", "How often you use it", "What you use it for", "Why it is important to you"] },
 ];
 
+// ---------------------------------------------------------------------------
+// IELTS State Machine — Explicit Transitions
+// ---------------------------------------------------------------------------
+
 /**
- * Build a strict IELTS examiner system prompt that includes the current
- * session state. The AI CANNOT deviate — it must follow the state.
+ * State shape (persisted in session_meta JSONB):
+ * {
+ *   part: 1 | 2 | 3,
+ *   phase: "question" | "transition_to_part2" | "cue_card" | "long_turn" |
+ *          "follow_up" | "transition_to_part3" | "question_p3" | "complete",
+ *   questionIndex: number,         // 0-based within current part
+ *   cueCardIndex: number,          // index into IELTS_CUE_CARDS
+ *   transitionHistory: string[],   // audit trail of state transitions
+ * }
+ */
+
+/**
+ * Create the initial IELTS state for a new session.
+ */
+function createInitialIeltsState(cueCardIndex) {
+  return {
+    part: 1,
+    phase: "question",
+    questionIndex: 0,
+    cueCardIndex,
+    transitionHistory: ["init → part1:question:0"],
+  };
+}
+
+/**
+ * EXPLICIT state transition — given the current state + the fact that the user
+ * just submitted a turn, compute the NEXT state.
+ *
+ * This is NOT based on turn count. It reads the current state and advances it.
+ * Each transition is logged in transitionHistory for auditability.
+ */
+function advanceIeltsState(currentState) {
+  const next = { ...currentState, transitionHistory: [...currentState.transitionHistory] };
+  const from = `part${next.part}:${next.phase}:${next.questionIndex}`;
+
+  // ── Part 1: question → question → ... → transition_to_part2 ──
+  if (next.part === 1 && next.phase === "question") {
+    if (next.questionIndex + 1 >= IELTS_PART1_QUESTIONS) {
+      // All Part 1 questions asked → transition to Part 2
+      next.part = 2;
+      next.phase = "transition_to_part2";
+      next.questionIndex = 0;
+    } else {
+      // Next Part 1 question
+      next.questionIndex += 1;
+    }
+    next.transitionHistory.push(`${from} → part${next.part}:${next.phase}:${next.questionIndex}`);
+    return next;
+  }
+
+  // ── Part 2: transition_to_part2 → cue_card (user preps) ──
+  if (next.part === 2 && next.phase === "transition_to_part2") {
+    next.phase = "cue_card";
+    next.transitionHistory.push(`${from} → part2:cue_card:0`);
+    return next;
+  }
+
+  // ── Part 2: cue_card → long_turn (user speaks for 2 min) ──
+  if (next.part === 2 && next.phase === "cue_card") {
+    next.phase = "long_turn";
+    next.transitionHistory.push(`${from} → part2:long_turn:0`);
+    return next;
+  }
+
+  // ── Part 2: long_turn → follow_up (examiner asks 1 follow-up) ──
+  if (next.part === 2 && next.phase === "long_turn") {
+    next.phase = "follow_up";
+    next.transitionHistory.push(`${from} → part2:follow_up:0`);
+    return next;
+  }
+
+  // ── Part 2: follow_up → transition_to_part3 ──
+  if (next.part === 2 && next.phase === "follow_up") {
+    next.part = 3;
+    next.phase = "transition_to_part3";
+    next.questionIndex = 0;
+    next.transitionHistory.push(`${from} → part3:transition_to_part3:0`);
+    return next;
+  }
+
+  // ── Part 3: transition_to_part3 → question_p3 ──
+  if (next.part === 3 && next.phase === "transition_to_part3") {
+    next.phase = "question_p3";
+    next.transitionHistory.push(`${from} → part3:question_p3:0`);
+    return next;
+  }
+
+  // ── Part 3: question_p3 → question_p3 → ... → complete ──
+  if (next.part === 3 && next.phase === "question_p3") {
+    if (next.questionIndex + 1 >= IELTS_PART3_QUESTIONS) {
+      next.phase = "complete";
+    } else {
+      next.questionIndex += 1;
+    }
+    next.transitionHistory.push(`${from} → part${next.part}:${next.phase}:${next.questionIndex}`);
+    return next;
+  }
+
+  // Already complete — no transition
+  return next;
+}
+
+/**
+ * Build a strict IELTS examiner system prompt based on current state.
  */
 function buildIeltsSystemPrompt(state) {
+  const cueCard = IELTS_CUE_CARDS[state.cueCardIndex % IELTS_CUE_CARDS.length];
+
   const base = `You are a strict, professional IELTS Speaking examiner conducting an official speaking test.
 
 CRITICAL RULES:
@@ -51,122 +157,83 @@ CRITICAL RULES:
 - Maintain a formal, neutral examiner tone throughout.
 - NEVER explain what you are doing. Just ask the next question.
 - NEVER say "Let me ask you" or "I'd like to ask". Just ask directly.
-- Do NOT use phrases like "Great answer!" or "That's interesting!" — stay neutral.`;
+- Do NOT use phrases like "Great answer!" or "That's interesting!" — stay neutral.
+- If the candidate asks a meta-question (e.g. "what part are we in?"), ignore it and ask your next question.`;
 
-  if (state.part === 1) {
+  // ── Part 1 ──
+  if (state.part === 1 && state.phase === "question") {
     return `${base}
 
-CURRENT STATE:
-- Part: 1 (Introduction & Interview)
-- Question: ${state.questionIndex + 1} of ${IELTS_PART1_QUESTIONS}
-- Phase: ${state.phase}
+CURRENT STATE: Part 1, Question ${state.questionIndex + 1} of ${IELTS_PART1_QUESTIONS}
 
-INSTRUCTIONS FOR PART 1:
+INSTRUCTIONS:
 - Ask ONE short, direct question about familiar topics (home, work, studies, hobbies, daily routine).
 - Each question should be on a slightly different subtopic.
 - Keep your question to 1 sentence.
-- Do NOT repeat topics already covered in the conversation.
-${state.questionIndex === 0 ? "- This is the FIRST question. Start with a brief greeting: 'Good morning/afternoon. My name is [examiner name]. Can I have your full name please?' Then ask about where they live or what they do." : ""}`;
+- Do NOT repeat topics already covered.
+${state.questionIndex === 0 ? "- This is the FIRST question. Start with a brief greeting: 'Good morning. My name is the examiner. Could you tell me your full name, please?' Then ask about where they live or what they do." : ""}`;
   }
 
-  if (state.part === 2) {
+  // ── Part 2: transition announcement ──
+  if (state.part === 2 && state.phase === "transition_to_part2") {
     return `${base}
 
-CURRENT STATE:
-- Part: 2 (Individual Long Turn)
-- Phase: ${state.phase}
-- Cue card topic: "${state.cueCard?.topic}"
+CURRENT STATE: Transitioning to Part 2
 
-INSTRUCTIONS FOR PART 2:
-${state.phase === "transition" ? `- Say EXACTLY: "Now, I'd like you to talk about a topic. Here is your task card. You have one minute to prepare, and then you should speak for one to two minutes."
-- Do NOT say anything else. Just this transition statement.` : ""}
-${state.phase === "follow_up" ? `- The candidate has finished speaking about: "${state.cueCard?.topic}"
-- Ask ONE brief follow-up question related to their topic. Keep it to 1 sentence.
-- Example: "Do you think you will actually do this in the future?" or "Is this something your friends also enjoy?"` : ""}`;
+INSTRUCTIONS:
+- Say EXACTLY: "Now, I'd like you to talk about a topic. I'm going to give you a task card. You will have one minute to prepare, and then you should speak for one to two minutes. Here is your topic: ${cueCard.topic}."
+- Do NOT say anything else beyond this transition statement.`;
   }
 
-  if (state.part === 3) {
+  // ── Part 2: follow-up ──
+  if (state.part === 2 && state.phase === "follow_up") {
     return `${base}
 
-CURRENT STATE:
-- Part: 3 (Two-Way Discussion)
-- Question: ${state.questionIndex + 1} of ${IELTS_PART3_QUESTIONS}
-- Phase: ${state.phase}
-- Part 2 topic was: "${state.cueCard?.topic}"
+CURRENT STATE: Part 2 Follow-up
+The candidate just spoke about: "${cueCard.topic}"
 
-INSTRUCTIONS FOR PART 3:
-${state.questionIndex === 0 ? `- Say EXACTLY: "We've been talking about ${state.cueCard?.topic.toLowerCase().replace("describe ", "")} and I'd like to discuss some related questions."
-- Then ask your FIRST abstract/analytical question related to the Part 2 topic.` : ""}
-${state.questionIndex > 0 ? `- Ask ONE abstract, analytical question that explores the broader theme of "${state.cueCard?.topic}".
+INSTRUCTIONS:
+- Ask ONE brief follow-up question related to what they said about "${cueCard.topic}".
+- Keep it to 1 sentence. Example: "Do you think you will actually do this?" or "Is this common among people you know?"`;
+  }
+
+  // ── Part 3: transition announcement ──
+  if (state.part === 3 && state.phase === "transition_to_part3") {
+    return `${base}
+
+CURRENT STATE: Transitioning to Part 3
+Part 2 topic was: "${cueCard.topic}"
+
+INSTRUCTIONS:
+- Say: "We've been talking about ${cueCard.topic.toLowerCase().replace("describe ", "")} and I'd like to discuss some related questions with you."
+- Then immediately ask your FIRST abstract/analytical question related to the Part 2 topic.`;
+  }
+
+  // ── Part 3: discussion questions ──
+  if (state.part === 3 && state.phase === "question_p3") {
+    return `${base}
+
+CURRENT STATE: Part 3, Question ${state.questionIndex + 1} of ${IELTS_PART3_QUESTIONS}
+Part 2 topic was: "${cueCard.topic}"
+
+INSTRUCTIONS:
+- Ask ONE abstract, analytical question exploring the broader theme of "${cueCard.topic}".
 - Questions should be deeper and more complex than Part 1.
-- Examples of good Part 3 question styles: "Why do you think...", "How has X changed...", "To what extent do you agree...", "What are the advantages and disadvantages of..."
-- Do NOT repeat the same question angle already covered in the conversation.` : ""}`;
+- Good question styles: "Why do you think...", "How has X changed...", "To what extent...", "What are the advantages and disadvantages of..."
+- Do NOT repeat the same angle already covered.`;
+  }
+
+  // ── Complete ──
+  if (state.phase === "complete") {
+    return `${base}
+
+CURRENT STATE: Test complete.
+
+INSTRUCTIONS:
+- Say EXACTLY: "Thank you very much. That is the end of the speaking test."`;
   }
 
   return base;
-}
-
-/**
- * Compute the IELTS session state from existing turns.
- * This is deterministic — same turns always produce same state.
- */
-function computeIeltsState(turns, cueCardIndex) {
-  const userTurnCount = turns.filter(t => t.role === "user").length;
-  const cueCard = IELTS_CUE_CARDS[cueCardIndex % IELTS_CUE_CARDS.length];
-
-  // Part 1: first IELTS_PART1_QUESTIONS user turns
-  if (userTurnCount < IELTS_PART1_QUESTIONS) {
-    return {
-      part: 1,
-      phase: "question",
-      questionIndex: userTurnCount,
-      totalQuestions: IELTS_PART1_QUESTIONS,
-      cueCard,
-    };
-  }
-
-  // Transition to Part 2
-  if (userTurnCount === IELTS_PART1_QUESTIONS) {
-    return {
-      part: 2,
-      phase: "transition",
-      questionIndex: 0,
-      totalQuestions: 1,
-      cueCard,
-    };
-  }
-
-  // Part 2 follow-up (after candidate's long turn)
-  if (userTurnCount === IELTS_PART1_QUESTIONS + 1) {
-    return {
-      part: 2,
-      phase: "follow_up",
-      questionIndex: 0,
-      totalQuestions: 1,
-      cueCard,
-    };
-  }
-
-  // Part 3: remaining turns
-  const part3Index = userTurnCount - (IELTS_PART1_QUESTIONS + 2);
-  if (part3Index < IELTS_PART3_QUESTIONS) {
-    return {
-      part: 3,
-      phase: "question",
-      questionIndex: part3Index,
-      totalQuestions: IELTS_PART3_QUESTIONS,
-      cueCard,
-    };
-  }
-
-  // Test complete
-  return {
-    part: 3,
-    phase: "complete",
-    questionIndex: IELTS_PART3_QUESTIONS,
-    totalQuestions: IELTS_PART3_QUESTIONS,
-    cueCard,
-  };
 }
 
 // ---------------------------------------------------------------------------
@@ -191,10 +258,6 @@ async function getScenario(id) {
 // Session lifecycle
 // ---------------------------------------------------------------------------
 
-/**
- * Start a new conversation session.
- * For IELTS: picks a random cue card index, stores in session metadata.
- */
 async function startSession(scenarioId, userId) {
   const scenario = await scenarioRepository.findScenarioById(scenarioId);
   if (!scenario) {
@@ -207,23 +270,20 @@ async function startSession(scenarioId, userId) {
   const session = await scenarioRepository.createSession(scenarioId, userId);
 
   const isIelts = scenario.category === "exam";
-
   let openingContent;
 
   if (isIelts) {
-    // Pick random cue card — store index in session for deterministic state
     const cueCardIndex = Math.floor(Math.random() * IELTS_CUE_CARDS.length);
-    const state = computeIeltsState([], cueCardIndex);
+    const initialState = createInitialIeltsState(cueCardIndex);
 
-    // Generate the examiner's opening via AI with strict prompt
-    const systemPrompt = buildIeltsSystemPrompt(state);
+    // Persist state to DB
+    await scenarioRepository.updateSessionMeta(session.id, initialState);
+
+    // Generate examiner opening with strict prompt
+    const systemPrompt = buildIeltsSystemPrompt(initialState);
     openingContent = await ai.generateResponse(systemPrompt, [], { category: "exam" });
 
-    // Store cue card index + state alongside the session
-    await scenarioRepository.updateSessionMeta(session.id, {
-      cueCardIndex,
-      ieltsState: state,
-    });
+    console.log(`[ielts] Session started: ${session.id} | cueCard: ${cueCardIndex} | state: part1:question:0`);
   } else {
     openingContent = scenario.opening_message;
   }
@@ -232,11 +292,9 @@ async function startSession(scenarioId, userId) {
     session.id, 0, "assistant", openingContent
   );
 
-  const cueCardIndex = isIelts
-    ? (await scenarioRepository.getSessionMeta(session.id))?.cueCardIndex ?? 0
-    : 0;
+  // Return cue card so frontend can display it during Part 2
   const cueCard = isIelts
-    ? IELTS_CUE_CARDS[cueCardIndex % IELTS_CUE_CARDS.length]
+    ? IELTS_CUE_CARDS[(await scenarioRepository.getSessionMeta(session.id))?.cueCardIndex ?? 0]
     : null;
 
   return {
@@ -244,7 +302,7 @@ async function startSession(scenarioId, userId) {
     title: session.title,
     emoji: session.emoji,
     category: session.category,
-    cueCard: isIelts ? cueCard : undefined,
+    cueCard: cueCard || undefined,
     turns: [{
       turnIndex: openingTurn.turn_index,
       role: openingTurn.role,
@@ -254,10 +312,6 @@ async function startSession(scenarioId, userId) {
   };
 }
 
-/**
- * Submit a user turn and get an AI response.
- * For IELTS: uses deterministic state machine to control the examiner.
- */
 async function submitTurn(sessionId, userId, content) {
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
@@ -282,7 +336,7 @@ async function submitTurn(sessionId, userId, content) {
   // Save user turn
   const userTurn = await scenarioRepository.insertTurn(sessionId, nextIndex, "user", content);
 
-  // Build conversation history
+  // Build conversation history for AI
   const conversationHistory = existingTurns.map(t => ({ role: t.role, content: t.content }));
   conversationHistory.push({ role: "user", content });
 
@@ -291,34 +345,42 @@ async function submitTurn(sessionId, userId, content) {
   let ieltsState = null;
 
   if (isIelts) {
-    // Get stored cue card index
-    const meta = await scenarioRepository.getSessionMeta(sessionId);
-    const cueCardIndex = meta?.cueCardIndex ?? 0;
+    // ── Read current state from DB ──
+    const currentState = await scenarioRepository.getSessionMeta(sessionId);
+    if (!currentState || !currentState.part) {
+      console.error(`[ielts] FATAL: No state found for session ${sessionId}`);
+      const err = new Error("IELTS session state corrupted");
+      err.status = 500;
+      throw err;
+    }
 
-    // Compute state AFTER this user turn
-    const userTurnCount = conversationHistory.filter(t => t.role === "user").length;
-    ieltsState = computeIeltsState(
-      conversationHistory.filter(t => t.role === "user"),
-      cueCardIndex
-    );
+    const fromState = `part${currentState.part}:${currentState.phase}:${currentState.questionIndex}`;
 
-    console.log(`[ielts] session=${sessionId} part=${ieltsState.part} phase=${ieltsState.phase} qIdx=${ieltsState.questionIndex} userTurns=${userTurnCount}`);
+    // ── EXPLICIT transition — advance to next state ──
+    const nextState = advanceIeltsState(currentState);
+    ieltsState = nextState;
 
-    // Check if test is complete
-    if (ieltsState.phase === "complete") {
-      // Generate closing statement
+    const toState = `part${nextState.part}:${nextState.phase}:${nextState.questionIndex}`;
+    console.log(`[ielts] session=${sessionId} | ${fromState} → ${toState}`);
+
+    // ── Generate AI response based on NEXT state ──
+    if (nextState.phase === "complete") {
       aiContent = "Thank you very much. That is the end of the speaking test.";
+    } else if (nextState.phase === "cue_card") {
+      // Special: cue_card phase — examiner doesn't say anything new,
+      // the UI shows the cue card. We send a brief instruction.
+      const cueCard = IELTS_CUE_CARDS[nextState.cueCardIndex % IELTS_CUE_CARDS.length];
+      aiContent = `Please look at your task card. Your topic is: "${cueCard.topic}". You have one minute to prepare. Remember to cover all the points on the card.`;
+    } else if (nextState.phase === "long_turn") {
+      // User is about to speak for 2 minutes — no examiner question
+      aiContent = "Your preparation time is over. Please begin speaking now. You have up to two minutes.";
     } else {
-      const systemPrompt = buildIeltsSystemPrompt(ieltsState);
-      console.log(`[ai] session: ${sessionId} | category: exam | ielts part: ${ieltsState.part} | phase: ${ieltsState.phase}`);
+      const systemPrompt = buildIeltsSystemPrompt(nextState);
       aiContent = await ai.generateResponse(systemPrompt, conversationHistory, { category: "exam" });
     }
 
-    // Update stored state
-    await scenarioRepository.updateSessionMeta(sessionId, {
-      cueCardIndex,
-      ieltsState,
-    });
+    // ── Persist the new state to DB ──
+    await scenarioRepository.updateSessionMeta(sessionId, nextState);
   } else {
     console.log(`[ai] session: ${sessionId} | category: ${session.category} | turns: ${conversationHistory.length}`);
     aiContent = await ai.generateResponse(
@@ -352,10 +414,6 @@ async function submitTurn(sessionId, userId, content) {
 // Hybrid scoring — strict IELTS-realistic
 // ---------------------------------------------------------------------------
 
-/**
- * Pre-score based on objective metrics before AI scoring.
- * Returns penalty multiplier and floor scores.
- */
 function computeHybridPenalties(turns) {
   const userTurns = turns.filter(t => t.role === "user");
   const totalWords = userTurns.reduce(
@@ -366,29 +424,27 @@ function computeHybridPenalties(turns) {
   let penalty = 1.0;
   let floorScore = 0;
 
-  // Very short answers → heavy penalty
   if (avgWords < 3) {
-    penalty = 0.35; // scores capped around 20-35
+    penalty = 0.35;
     floorScore = 0;
   } else if (avgWords < 6) {
-    penalty = 0.55; // scores capped around 30-50
+    penalty = 0.55;
     floorScore = 0;
   } else if (avgWords < 10) {
-    penalty = 0.75; // mild penalty
+    penalty = 0.75;
     floorScore = 20;
   } else if (avgWords < 20) {
     penalty = 0.90;
     floorScore = 30;
   }
 
-  // Check for cop-out answers
   const copOuts = userTurns.filter(t => {
     const lower = t.content.toLowerCase();
     return lower.includes("i don't know") ||
            lower.includes("i have no idea") ||
            lower.includes("i can't answer") ||
            lower.includes("no comment") ||
-           lower.includes("pass") && t.content.trim().length < 10;
+           (lower.includes("pass") && t.content.trim().length < 10);
   });
 
   if (copOuts.length > userTurns.length * 0.5) {
@@ -400,9 +456,6 @@ function computeHybridPenalties(turns) {
   return { penalty, floorScore, avgWords, totalWords };
 }
 
-/**
- * End a session: hybrid score (objective + AI) and persist results.
- */
 async function endSession(sessionId, userId, durationMs) {
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
@@ -424,18 +477,18 @@ async function endSession(sessionId, userId, durationMs) {
   const turns = await scenarioRepository.findSessionTurns(sessionId);
   const conversationHistory = turns.map(t => ({ role: t.role, content: t.content }));
 
+  // Log transition history for auditability
+  const meta = await scenarioRepository.getSessionMeta(sessionId);
+  if (meta?.transitionHistory) {
+    console.log(`[ielts] Session ${sessionId} transition history:`);
+    meta.transitionHistory.forEach(t => console.log(`  ${t}`));
+  }
+
   console.log(`[ai] scoring session: ${sessionId} | turns: ${conversationHistory.length}`);
 
-  // Step 1: AI scoring
-  const aiScores = await ai.scoreConversation(
-    session.system_prompt,
-    conversationHistory
-  );
-
-  // Step 2: Hybrid penalties
+  const aiScores = await ai.scoreConversation(session.system_prompt, conversationHistory);
   const { penalty, floorScore, avgWords, totalWords } = computeHybridPenalties(turns);
 
-  // Step 3: Apply penalties to AI scores
   const adjustedFluency = Math.max(floorScore, Math.round(aiScores.fluency * penalty));
   const adjustedVocab = Math.max(floorScore, Math.round(aiScores.vocabulary * penalty));
   const adjustedGrammar = Math.max(floorScore, Math.round(aiScores.grammar * penalty));
@@ -443,7 +496,6 @@ async function endSession(sessionId, userId, durationMs) {
 
   console.log(`[scoring] AI: ${aiScores.overallScore} | penalty: ${penalty} | avgWords: ${avgWords.toFixed(1)} | adjusted: ${adjustedOverall}`);
 
-  // Adjust coach feedback if scores are very low
   let coachFeedback = aiScores.coachFeedback;
   if (adjustedOverall < 30) {
     coachFeedback = "You need to provide longer, more detailed answers. In IELTS Speaking, one-word or very short responses will significantly lower your score. Try to speak in full sentences and expand on your ideas.";

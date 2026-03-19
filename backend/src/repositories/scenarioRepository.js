@@ -231,22 +231,44 @@ async function findSessionTurns(sessionId) {
 }
 
 // ---------------------------------------------------------------------------
-// In-memory session metadata (for IELTS state machine — no DB migration needed)
-// Cleared when session completes or is abandoned. Safe for monolith.
+// Session metadata (persistent JSONB column — survives restarts)
 // ---------------------------------------------------------------------------
 
-const _sessionMeta = new Map();
-
-function updateSessionMeta(sessionId, meta) {
-  _sessionMeta.set(sessionId, meta);
+/**
+ * Update the session_meta JSONB column for a session.
+ * @param {string} sessionId
+ * @param {object} meta
+ */
+async function updateSessionMeta(sessionId, meta) {
+  await query(
+    `UPDATE scenario_sessions SET session_meta = $2 WHERE id = $1`,
+    [sessionId, JSON.stringify(meta)]
+  );
 }
 
-function getSessionMeta(sessionId) {
-  return _sessionMeta.get(sessionId) || null;
+/**
+ * Read the session_meta JSONB column for a session.
+ * @param {string} sessionId
+ * @returns {Promise<object|null>}
+ */
+async function getSessionMeta(sessionId) {
+  const result = await query(
+    `SELECT session_meta FROM scenario_sessions WHERE id = $1`,
+    [sessionId]
+  );
+  const row = result.rows[0];
+  return row?.session_meta || null;
 }
 
-function clearSessionMeta(sessionId) {
-  _sessionMeta.delete(sessionId);
+/**
+ * Clear session metadata (set to empty object).
+ * @param {string} sessionId
+ */
+async function clearSessionMeta(sessionId) {
+  await query(
+    `UPDATE scenario_sessions SET session_meta = '{}'::jsonb WHERE id = $1`,
+    [sessionId]
+  );
 }
 
 module.exports = {
