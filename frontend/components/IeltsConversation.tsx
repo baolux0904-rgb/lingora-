@@ -146,6 +146,18 @@ export default function IeltsConversation({
     setExaminerSpeaking(true);
     micEnabledRef.current = false;
 
+    // Guard: prevent double mic-start if both audio.onerror and .play().catch fire
+    let micStarted = false;
+    const tryStartMic = () => {
+      if (micStarted) return;
+      micStarted = true;
+      setExaminerSpeaking(false);
+      micEnabledRef.current = true;
+      if (autoMic && voice.isSupported && !voice.isRecording) {
+        setTimeout(() => voice.startRecording(), 300);
+      }
+    };
+
     try {
       const blob = await synthesizeSpeech(text);
       if (blob && blob.size > 0) {
@@ -155,37 +167,25 @@ export default function IeltsConversation({
 
         audio.onended = () => {
           URL.revokeObjectURL(url);
-          setExaminerSpeaking(false);
           audioRef.current = null;
-          micEnabledRef.current = true;
-          // Auto-start mic after examiner finishes
-          if (autoMic && voice.isSupported && !voice.isRecording) {
-            setTimeout(() => voice.startRecording(), 300);
-          }
+          tryStartMic();
         };
         audio.onerror = () => {
           URL.revokeObjectURL(url);
-          setExaminerSpeaking(false);
           audioRef.current = null;
-          micEnabledRef.current = true;
+          tryStartMic();
         };
         await audio.play().catch(() => {
-          setExaminerSpeaking(false);
-          micEnabledRef.current = true;
+          tryStartMic();
         });
       } else {
         // No TTS available — brief pause then enable mic
         setTimeout(() => {
-          setExaminerSpeaking(false);
-          micEnabledRef.current = true;
-          if (autoMic && voice.isSupported && !voice.isRecording) {
-            voice.startRecording();
-          }
+          tryStartMic();
         }, 600);
       }
     } catch {
-      setExaminerSpeaking(false);
-      micEnabledRef.current = true;
+      tryStartMic();
     }
   }, [voice]);
 
