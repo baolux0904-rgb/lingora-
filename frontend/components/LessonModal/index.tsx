@@ -17,6 +17,14 @@ interface LessonModalProps {
   userId:     string;
   onClose:    () => void;
   onComplete: () => void; // called after progress is saved so caller can refresh
+  /** Title of the next lesson in the sequence (if any). Shows "Next Lesson" button. */
+  nextLessonTitle?: string;
+  /** Called when user clicks "Next Lesson" on completion screen. */
+  onNextLesson?: () => void;
+  /** Daily XP earned today (for completion screen daily goal display). */
+  dailyXp?: number;
+  /** Daily XP goal target (for completion screen daily goal display). */
+  dailyGoalTarget?: number;
 }
 
 type Step = "vocab" | "quiz" | "speaking" | "complete";
@@ -26,6 +34,10 @@ export default function LessonModal({
   userId,
   onClose,
   onComplete,
+  nextLessonTitle,
+  onNextLesson,
+  dailyXp,
+  dailyGoalTarget,
 }: LessonModalProps) {
   const { detail, loading, error } = useLessonDetail(lessonId);
   const [step,             setStep]             = useState<Step | null>(null);
@@ -224,6 +236,12 @@ export default function LessonModal({
                     speakingScore={speakingScore ?? undefined}
                     streak={completionResult?.streak}
                     onClose={onClose}
+                    nextLessonTitle={nextLessonTitle}
+                    onNextLesson={onNextLesson}
+                    dailyXp={dailyXp != null && completionResult
+                      ? dailyXp + (completionResult.xpEarned ?? 0)
+                      : dailyXp}
+                    dailyGoal={dailyGoalTarget}
                   />
                 )}
               </>

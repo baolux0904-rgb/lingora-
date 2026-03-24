@@ -99,6 +99,41 @@ Key decisions that are **locked** — do not change without explicit discussion.
 
 ---
 
+## Retention System — Frontend-First Daily Goal
+
+**Decision:** Daily XP goal progress is computed entirely on the frontend from existing progress data. No new backend endpoints, no localStorage, no new database tables.
+
+**Why:** The backend already returns everything needed:
+- `completeLesson` API returns `ApiCompleteResult` with `xpEarned`, `streak`, `level`, `newBadges`
+- `useProgress` hook provides all completion records with `completedAt` timestamps and `score`
+- Filtering progress by today's date + summing XP per lesson gives accurate daily totals
+
+Adding a backend daily-goal endpoint would duplicate data already available client-side and add unnecessary API calls on every page load.
+
+**Implementation:**
+- `useDailyGoal(progress)` — pure `useMemo` computation, recomputes when progress changes
+- `DailyGoalBar` — renders in PracticeTab between ContinueLearningCard and LessonsPage
+- `CompletionScreen` — receives pre-completion `dailyXp` + `completionResult.xpEarned` from LessonModal to show post-completion daily progress immediately (before progress refresh completes)
+- XP constants: `XP_PER_LESSON = 10`, `PERFECT_BONUS = 5`, `DAILY_XP_GOAL = 20`
+
+**Constraint:** These XP constants are frontend estimates for display purposes only. The authoritative XP value comes from the backend `xp_ledger`. If backend XP rules change, update the frontend constants to match.
+
+**Known limitation:** Daily reset uses `new Date()` local timezone via `dateKey()`. Users crossing timezones mid-day may see inconsistent daily totals. Acceptable tradeoff — no user has reported this.
+
+---
+
+## User Identity Hook Rule
+
+**Decision:** All frontend data-fetching hooks that need the effective user ID must use `useCurrentUserId()`, never `useGuestUser()` directly.
+
+**Why:** `useGuestUser()` always returns the guest UUID from localStorage — even when the user is authenticated. After guest migration, progress rows belong to the real user ID, not the guest UUID. Using `useGuestUser()` for an authenticated user returns empty/wrong data.
+
+**Constraint:** `useGuestUser()` may only be used inside `useCurrentUserId()` or in contexts that explicitly need the guest UUID (e.g., the migration call itself). For `useProgress`, `useCourses`, `completeLesson`, and any other user-specific data, always use `useCurrentUserId()`.
+
+**Known violations:** None remaining. `PracticeTab.tsx` and `LessonsPage.tsx` were fixed to use `useCurrentUserId()`.
+
+---
+
 ## Known Limitations
 
 | Limitation | Impact | Planned Fix |
@@ -108,3 +143,8 @@ Key decisions that are **locked** — do not change without explicit discussion.
 | TTS has no timeout on frontend | `examinerSpeaking = true` forever if API hangs | Add 10s AbortController timeout to `synthesizeSpeech` |
 | Web Speech API is Chrome/Edge only | Safari users must use text input | No fix planned — text fallback is acceptable |
 | R2 storage not wired | Audio files use mock storage in all envs | Wire when user provides R2 credentials |
+| ~~`PracticeTab` + `LessonsPage` use `useGuestUser()`~~ | ~~Authenticated users see wrong progress~~ | **FIXED** — changed to `useCurrentUserId()` |
+| ~~`LessonsPage` has hardcoded `SKILL_XP` data~~ | ~~Fake per-skill XP shown to all users~~ | **FIXED** — `SkillXpCard` removed |
+| ~~`DailyMission` + `DailyGoalBar` both render in Practice~~ | ~~Confusing duplicate daily display~~ | **FIXED** — `DailyMission` removed from LessonsPage |
+| ~~`LessonsSection.tsx` is dead code~~ | ~~Unused file adds noise~~ | **FIXED** — file deleted |
+| `dateKey()` duplicated in `useDailyGoal` and `useUserStats` | Maintenance risk — could diverge | Import from single location |

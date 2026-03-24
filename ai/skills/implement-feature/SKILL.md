@@ -90,6 +90,9 @@ Before marking complete, verify all of the following:
 - TTS API unavailable → mic must still auto-start after delay.
 - Auth token expires mid-session → 401 retry must work, session must not corrupt.
 - Concurrent submits → `isProcessing` guard must hold.
+- Empty data arrays → component must guard with early return or immediate onContinue().
+- Rewriting a component with the same interface → verify callers still pass the same props and receive the same callback behavior. Do NOT change the interface signature.
+- Standalone practice cards that fetch data → must handle loading, error, and empty data states gracefully. Never crash on empty API response.
 
 ## Common Mistakes
 - Setting phase directly in frontend without reading `ieltsState` from backend.
@@ -97,3 +100,12 @@ Before marking complete, verify all of the following:
 - Forgetting `autoMic = false` for announcement TTS calls (not a question).
 - Adding a new provider and forgetting to update the factory.
 - Forgetting to add route to Express `app.js` or `index.js` mount.
+- Rewriting a component but changing the `onContinue` contract — breaks the parent's step machine.
+- Auto-advance timers without cleanup — always return `clearTimeout` in useEffect.
+- Multiple components rendering the same modal (e.g. LessonModal) → use `onOpenLesson` delegation pattern to centralize modal ownership in the parent orchestrator.
+- Sibling components with independent `useProgress()` calls → when one refreshes, the other stays stale. Fix: lift progress to a shared parent or pass via `externalProgress` prop.
+- Changing `openLessonId` without `key={openLessonId}` on LessonModal → modal doesn't reset internal state (step, scores). Always use `key` to force remount when switching between lessons.
+- Adding new optional props to shared components → verify ALL callers still work without passing the new props (backward compatibility).
+- Using `useGuestUser()` when `useCurrentUserId()` is needed — guest UUID does not match the authenticated user's ID after migration. Always use `useCurrentUserId()` for data fetching hooks.
+- Parent orchestrator (e.g., PracticeTab) and child (e.g., LessonsPage) both calling the same hook (e.g., `useCourses`) → double API calls. Prefer passing data as props from parent when possible.
+- Displaying hardcoded or mock data as real user metrics — always wire to actual API data or remove.
