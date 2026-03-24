@@ -415,12 +415,33 @@ export default function IeltsConversation({
       if (state) {
         console.log(`[ielts-ui] part=${state.part} phase=${state.phase} qIdx=${state.questionIndex}`);
 
-        if (state.phase === "transition_to_part2") {
-          // Examiner announces Part 2 → play TTS → show transition
+        if (state.phase === "part1_transition") {
+          // Hardcoded transition: "Now let's start Part 1."
+          // Play TTS, brief pause, then auto-advance to first question
+          await playTTS(result.aiTurn.content, false);
+          await new Promise((r) => setTimeout(r, 1200));
+          setIsProcessing(false);
+          const q1Result = await submitScenarioTurn(sessionId, "[READY FOR PART 1]");
+          if (q1Result.ieltsState) {
+            const q1Turn: ConversationTurn = {
+              id: `ai-${q1Result.aiTurn.turnIndex}`,
+              turnIndex: q1Result.aiTurn.turnIndex,
+              role: "assistant",
+              content: q1Result.aiTurn.content,
+              audioStorageKey: null, scores: null, feedback: null,
+              createdAt: q1Result.aiTurn.createdAt,
+            };
+            setTurns((prev) => [...prev, q1Turn]);
+            await new Promise((r) => setTimeout(r, 500));
+            playTTS(q1Result.aiTurn.content, true);
+          }
+
+        } else if (state.phase === "transition_to_part2") {
+          // Hardcoded transition: "Okay, let's move on to Part 2."
           setPhase("part2_intro");
           await playTTS(result.aiTurn.content, false);
-          await new Promise((r) => setTimeout(r, 2500));
-          // Auto-advance: send a placeholder to get the cue_card state
+          await new Promise((r) => setTimeout(r, 2000));
+          // Auto-advance to cue_card
           setIsProcessing(false);
           const cueResult = await submitScenarioTurn(sessionId, "[READY FOR PART 2]");
           if (cueResult.ieltsState?.phase === "cue_card") {
@@ -459,11 +480,11 @@ export default function IeltsConversation({
           playTTS(result.aiTurn.content, true);
 
         } else if (state.phase === "transition_to_part3") {
-          // Transition to Part 3 — show transition, then auto-advance
+          // Hardcoded transition: "Okay, let's move on to Part 3."
           setPhase("part3");
           await playTTS(result.aiTurn.content, false);
-          await new Promise((r) => setTimeout(r, 2000));
-          // Auto-advance: send a placeholder to get the first Part 3 question
+          await new Promise((r) => setTimeout(r, 1500));
+          // Auto-advance to first Part 3 question
           setIsProcessing(false);
           const p3Result = await submitScenarioTurn(sessionId, "[READY FOR PART 3]");
           if (p3Result.ieltsState) {
@@ -486,10 +507,6 @@ export default function IeltsConversation({
           await new Promise((r) => setTimeout(r, 1000));
           await handleEndSession(sessionId);
 
-        } else if (state.phase === "id_check" || state.phase === "opening") {
-          // Opening / ID check phases — examiner speaks, candidate responds
-          await new Promise((r) => setTimeout(r, 600));
-          playTTS(result.aiTurn.content, true);
         } else {
           // Normal question (Part 1 or Part 3) — play TTS
           await new Promise((r) => setTimeout(r, 600));

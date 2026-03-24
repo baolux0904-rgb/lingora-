@@ -4,6 +4,28 @@ Key decisions that are **locked** — do not change without explicit discussion.
 
 ---
 
+## Examiner Control System (HARD LOCK)
+
+**Decision:** The IELTS examiner is a CONTROLLED OUTPUT SYSTEM, not a conversational agent. All transitions are hardcoded. All LLM outputs are sanitized.
+
+**Non-negotiable rules:**
+1. **Zero Reaction Policy** — examiner NEVER reacts to user answers. No "interesting", "thank you", "I see".
+2. **Hardcoded Transitions** — `FIXED_TRANSITIONS` object contains exact strings. LLM never generates transitions.
+3. **One Utterance Rule** — each response is exactly ONE question OR ONE transition. Never combined.
+4. **Question Length Lock** — max 12 words (15 for Part 3). Enforced by `sanitizeExaminerOutput()`.
+5. **Validation Layer** — `sanitizeExaminerOutput()` strips banned phrases, enforces single sentence, caps word count.
+6. **Opening = Name Only** — examiner asks name, system outputs "Now let's start Part 1." — no ID check, no explanation.
+
+**Architecture:**
+- `FIXED_TRANSITIONS` — hardcoded strings for part1/part2/part3/closing
+- `BANNED_PATTERNS` — regex array of forbidden phrases
+- `sanitizeExaminerOutput()` — post-processes every LLM response before delivery
+- `buildIeltsSystemPrompt()` — minimal prompt (no personality, no acknowledgment instructions)
+
+**Why:** Prompt-based control is unreliable. The LLM can drift, add reactions, improvise. Code-based control with post-processing ensures deterministic examiner behavior.
+
+---
+
 ## State Machine Location
 
 **Decision:** IELTS state lives in the backend (`session_meta` JSONB), not the frontend.

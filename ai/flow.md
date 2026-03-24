@@ -34,21 +34,21 @@ entering → part1 → part2_intro → part2_prep → part2_speak → part3 → 
 
 | part | phase | description |
 |---|---|---|
-| 1 | `opening` | Examiner greets + asks candidate's name |
-| 1 | `id_check` | Examiner confirms ID + transitions to Part 1 questions |
-| 1 | `question` | Asking Part 1 interview questions (index 0–5, 2 topic blocks × 3) |
-| 2 | `transition_to_part2` | Examiner announces "Now let's move to Part 2" |
+| 1 | `opening` | Examiner asks candidate's name (ONE question only) |
+| 1 | `part1_transition` | HARDCODED: "Now let's start Part 1." |
+| 1 | `question` | Part 1 interview questions (index 0–5, 2 topic blocks × 3) |
+| 2 | `transition_to_part2` | HARDCODED: "Okay, let's move on to Part 2." |
 | 2 | `cue_card` | Showing cue card, user has 60s prep time |
 | 2 | `long_turn` | User speaks for up to 2 minutes |
-| 2 | `follow_up` | Examiner asks one context-aware follow-up question |
-| 3 | `transition_to_part3` | Examiner announces "Now let's move to Part 3" |
+| 2 | `follow_up` | Examiner asks one follow-up question |
+| 3 | `transition_to_part3` | HARDCODED: "Okay, let's move on to Part 3." |
 | 3 | `question_p3` | Discussion questions with ladder tiers (index 0–3) |
-| 3 | `complete` | Exam done — trigger scoring |
+| 3 | `complete` | HARDCODED: "That is the end of the speaking test." |
 
 ### State Transitions (from `advanceIeltsState()`)
 
 ```
-part1:opening:0 → part1:id_check:0 → part1:question:0
+part1:opening:0 → part1:part1_transition:0 → part1:question:0
   → part1:question:1 → ... → part1:question:5
   → part2:transition_to_part2:0
   → part2:cue_card:0          (triggered by "[READY FOR PART 2]" placeholder)
@@ -105,13 +105,13 @@ type ExamPhase =
 - Sets `sessionId`, `turns`, `cueCard`, `phase = "part1"`.
 - Plays TTS for first examiner question (`playTTS(firstAi.content, true)`).
 
-### Step 0b: Opening Sequence (Examiner Brain)
-- Backend starts at `part1:opening` (not `part1:question`).
-- Examiner greets + asks name. User responds.
-- Backend advances to `part1:id_check`.
-- Examiner confirms ID + transitions to Part 1 + asks first topic question.
-- User responds → backend advances to `part1:question:0`.
-- Total: 2 exchanges before Part 1 questions begin.
+### Step 0b: Opening Sequence (Controlled)
+- Backend starts at `part1:opening`.
+- Examiner asks name ONLY (max 12 words). User responds.
+- Backend advances to `part1:part1_transition`.
+- System outputs HARDCODED: "Now let's start Part 1." (no LLM involved).
+- Frontend auto-advances to `part1:question:0` (sends `[READY FOR PART 1]` placeholder).
+- Total: 1 user exchange + 1 auto-advance before Part 1 questions begin.
 
 ### Step 1: Part 1 Q&A (6 questions, 2 topic blocks)
 - User speaks or types answer.
