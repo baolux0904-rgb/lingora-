@@ -27,8 +27,10 @@ const SAFE_SCORE_DEFAULTS = {
   fluency: 60,
   vocabulary: 60,
   grammar: 60,
+  pronunciation: 60,
   coachFeedback: "Good effort! Keep practicing to improve your fluency.",
   turnFeedback: [],
+  notableVocabulary: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -86,7 +88,11 @@ function validateScoreResult(parsed) {
   const requiredKeys = ["overallScore", "fluency", "vocabulary", "grammar", "coachFeedback", "turnFeedback"];
   if (!requiredKeys.every((k) => k in parsed)) return false;
   if (!["overallScore", "fluency", "vocabulary", "grammar"].every((k) => isValidScore(parsed[k]))) return false;
+  if (parsed.pronunciation !== undefined && !isValidScore(parsed.pronunciation)) return false;
   if (!Array.isArray(parsed.turnFeedback)) return false;
+  // Optional new fields — validate if present but don't require
+  if (parsed.criteriaFeedback !== undefined && typeof parsed.criteriaFeedback !== "object") return false;
+  if (parsed.improvementVocabulary !== undefined && !Array.isArray(parsed.improvementVocabulary)) return false;
   return true;
 }
 
@@ -164,10 +170,12 @@ async function generateResponse(systemPrompt, conversationHistory, options = {})
  *
  * @param {string} systemPrompt       - scenario system prompt
  * @param {Array}  conversationHistory - array of { role, content }
- * @returns {Promise<object>} { overallScore, fluency, vocabulary, grammar, coachFeedback, turnFeedback }
+ * @param {object} [options]
+ * @param {boolean} [options.isIelts]  - use IELTS-specific scoring criteria
+ * @returns {Promise<object>} { overallScore, fluency, vocabulary, grammar, pronunciation, coachFeedback, turnFeedback, notableVocabulary }
  *                            Always returns a valid object — never throws.
  */
-async function scoreConversation(systemPrompt, conversationHistory) {
+async function scoreConversation(systemPrompt, conversationHistory, options = {}) {
   const openai = getClient();
 
   if (!openai) {
@@ -176,7 +184,74 @@ async function scoreConversation(systemPrompt, conversationHistory) {
   }
 
   try {
-    const scoringInstruction = `You are an English speaking coach evaluating a practice conversation. \
+    const isIelts = options.isIelts || false;
+
+    const scoringInstruction = isIelts
+      ? `You are a certified IELTS Speaking examiner producing a detailed score report for a completed IELTS Speaking test. \
+Analyze ONLY the candidate's messages (role: "user") and return a valid JSON object with this exact structure — no extra text, no markdown:
+
+{
+  "overallScore": <integer 0-100>,
+  "fluency": <integer 0-100>,
+  "vocabulary": <integer 0-100>,
+  "grammar": <integer 0-100>,
+  "pronunciation": <integer 0-100>,
+  "criteriaFeedback": {
+    "fluency": "<1-2 sentences explaining the fluency score, citing specific evidence from the candidate's answers>",
+    "vocabulary": "<1-2 sentences explaining the vocabulary score, citing specific words/phrases>",
+    "grammar": "<1-2 sentences explaining the grammar score, citing specific structures or errors>",
+    "pronunciation": "<1-2 sentences explaining the pronunciation score based on phrasing patterns>"
+  },
+  "coachFeedback": "<2-3 sentences of specific, actionable advice for improving their band score. Reference their actual performance.>",
+  "turnFeedback": [
+    { "turnIndex": <index in conversation array>, "tip": "<specific improvement tip referencing what they actually said>" }
+  ],
+  "notableVocabulary": ["<strong word/phrase 1>", "<strong word/phrase 2>", ...],
+  "improvementVocabulary": ["<weak/repeated word 1>", "<weak/repeated word 2>", ...]
+}
+
+IELTS BAND DESCRIPTOR MAPPING (0-100 scale):
+
+**Fluency & Coherence** (fluency):
+- 0-30 (Band 2-3): Long pauses, minimal responses, no coherent connection between ideas
+- 31-50 (Band 4-4.5): Noticeable hesitation, simple linking only ("and", "but"), limited development
+- 51-65 (Band 5-5.5): Willing to speak at length but with repetition, some discourse markers, occasional loss of coherence
+- 66-78 (Band 6-6.5): Generally fluent, uses connectors ("however", "on the other hand"), develops ideas with some prompting
+- 79-88 (Band 7-7.5): Fluent with only occasional hesitation, good use of discourse markers, coherent extended responses
+- 89-100 (Band 8-9): Effortless fluency, sophisticated discourse management, fully developed responses with no noticeable effort
+
+**Lexical Resource** (vocabulary):
+- 0-30 (Band 2-3): Basic vocabulary only, frequent repetition, unable to discuss topics beyond simple terms
+- 31-50 (Band 4-4.5): Limited range, noticeable repetition, some inappropriate word choices
+- 51-65 (Band 5-5.5): Adequate vocabulary for familiar topics, limited paraphrasing, occasional errors in word choice
+- 66-78 (Band 6-6.5): Good range including some less common items, able to discuss topics with some precision, some paraphrasing
+- 79-88 (Band 7-7.5): Wide vocabulary range, flexible use of less common items, effective paraphrasing, idiomatic language
+- 89-100 (Band 8-9): Sophisticated, precise vocabulary, natural idiomatic usage, skilful paraphrasing throughout
+
+**Grammatical Range & Accuracy** (grammar):
+- 0-30 (Band 2-3): Very limited structures, errors impede communication
+- 31-50 (Band 4-4.5): Simple structures dominant, frequent errors, meaning sometimes unclear
+- 51-65 (Band 5-5.5): Mix of simple and attempted complex structures, errors frequent but meaning usually clear
+- 66-78 (Band 6-6.5): Mix of structures with reasonable accuracy, complex structures attempted with some success
+- 79-88 (Band 7-7.5): Varied structures, majority error-free, good control of complex forms
+- 89-100 (Band 8-9): Full range of structures used naturally, rare errors, precise and natural
+
+**Pronunciation** (pronunciation):
+- Score based on written evidence: natural contractions ("I'd", "it's"), phrasal verbs, idiomatic phrasing, natural word order.
+  Higher = natural English rhythm. Lower = awkward/non-native phrasing patterns.
+
+EVIDENCE REQUIREMENT (CRITICAL):
+- criteriaFeedback MUST cite specific examples from the candidate's actual responses. Quote their words.
+- coachFeedback MUST reference what the candidate actually said, not generic advice.
+- turnFeedback tips MUST reference the specific content of each turn.
+- notableVocabulary: 3-8 genuinely strong words/phrases/collocations the candidate used. NOT basic words.
+- improvementVocabulary: 2-5 words/phrases that were weak, overused, or incorrect. Examples: overusing "very", misusing a collocation, etc.
+
+Rules:
+- overallScore = average of fluency, vocabulary, grammar, pronunciation (rounded)
+- turnFeedback: include 2-4 entries for user turns with the most room for improvement
+- If a criterion has no clear evidence, default to 55 and explain why evidence was limited`
+      : `You are an English speaking coach evaluating a practice conversation. \
 Analyze the LEARNER's messages (role: "user") in the conversation and return ONLY a valid JSON object \
 with this exact structure — no extra text, no markdown:
 
@@ -185,10 +260,12 @@ with this exact structure — no extra text, no markdown:
   "fluency": <integer 0-100>,
   "vocabulary": <integer 0-100>,
   "grammar": <integer 0-100>,
+  "pronunciation": <integer 0-100>,
   "coachFeedback": "<1-2 sentence encouraging and specific feedback>",
   "turnFeedback": [
     { "turnIndex": <index in conversation array>, "tip": "<specific improvement tip for that turn>" }
-  ]
+  ],
+  "notableVocabulary": ["<word or phrase 1>", "<word or phrase 2>", ...]
 }
 
 Scoring guide:
@@ -198,8 +275,9 @@ Scoring guide:
 - 80-100: Natural fluency — complex sentences, varied vocabulary
 
 Rules:
-- overallScore = average of fluency, vocabulary, grammar (rounded)
+- overallScore = average of fluency, vocabulary, grammar, pronunciation (rounded)
 - turnFeedback: include 2-3 entries for user turns with the most room for improvement
+- notableVocabulary: list 0-5 strong words or phrases the learner used well
 - Be encouraging and constructive
 
 Scenario context: ${systemPrompt}`;

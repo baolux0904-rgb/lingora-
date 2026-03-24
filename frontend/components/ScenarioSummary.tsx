@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import type { EndSessionResult } from "@/lib/types";
+import type { EndSessionResult, CriteriaFeedback } from "@/lib/types";
 
 interface ScenarioSummaryProps {
   result: EndSessionResult;
@@ -41,10 +41,24 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
   }, [result.overallScore]);
 
   const subScores = [
-    { label: "Fluency", value: result.fluency },
-    { label: "Vocabulary", value: result.vocabulary },
-    { label: "Grammar", value: result.grammar },
+    { label: "Fluency & Coherence", value: result.fluency },
+    { label: "Lexical Resource", value: result.vocabulary },
+    { label: "Grammar Range & Accuracy", value: result.grammar },
+    { label: "Pronunciation", value: result.pronunciation ?? result.fluency },
   ];
+
+  const hasBandScore = result.bandScore != null && result.bandScore > 0;
+  const hasVocabulary = result.notableVocabulary && result.notableVocabulary.length > 0;
+  const hasImprovementVocab = result.improvementVocabulary && result.improvementVocabulary.length > 0;
+  const hasCriteriaFeedback = result.criteriaFeedback != null;
+
+  // Map sub-score keys to criteria feedback keys
+  const criteriaKeys: Record<string, keyof NonNullable<typeof result.criteriaFeedback>> = {
+    "Fluency & Coherence": "fluency",
+    "Lexical Resource": "vocabulary",
+    "Grammar Range & Accuracy": "grammar",
+    "Pronunciation": "pronunciation",
+  };
 
   return (
     <div
@@ -57,8 +71,31 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
           className="text-xl font-sora font-bold text-center"
           style={{ color: "var(--color-text)" }}
         >
-          Session Complete!
+          {hasBandScore ? "IELTS Speaking — Results" : "Session Complete!"}
         </h2>
+
+        {/* IELTS Band Score Badge */}
+        {hasBandScore && (
+          <div className="flex justify-center">
+            <div
+              className="px-6 py-3 rounded-2xl text-center"
+              style={{
+                background: `${scoreColor(result.overallScore)}15`,
+                border: `2px solid ${scoreColor(result.overallScore)}40`,
+              }}
+            >
+              <div className="text-[11px] font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-secondary)" }}>
+                Estimated Band Score
+              </div>
+              <div className="text-3xl font-bold" style={{ color: scoreColor(result.overallScore) }}>
+                {result.bandScore!.toFixed(1)}
+              </div>
+              <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                out of 9.0
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Animated score circle */}
         <div className="flex justify-center">
@@ -103,25 +140,37 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
           </div>
         </div>
 
-        {/* Sub-score bars */}
+        {/* Sub-score bars with per-criterion feedback */}
         <div
-          className="rounded-2xl p-5 flex flex-col gap-4"
+          className="rounded-2xl p-5 flex flex-col gap-5"
           style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
         >
-          {subScores.map((s) => (
-            <div key={s.label}>
-              <div className="flex justify-between mb-1.5">
-                <span className="text-[13px] font-medium" style={{ color: "var(--color-text)" }}>{s.label}</span>
-                <span className="text-[13px] font-bold" style={{ color: scoreColor(s.value) }}>{s.value}</span>
+          {subScores.map((s) => {
+            const criteriaKey = criteriaKeys[s.label];
+            const feedback = hasCriteriaFeedback && criteriaKey
+              ? (result.criteriaFeedback as CriteriaFeedback)[criteriaKey]
+              : null;
+
+            return (
+              <div key={s.label}>
+                <div className="flex justify-between mb-1.5">
+                  <span className="text-[13px] font-medium" style={{ color: "var(--color-text)" }}>{s.label}</span>
+                  <span className="text-[13px] font-bold" style={{ color: scoreColor(s.value) }}>{s.value}</span>
+                </div>
+                <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${s.value}%`, background: scoreColor(s.value) }}
+                  />
+                </div>
+                {feedback && (
+                  <p className="text-[12px] mt-1.5 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                    {feedback}
+                  </p>
+                )}
               </div>
-              <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${s.value}%`, background: scoreColor(s.value) }}
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Coach feedback */}
@@ -136,6 +185,58 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             <p className="text-[15px] leading-relaxed" style={{ color: "var(--color-text)" }}>
               {result.coachFeedback}
             </p>
+          </div>
+        )}
+
+        {/* Vocabulary Intelligence — Two tiers */}
+        {(hasVocabulary || hasImprovementVocab) && (
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+          >
+            <div className="text-[12px] font-bold mb-3" style={{ color: "var(--color-primary)" }}>
+              Vocabulary Analysis
+            </div>
+
+            {/* Strengths */}
+            {hasVocabulary && (
+              <div className="mb-4">
+                <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#34D399" }}>
+                  Strong Usage
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {result.notableVocabulary!.map((word, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1.5 rounded-full text-[13px] font-medium"
+                      style={{ background: "rgba(52, 211, 153, 0.1)", color: "#34D399", border: "1px solid rgba(52, 211, 153, 0.2)" }}
+                    >
+                      {word}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Areas for improvement */}
+            {hasImprovementVocab && (
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#fbbf24" }}>
+                  Needs Improvement
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {result.improvementVocabulary!.map((word, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1.5 rounded-full text-[13px] font-medium"
+                      style={{ background: "rgba(251, 191, 36, 0.1)", color: "#fbbf24", border: "1px solid rgba(251, 191, 36, 0.2)" }}
+                    >
+                      {word}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

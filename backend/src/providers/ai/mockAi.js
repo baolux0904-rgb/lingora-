@@ -208,7 +208,8 @@ async function scoreConversation(systemPrompt, conversationHistory) {
   const fluency = clamp(Math.round(baseScore + hash(systemPrompt, 1) * 16 - 8), 0, 100);
   const vocabulary = clamp(Math.round(baseScore + hash(systemPrompt, 2) * 14 - 7), 0, 100);
   const grammar = clamp(Math.round(baseScore + hash(systemPrompt, 3) * 12 - 6), 0, 100);
-  const overallScore = Math.round((fluency + vocabulary + grammar) / 3);
+  const pronunciation = clamp(Math.round(baseScore + hash(systemPrompt, 5) * 10 - 5), 0, 100);
+  const overallScore = Math.round((fluency + vocabulary + grammar + pronunciation) / 4);
 
   // Pick coach feedback deterministically
   const feedbackIdx = Math.floor(hash(systemPrompt, 4) * COACH_FEEDBACK.length);
@@ -239,8 +240,10 @@ async function scoreConversation(systemPrompt, conversationHistory) {
     fluency,
     vocabulary,
     grammar,
+    pronunciation,
     coachFeedback,
     turnFeedback,
+    notableVocabulary: [],
   };
 }
 
