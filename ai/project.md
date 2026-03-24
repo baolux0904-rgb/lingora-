@@ -77,6 +77,14 @@ The product is **speaking-first**. Writing and grammar are future expansions.
 | `backend/src/providers/tts/openaiTts.js` | OpenAI TTS — mp3 buffer output |
 | `backend/src/providers/tts/ttsProvider.js` | TTS factory — env-driven provider selection |
 | `backend/src/repositories/scenarioRepository.js` | All DB queries for sessions and turns |
+| `frontend/components/LessonModal/VocabSection.tsx` | Interactive vocab training — Learn → Match → Context → Recall → Results |
+| `frontend/components/VocabPracticeCard.tsx` | Standalone quick vocab practice (Quick Review section) |
+| `frontend/components/PracticeTab.tsx` | Unified Practice tab orchestrator — ContinueLearningCard + DailyGoalBar + LessonsPage + VocabPracticeCard |
+| `frontend/components/ContinueLearningCard.tsx` | Hero card — shows current lesson, unit context, progress, "Continue Learning" CTA |
+| `frontend/components/DailyGoalBar.tsx` | Daily XP goal progress bar + streak badge (Practice tab) |
+| `frontend/hooks/useDailyGoal.ts` | Pure frontend computation of daily XP from progress data (no API, no storage) |
+| `frontend/components/LessonsPage.tsx` | Learning path — zigzag unit progression, daily missions, streak/XP (accepts optional external props) |
+| `frontend/components/LessonModal/CompletionScreen.tsx` | Reward moment — XP earned, scores, daily goal progress, streak, "Next Lesson" button |
 
 ---
 

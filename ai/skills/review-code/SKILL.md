@@ -92,3 +92,15 @@ Verify against `ai/decisions.md`:
 - `playTTS` called without nulling `audioRef.current` first — two Audio objects play simultaneously.
 - `userTurnCount` used for logic instead of `ieltsState.questionIndex` — local counter drifts.
 - Placeholder turns `[READY FOR PART 2]` stored in `conversation_turns` and included in AI scoring prompt.
+- `useGuestUser()` used instead of `useCurrentUserId()` in components that need the effective user ID — causes wrong data for authenticated users. Always use `useCurrentUserId()` for data fetching that must work for both guests and auth users.
+- Hardcoded mock data (e.g., `SKILL_XP` in LessonsPage) displayed as real user metrics. Never show hardcoded stats — either wire to real data or clearly mark as "coming soon".
+- Duplicate daily progress UI: DailyMission (inside LessonsPage) and DailyGoalBar (in PracticeTab) both render when PracticeTab wraps LessonsPage. Check for UI duplication when composing parent+child.
+- `dateKey()` function duplicated across hooks instead of imported from a shared location. Small but creates maintenance risk.
+
+## System-Level Review Checks
+When reviewing at the system level (not just single files), also check:
+- Is the same hook called in multiple sibling/ancestor components causing duplicate API calls?
+- Does the component use the correct user identity hook (`useCurrentUserId` vs `useGuestUser`)?
+- Are there dead files (no imports) left after refactoring? Run `grep` for imports before declaring cleanup complete.
+- Do parent and child components both render similar UI sections (duplication by composition)?
+- Are display constants (XP_PER_LESSON, DAILY_XP_GOAL) consistent across all files that define them?

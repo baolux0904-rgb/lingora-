@@ -7,8 +7,7 @@ import StartSpeakingCard from "@/components/StartSpeakingCard";
 import PracticeScenarios from "@/components/PracticeScenarios";
 import CoachTipCard from "@/components/CoachTipCard";
 import TodayFocusCard from "@/components/TodayFocusCard";
-import LessonsPage from "@/components/LessonsPage";
-import LessonsSection from "@/components/LessonsSection";
+import PracticeTab from "@/components/PracticeTab";
 import ScenarioList from "@/components/ScenarioList";
 import ScenarioConversation from "@/components/ScenarioConversation";
 import IeltsConversation from "@/components/IeltsConversation";
@@ -145,12 +144,9 @@ export default function HomePage() {
             />
           )}
 
-          {/* ── PRACTICE TAB — Lesson-based practice ── */}
+          {/* ── PRACTICE TAB — Unified learning experience ── */}
           {activeTab === "practice" && (
-            <div className="space-y-5">
-              <LessonsSection onLessonComplete={refetchGamification} />
-              <LessonsPage apiLessons={apiLessons} />
-            </div>
+            <PracticeTab onLessonComplete={refetchGamification} streak={displayStreak} />
           )}
 
           {/* ── EXAM TAB ── */}
