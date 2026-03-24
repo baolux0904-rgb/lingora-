@@ -197,13 +197,25 @@ export interface TurnFeedback {
   tip: string;
 }
 
+export interface CriteriaFeedback {
+  fluency: string;
+  vocabulary: string;
+  grammar: string;
+  pronunciation: string;
+}
+
 export interface EndSessionResult {
   overallScore: number;
   fluency: number;
   vocabulary: number;
   grammar: number;
+  pronunciation: number;
+  bandScore?: number | null;
+  criteriaFeedback?: CriteriaFeedback | null;
   coachFeedback: string;
   turnFeedback: TurnFeedback[];
+  notableVocabulary?: string[];
+  improvementVocabulary?: string[];
   turnCount: number;
   wordCount: number;
   durationMs: number;

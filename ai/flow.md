@@ -121,12 +121,14 @@ type ExamPhase =
 
 ### Step 3: Part 2 Prep (60 seconds)
 - Cue card displayed with topic + bullet prompts.
-- `IeltsTimer` counting down from 60s.
+- Timer counting down from 60s.
 - User can skip with "I'm ready" button → calls `handlePrepSkip()`.
 - On timer expiry: `handlePrepSkip()` auto-fires.
+- `prepSkipFiredRef` prevents double-fire (timer + button race).
 - `handlePrepSkip()` submits `"[PREP TIME COMPLETE — I AM READY TO SPEAK]"` placeholder.
-- Backend advances to `long_turn` state.
-- Frontend sets `phase = "part2_speak"`, starts 120s timer.
+- Backend advances to `long_turn` state, returns announcement: "Your preparation time is over. Please begin speaking now."
+- **NEW:** Frontend plays TTS announcement and WAITS for it to finish.
+- Only THEN: sets `phase = "part2_speak"`, starts 120s timer, activates mic.
 
 ### Step 4: Part 2 Long Turn (up to 120 seconds)
 - User speaks freely (mic recording).

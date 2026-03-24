@@ -54,8 +54,10 @@ const SAFE_SCORES: EndSessionResult = {
   fluency: 60,
   vocabulary: 60,
   grammar: 60,
+  pronunciation: 60,
   coachFeedback: "Good effort! Keep practicing to build your fluency.",
   turnFeedback: [],
+  notableVocabulary: [],
   turnCount: 0,
   wordCount: 0,
   durationMs: 0,
@@ -90,6 +92,7 @@ export default function IeltsConversation({
   const [examinerSpeaking, setExaminerSpeaking] = useState(false);
   const [scores, setScores] = useState<EndSessionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [part2Nudge, setPart2Nudge] = useState<string | null>(null);
 
   // Part 2 timer
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -443,14 +446,30 @@ export default function IeltsConversation({
 
   // Timer expiry handlers are defined after handlePrepSkip and handlePart2End below
 
+  const part2EndByTimerRef = useRef(false);
   const handlePart2End = useCallback(async () => {
     if (!sessionId || isProcessing) return;
 
     if (voice.isRecording) voice.stopRecording();
-    setTimerActive(false);
 
-    // Send the user's Part 2 response (or placeholder)
     const content = inputText.trim() || "[Speaking completed]";
+    const wordCount = content.split(/\s+/).filter(Boolean).length;
+
+    // Enforce minimum speaking: if user manually ends (not timer) with < 30 words, nudge them
+    const isTimerExpiry = part2EndByTimerRef.current;
+    part2EndByTimerRef.current = false;
+
+    if (!isTimerExpiry && wordCount < 30 && content !== "[Speaking completed]") {
+      setPart2Nudge("You still have time. In the real IELTS test, you should speak for at least one minute. Try to continue.");
+      // Don't end — let them keep speaking
+      if (voice.isSupported) {
+        setTimeout(() => voice.startRecording(), 300);
+      }
+      return;
+    }
+
+    setPart2Nudge(null);
+    setTimerActive(false);
     setInputText("");
     setIsProcessing(true);
 
@@ -540,22 +559,48 @@ export default function IeltsConversation({
     }
   }, [sessionId, isProcessing, inputText, voice, playTTS]);
 
+  const prepSkipFiredRef = useRef(false);
   const handlePrepSkip = useCallback(async () => {
-    if (!sessionId) return;
+    if (!sessionId || prepSkipFiredRef.current) return;
+    prepSkipFiredRef.current = true;
     setTimerActive(false);
-    setPhase("part2_speak");
-    setTimerSeconds(SPEAK_SECONDS);
-    setTimerActive(true);
+
     // Advance backend from cue_card → long_turn
     try {
-      await submitScenarioTurn(sessionId, "[PREPARATION COMPLETE]");
+      const result = await submitScenarioTurn(sessionId, "[PREP TIME COMPLETE — I AM READY TO SPEAK]");
+
+      // Add the examiner's announcement as a turn so it appears in transcript
+      if (result.aiTurn) {
+        const announceTurn: ConversationTurn = {
+          id: `ai-${result.aiTurn.turnIndex}`,
+          turnIndex: result.aiTurn.turnIndex,
+          role: "assistant",
+          content: result.aiTurn.content,
+          audioStorageKey: null,
+          scores: null,
+          feedback: null,
+          createdAt: result.aiTurn.createdAt,
+        };
+        setTurns((prev) => [...prev, announceTurn]);
+
+        // Play TTS announcement: "Your preparation time is over. Please begin speaking now."
+        // autoMic = false — we start mic manually after TTS finishes
+        await playTTS(result.aiTurn.content, false);
+      }
     } catch (err) {
       console.error("[ielts-ui] handlePrepSkip advance error:", err);
     }
+
+    // NOW transition to speaking phase
+    setPhase("part2_speak");
+    setTimerSeconds(SPEAK_SECONDS);
+    setTimerActive(true);
+
+    // Start mic after a brief pause (TTS has already finished via await)
     if (voice.isSupported) {
       setTimeout(() => voice.startRecording(), 300);
     }
-  }, [sessionId, voice]);
+  }, [sessionId, voice, playTTS]);
 
   // ── Timer expiry handlers ──
   useEffect(() => {
@@ -566,6 +611,7 @@ export default function IeltsConversation({
 
   useEffect(() => {
     if (timerSeconds === 0 && !timerActive && phase === "part2_speak") {
+      part2EndByTimerRef.current = true; // Timer expiry — skip minimum enforcement
       handlePart2End();
     }
   }, [timerSeconds, timerActive, phase]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -712,12 +758,12 @@ export default function IeltsConversation({
                   Analysing your performance
                 </p>
                 <p className="text-[13px] mt-2 text-white/40 max-w-[260px] mx-auto">
-                  Evaluating fluency, vocabulary, grammar, and coherence...
+                  Evaluating fluency, vocabulary, grammar, and pronunciation...
                 </p>
               </div>
               {/* Score bar loading animation */}
               <div className="w-52 flex flex-col gap-3 mt-2">
-                {["Fluency", "Vocabulary", "Grammar", "Coherence"].map((label, i) => (
+                {["Fluency", "Vocabulary", "Grammar", "Pronunciation"].map((label, i) => (
                   <div key={label} className="flex items-center gap-3">
                     <span className="text-[10px] w-20 text-right text-white/30 uppercase tracking-wider">{label}</span>
                     <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
@@ -839,6 +885,13 @@ export default function IeltsConversation({
                 {voice.isRecording && voice.interimTranscript && (
                   <div className="ielts-live-transcript">
                     {voice.interimTranscript}
+                  </div>
+                )}
+
+                {/* Nudge message when user tries to end too early */}
+                {part2Nudge && (
+                  <div className="px-4 py-2.5 rounded-xl text-[13px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 text-center max-w-[300px] animate-fadeIn">
+                    {part2Nudge}
                   </div>
                 )}
 

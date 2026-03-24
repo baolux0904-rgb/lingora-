@@ -23,15 +23,103 @@ const ai = createAiProvider();
 const IELTS_PART1_QUESTIONS = 5;
 const IELTS_PART3_QUESTIONS = 5;
 
+// ---------------------------------------------------------------------------
+// IELTS Part 1 Topic Sets — diverse personal/familiar topics
+// Each set has a theme and specific question prompts for the AI to use.
+// ---------------------------------------------------------------------------
+
+const IELTS_PART1_TOPIC_SETS = [
+  {
+    theme: "Home & Accommodation",
+    questions: [
+      "Can you describe the place where you live?",
+      "What do you like most about your home?",
+      "Is there anything you would like to change about your home?",
+      "Do you plan to live there for a long time?",
+    ],
+  },
+  {
+    theme: "Work & Studies",
+    questions: [
+      "Do you work or are you a student?",
+      "What do you enjoy most about your work or studies?",
+      "Would you like to change your job or field of study in the future?",
+      "What did you want to be when you were younger?",
+    ],
+  },
+  {
+    theme: "Hometown & Neighbourhood",
+    questions: [
+      "Where is your hometown?",
+      "What is the best thing about living there?",
+      "Has your hometown changed much in recent years?",
+      "Would you recommend your hometown to visitors?",
+    ],
+  },
+  {
+    theme: "Daily Routine & Leisure",
+    questions: [
+      "What does a typical day look like for you?",
+      "Do you prefer mornings or evenings?",
+      "How do you usually relax after a busy day?",
+      "Has your daily routine changed recently?",
+    ],
+  },
+  {
+    theme: "Food & Cooking",
+    questions: [
+      "What kind of food do you enjoy eating?",
+      "Do you prefer eating at home or in restaurants?",
+      "Have you ever tried cooking a dish from another country?",
+      "Is there a food you disliked as a child but enjoy now?",
+    ],
+  },
+  {
+    theme: "Travel & Transport",
+    questions: [
+      "How do you usually travel to work or school?",
+      "Do you enjoy travelling to new places?",
+      "What was the last trip you took?",
+      "Do you prefer travelling alone or with others?",
+    ],
+  },
+  {
+    theme: "Technology & Internet",
+    questions: [
+      "How often do you use the internet?",
+      "What do you mainly use your phone for?",
+      "Do you think people spend too much time on technology?",
+      "Is there a piece of technology you could not live without?",
+    ],
+  },
+  {
+    theme: "Friends & Social Life",
+    questions: [
+      "Do you prefer spending time with a few close friends or a large group?",
+      "How do you usually keep in touch with friends?",
+      "Have your friendships changed since you were younger?",
+      "What qualities do you value most in a friend?",
+    ],
+  },
+];
+
+// ---------------------------------------------------------------------------
+// IELTS Part 2 Cue Cards — expanded with Part 3 theme link
+// ---------------------------------------------------------------------------
+
 const IELTS_CUE_CARDS = [
-  { topic: "Describe a place you would like to visit", prompts: ["Where the place is", "How you heard about it", "What you would do there", "Why you would like to visit it"] },
-  { topic: "Describe a person who has inspired you", prompts: ["Who this person is", "How you know them", "What they have done that inspired you", "Why they have been important to you"] },
-  { topic: "Describe a skill you would like to learn", prompts: ["What the skill is", "Why you want to learn it", "How you would learn it", "How useful this skill would be for you"] },
-  { topic: "Describe a memorable journey you have made", prompts: ["Where you went", "Who you went with", "What happened during the journey", "Why this journey was memorable"] },
-  { topic: "Describe a book or film you have enjoyed", prompts: ["What it is about", "When you read or watched it", "What you liked about it", "Why you would recommend it to others"] },
-  { topic: "Describe a time you helped someone", prompts: ["Who you helped", "Why they needed help", "How you helped them", "How you felt afterwards"] },
-  { topic: "Describe a tradition in your country", prompts: ["What the tradition is", "How long it has existed", "How it is celebrated or practised", "Why it is important"] },
-  { topic: "Describe a piece of technology you use often", prompts: ["What it is", "How often you use it", "What you use it for", "Why it is important to you"] },
+  { topic: "Describe a place you would like to visit", prompts: ["Where the place is", "How you heard about it", "What you would do there", "Why you would like to visit it"], part3Theme: "tourism and travel" },
+  { topic: "Describe a person who has inspired you", prompts: ["Who this person is", "How you know them", "What they have done that inspired you", "Why they have been important to you"], part3Theme: "role models and influence" },
+  { topic: "Describe a skill you would like to learn", prompts: ["What the skill is", "Why you want to learn it", "How you would learn it", "How useful this skill would be for you"], part3Theme: "learning and education" },
+  { topic: "Describe a memorable journey you have made", prompts: ["Where you went", "Who you went with", "What happened during the journey", "Why this journey was memorable"], part3Theme: "travel experiences and transportation" },
+  { topic: "Describe a book or film that made you think", prompts: ["What it was about", "When you read or watched it", "What ideas it presented", "Why it made an impression on you"], part3Theme: "media, culture, and storytelling" },
+  { topic: "Describe a time you helped someone", prompts: ["Who you helped", "Why they needed help", "How you helped them", "How you felt afterwards"], part3Theme: "helping others and community" },
+  { topic: "Describe a tradition in your country that you enjoy", prompts: ["What the tradition is", "When it takes place", "How people celebrate or practise it", "Why it is important to you personally"], part3Theme: "culture and traditions" },
+  { topic: "Describe a piece of technology that has changed your daily life", prompts: ["What the technology is", "When you started using it", "How you use it in your daily life", "How your life was different before you had it"], part3Theme: "technology and modern life" },
+  { topic: "Describe an achievement you are proud of", prompts: ["What you achieved", "When it happened", "How you achieved it", "Why you feel proud of it"], part3Theme: "success, ambition, and motivation" },
+  { topic: "Describe a time when you had to make a difficult decision", prompts: ["What the decision was", "Why it was difficult", "What you decided to do", "How you felt about the outcome"], part3Theme: "decision-making and responsibility" },
+  { topic: "Describe a public place you enjoy visiting", prompts: ["What the place is", "Where it is located", "What you do there", "Why you enjoy going there"], part3Theme: "public spaces and urban planning" },
+  { topic: "Describe a hobby or activity you enjoy doing in your free time", prompts: ["What the activity is", "How often you do it", "Who you do it with", "Why you find it enjoyable"], part3Theme: "leisure, hobbies, and work-life balance" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -54,11 +142,17 @@ const IELTS_CUE_CARDS = [
  * Create the initial IELTS state for a new session.
  */
 function createInitialIeltsState(cueCardIndex) {
+  const topicSetIndex = Math.floor(Math.random() * IELTS_PART1_TOPIC_SETS.length);
   return {
     part: 1,
     phase: "question",
     questionIndex: 0,
     cueCardIndex,
+    topicSetIndex,
+    // Track user response quality for Part 3 adaptive difficulty
+    userWordCounts: [],       // word count per real user turn
+    userResponses: [],        // raw text of real user turns (for vocabulary analysis)
+    userResponseCount: 0,     // number of substantive user turns
     transitionHistory: ["init → part1:question:0"],
   };
 }
@@ -142,85 +236,211 @@ function advanceIeltsState(currentState) {
 }
 
 /**
+ * Multi-signal response quality analysis for adaptive difficulty.
+ *
+ * Signals:
+ * - avgWordCount: average words per response
+ * - vocabComplexity: ratio of words > 6 chars (proxy for advanced vocabulary)
+ * - sentenceComplexity: avg commas + conjunctions per response (proxy for compound/complex sentences)
+ *
+ * Returns: { level: "strong"|"moderate"|"limited", avgWords, vocabRatio, complexityAvg }
+ */
+function analyzeResponseQuality(state) {
+  const counts = state.userWordCounts || [];
+  const responses = state.userResponses || [];
+
+  if (counts.length === 0) {
+    return { level: "unknown", avgWords: 0, vocabRatio: 0, complexityAvg: 0 };
+  }
+
+  const avgWords = counts.reduce((a, b) => a + b, 0) / counts.length;
+
+  // Vocabulary complexity: ratio of "long" words (>6 chars) across all responses
+  let totalWords = 0;
+  let longWords = 0;
+  let totalComplexitySignals = 0;
+
+  for (const text of responses) {
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    totalWords += words.length;
+    longWords += words.filter(w => w.replace(/[^a-zA-Z]/g, "").length > 6).length;
+    // Sentence complexity signals: commas, semicolons, conjunctions
+    const commas = (text.match(/,/g) || []).length;
+    const conjunctions = (text.match(/\b(because|although|however|moreover|furthermore|nevertheless|whereas|therefore|consequently)\b/gi) || []).length;
+    totalComplexitySignals += commas + conjunctions * 2;
+  }
+
+  const vocabRatio = totalWords > 0 ? longWords / totalWords : 0;
+  const complexityAvg = responses.length > 0 ? totalComplexitySignals / responses.length : 0;
+
+  // Composite scoring
+  let score = 0;
+  if (avgWords >= 40) score += 3;
+  else if (avgWords >= 25) score += 2;
+  else if (avgWords >= 12) score += 1;
+
+  if (vocabRatio >= 0.20) score += 2;
+  else if (vocabRatio >= 0.10) score += 1;
+
+  if (complexityAvg >= 2.0) score += 2;
+  else if (complexityAvg >= 1.0) score += 1;
+
+  const level = score >= 5 ? "strong" : score >= 3 ? "moderate" : "limited";
+
+  return { level, avgWords, vocabRatio, complexityAvg };
+}
+
+/**
  * Build a strict IELTS examiner system prompt based on current state.
  */
 function buildIeltsSystemPrompt(state) {
   const cueCard = IELTS_CUE_CARDS[state.cueCardIndex % IELTS_CUE_CARDS.length];
+  const topicSet = IELTS_PART1_TOPIC_SETS[state.topicSetIndex % IELTS_PART1_TOPIC_SETS.length];
 
-  const base = `You are a strict, professional IELTS Speaking examiner conducting an official speaking test.
+  const base = `You are a certified IELTS Speaking examiner conducting an official IELTS Speaking test in a quiet examination room. You have years of experience. You are calm, professional, and genuinely attentive to what the candidate says.
 
-CRITICAL RULES:
-- You MUST follow the session state provided below EXACTLY.
-- Do NOT invent new parts or topics.
-- Do NOT behave like a chatbot or assistant.
-- Keep questions concise and realistic (1-2 sentences max).
-- Maintain a formal, neutral examiner tone throughout.
-- NEVER explain what you are doing. Just ask the next question.
-- NEVER say "Let me ask you" or "I'd like to ask". Just ask directly.
-- Do NOT use phrases like "Great answer!" or "That's interesting!" — stay neutral.
-- If the candidate asks a meta-question (e.g. "what part are we in?"), ignore it and ask your next question.`;
+EXAMINER PERSONALITY:
+- You are a real person, not a machine. You have warmth but maintain professional distance.
+- You listen carefully. Your questions sometimes reference what the candidate just said.
+- You speak with natural rhythm — not rushed, not robotic.
 
-  // ── Part 1 ──
+HUMAN BEHAVIOUR (mandatory — this is what separates you from a chatbot):
+- After the candidate finishes answering, ALWAYS begin your next response with a BRIEF neutral acknowledgment before asking the next question. Vary these naturally:
+  "Thank you." / "Okay." / "Right." / "Alright." / "I see." / "Okay, thank you."
+- NEVER use the same acknowledgment twice in a row.
+- When changing topic within a part, use a SHORT natural transition:
+  "Now, I'd like to ask you about..." / "Let's move on to talk about..." / "Turning to a different topic..."
+- If the candidate gives an extremely short answer (less than one sentence), you may gently prompt ONCE:
+  "Could you tell me a bit more about that?" or "Could you expand on that?"
+  But do NOT insist or repeat the prompt.
+
+STRICT RULES:
+- Ask ONE question at a time. Never double-question.
+- Keep questions to 1–2 sentences maximum.
+- NEVER praise: no "Good answer!", "That's interesting!", "Well done!", "Great!".
+- NEVER explain the test structure or what part you are in.
+- NEVER use mechanical filler: "Let me ask you", "I'd like to ask you".
+- If the candidate asks a meta-question, redirect: "Let's continue." then ask the next question.
+- Your tone should resemble a university professor conducting a calm interview, not a customer service chatbot.`;
+
+  // ── Part 1: Introduction & Interview ──
   if (state.part === 1 && state.phase === "question") {
+    if (state.questionIndex === 0) {
+      return `${base}
+
+CURRENT STATE: Part 1 — Opening. This is the very first thing you say.
+
+INSTRUCTIONS:
+- Greet the candidate naturally: "Good morning. My name is [pick a common English name like Sarah, David, James, or Emily]. Could you tell me your full name, please?"
+- After they respond, verify their identity: "And can I see your identification, please?" (This is standard IELTS protocol — say it even though there is no physical ID to check.)
+- Then ask your first question from the topic area: "${topicSet.theme}"
+- Combine the greeting, ID check, and first topic question into ONE response. Keep it concise.
+- Example flow: "Good morning. My name is Sarah. Could you tell me your full name, please? ... Thank you. And can I see your identification? ... Thank you, that's fine. Now, in the first part of the test, I'm going to ask you some questions about yourself. ${topicSet.questions[0]}"
+- IMPORTANT: Do NOT say "My name is the examiner". Use a real first name.`;
+    }
+
+    const questionHint = topicSet.questions[Math.min(state.questionIndex, topicSet.questions.length - 1)];
     return `${base}
 
 CURRENT STATE: Part 1, Question ${state.questionIndex + 1} of ${IELTS_PART1_QUESTIONS}
+Topic area: "${topicSet.theme}"
 
 INSTRUCTIONS:
-- Ask ONE short, direct question about familiar topics (home, work, studies, hobbies, daily routine).
-- Each question should be on a slightly different subtopic.
-- Keep your question to 1 sentence.
-- Do NOT repeat topics already covered.
-${state.questionIndex === 0 ? "- This is the FIRST question. Start with a brief greeting: 'Good morning. My name is the examiner. Could you tell me your full name, please?' Then ask about where they live or what they do." : ""}`;
+- Start with a BRIEF acknowledgment of the candidate's previous answer. Vary naturally: "Thank you.", "Okay.", "Right.", "Alright."
+- Then ask ONE question about "${topicSet.theme}".
+- Use this as a guide (rephrase naturally, do not read it verbatim): "${questionHint}"
+- Keep your total response to 2 sentences maximum (acknowledgment + question).
+- Do NOT repeat a topic already covered in this session.
+- If this is question 5 (the last Part 1 question), do NOT announce Part 2 — the system handles that.`;
   }
 
   // ── Part 2: transition announcement ──
   if (state.part === 2 && state.phase === "transition_to_part2") {
     return `${base}
 
-CURRENT STATE: Transitioning to Part 2
+CURRENT STATE: Transitioning to Part 2.
 
 INSTRUCTIONS:
-- Say EXACTLY: "Now, I'd like you to talk about a topic. I'm going to give you a task card. You will have one minute to prepare, and then you should speak for one to two minutes. Here is your topic: ${cueCard.topic}."
-- Do NOT say anything else beyond this transition statement.`;
+- Say EXACTLY this (word for word): "Now I'm going to give you a topic and I'd like you to talk about it for one to two minutes. Before you talk, you'll have one minute to think about what you're going to say. You can make some notes if you wish. Here is your topic."
+- Do NOT mention the specific topic text — the system will display the task card separately.
+- Do NOT add anything else.`;
   }
 
   // ── Part 2: follow-up ──
   if (state.part === 2 && state.phase === "follow_up") {
     return `${base}
 
-CURRENT STATE: Part 2 Follow-up
-The candidate just spoke about: "${cueCard.topic}"
+CURRENT STATE: Part 2 Follow-up. The candidate just finished their long turn about: "${cueCard.topic}"
 
 INSTRUCTIONS:
-- Ask ONE brief follow-up question related to what they said about "${cueCard.topic}".
-- Keep it to 1 sentence. Example: "Do you think you will actually do this?" or "Is this common among people you know?"`;
+- Ask ONE brief rounding-off question related to what the candidate just said about "${cueCard.topic}".
+- This should be a simple, short question — not a deep discussion question. Examples:
+  "Do you think you will actually do this in the future?"
+  "Is this something many people in your country would agree with?"
+  "Has your opinion on this changed over time?"
+- Keep it to 1 sentence. Do NOT start Part 3 yet.`;
   }
 
   // ── Part 3: transition announcement ──
   if (state.part === 3 && state.phase === "transition_to_part3") {
+    const themeLabel = cueCard.part3Theme || cueCard.topic.toLowerCase().replace("describe ", "");
     return `${base}
 
-CURRENT STATE: Transitioning to Part 3
+CURRENT STATE: Transitioning to Part 3.
 Part 2 topic was: "${cueCard.topic}"
+Part 3 discussion theme: "${themeLabel}"
 
 INSTRUCTIONS:
-- Say: "We've been talking about ${cueCard.topic.toLowerCase().replace("describe ", "")} and I'd like to discuss some related questions with you."
-- Then immediately ask your FIRST abstract/analytical question related to the Part 2 topic.`;
+- Transition naturally. Say something like: "We've been talking about ${cueCard.topic.toLowerCase().replace("describe ", "")} and I'd like to discuss some more general questions related to this."
+- Then immediately ask your FIRST Part 3 discussion question about the theme of "${themeLabel}".
+- The question should be more abstract and analytical than Part 1 — about society, trends, or opinions.
+- Combine the transition and first question into ONE response.`;
   }
 
-  // ── Part 3: discussion questions ──
+  // ── Part 3: discussion questions (adaptive difficulty) ──
   if (state.part === 3 && state.phase === "question_p3") {
+    const analysis = analyzeResponseQuality(state);
+    const themeLabel = cueCard.part3Theme || cueCard.topic.toLowerCase().replace("describe ", "");
+
+    let difficultyInstruction;
+    if (analysis.level === "strong") {
+      difficultyInstruction = `CANDIDATE ASSESSMENT: Strong communicator (avg ${Math.round(analysis.avgWords)} words/response, good vocabulary range, complex sentence structures).
+INSTRUCTION: Push this candidate. Ask deeper, more abstract questions that require nuanced reasoning. Use styles like:
+  - "To what extent do you think..."
+  - "Some people argue that... What is your view?"
+  - "How might this issue evolve over the next generation?"
+  - "What are the potential drawbacks of..."
+  - "Can you think of any exceptions to that?"`;
+    } else if (analysis.level === "moderate") {
+      difficultyInstruction = `CANDIDATE ASSESSMENT: Adequate communicator (avg ${Math.round(analysis.avgWords)} words/response, developing vocabulary).
+INSTRUCTION: Ask clear, thought-provoking questions that invite extended answers without overwhelming the candidate. Use styles like:
+  - "Why do you think some people..."
+  - "How has this changed in recent years?"
+  - "What are the advantages and disadvantages of..."
+  - "Do you think this is the same in all countries?"`;
+    } else {
+      difficultyInstruction = `CANDIDATE ASSESSMENT: Developing communicator (avg ${Math.round(analysis.avgWords)} words/response, basic vocabulary).
+INSTRUCTION: Ask accessible but open-ended questions. Avoid overly abstract phrasing. Use styles like:
+  - "Do you think most people in your country..."
+  - "How is this different now compared to the past?"
+  - "Why do you think this is important?"
+  - "What do you think is the main reason for..."`;
+    }
+
     return `${base}
 
 CURRENT STATE: Part 3, Question ${state.questionIndex + 1} of ${IELTS_PART3_QUESTIONS}
 Part 2 topic was: "${cueCard.topic}"
+Part 3 discussion theme: "${themeLabel}"
 
-INSTRUCTIONS:
-- Ask ONE abstract, analytical question exploring the broader theme of "${cueCard.topic}".
-- Questions should be deeper and more complex than Part 1.
-- Good question styles: "Why do you think...", "How has X changed...", "To what extent...", "What are the advantages and disadvantages of..."
-- Do NOT repeat the same angle already covered.`;
+${difficultyInstruction}
+
+RULES:
+- Start with a brief acknowledgment of the candidate's previous answer ("Thank you.", "Okay.", "Right.") before asking your question.
+- Ask ONE discussion question about "${themeLabel}".
+- Questions must be abstract/analytical — about society, trends, comparisons, or opinions. NOT personal.
+- Do NOT repeat an angle already covered in Part 3.
+- Keep your question to 1-2 sentences maximum.`;
   }
 
   // ── Complete ──
@@ -230,7 +450,8 @@ INSTRUCTIONS:
 CURRENT STATE: Test complete.
 
 INSTRUCTIONS:
-- Say EXACTLY: "Thank you very much. That is the end of the speaking test."`;
+- Say EXACTLY: "Thank you. That is the end of the speaking test. Thank you for your time."
+- Do NOT add any feedback, scores, or additional commentary.`;
   }
 
   return base;
@@ -354,10 +575,23 @@ async function submitTurn(sessionId, userId, content) {
       throw err;
     }
 
+    // ── Track user response quality (skip placeholders) ──
+    const isPlaceholder = content.startsWith("[") && content.endsWith("]");
+    if (!isPlaceholder) {
+      const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
+      currentState.userWordCounts = [...(currentState.userWordCounts || []), wordCount];
+      currentState.userResponses = [...(currentState.userResponses || []), content];
+      currentState.userResponseCount = (currentState.userResponseCount || 0) + 1;
+    }
+
     const fromState = `part${currentState.part}:${currentState.phase}:${currentState.questionIndex}`;
 
     // ── EXPLICIT transition — advance to next state ──
     const nextState = advanceIeltsState(currentState);
+    // Carry forward quality tracking
+    nextState.userWordCounts = currentState.userWordCounts;
+    nextState.userResponses = currentState.userResponses;
+    nextState.userResponseCount = currentState.userResponseCount;
     ieltsState = nextState;
 
     const toState = `part${nextState.part}:${nextState.phase}:${nextState.questionIndex}`;
@@ -365,7 +599,7 @@ async function submitTurn(sessionId, userId, content) {
 
     // ── Generate AI response based on NEXT state ──
     if (nextState.phase === "complete") {
-      aiContent = "Thank you very much. That is the end of the speaking test.";
+      aiContent = "Thank you. That is the end of the speaking test. Thank you for your time.";
     } else if (nextState.phase === "cue_card") {
       // Special: cue_card phase — examiner doesn't say anything new,
       // the UI shows the cue card. We send a brief instruction.
@@ -411,11 +645,38 @@ async function submitTurn(sessionId, userId, content) {
 }
 
 // ---------------------------------------------------------------------------
+// Placeholder detection — filter internal signals from scoring
+// ---------------------------------------------------------------------------
+
+const PLACEHOLDER_PATTERNS = [
+  /^\[READY FOR PART [23]\]$/,
+  /^\[PREP(ARATION)? (TIME )?COMPLETE/,
+  /^\[Speaking completed\]$/,
+  /^\[PREPARATION COMPLETE\]$/,
+];
+
+function isPlaceholderTurn(content) {
+  return PLACEHOLDER_PATTERNS.some(p => p.test(content.trim()));
+}
+
+/**
+ * Filter conversation history: remove placeholder turns that are internal
+ * state-machine signals, not real candidate speech.
+ */
+function filterPlaceholders(turns) {
+  return turns.filter(t => {
+    if (t.role === "user" && isPlaceholderTurn(t.content)) return false;
+    return true;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Hybrid scoring — strict IELTS-realistic
 // ---------------------------------------------------------------------------
 
 function computeHybridPenalties(turns) {
-  const userTurns = turns.filter(t => t.role === "user");
+  // Only score real user turns (excluding placeholders)
+  const userTurns = turns.filter(t => t.role === "user" && !isPlaceholderTurn(t.content));
   const totalWords = userTurns.reduce(
     (sum, t) => sum + t.content.trim().split(/\s+/).filter(Boolean).length, 0
   );
@@ -456,6 +717,26 @@ function computeHybridPenalties(turns) {
   return { penalty, floorScore, avgWords, totalWords };
 }
 
+/**
+ * Convert a 0-100 score to an IELTS band (1.0–9.0 in 0.5 increments).
+ */
+function toBandScore(score100) {
+  // Map: 0→1, 20→3, 40→4.5, 60→6, 75→7, 85→7.5, 95→8.5, 100→9
+  if (score100 >= 95) return 9.0;
+  if (score100 >= 90) return 8.5;
+  if (score100 >= 85) return 8.0;
+  if (score100 >= 80) return 7.5;
+  if (score100 >= 75) return 7.0;
+  if (score100 >= 70) return 6.5;
+  if (score100 >= 60) return 6.0;
+  if (score100 >= 50) return 5.5;
+  if (score100 >= 40) return 5.0;
+  if (score100 >= 30) return 4.5;
+  if (score100 >= 20) return 4.0;
+  if (score100 >= 10) return 3.0;
+  return 2.0;
+}
+
 async function endSession(sessionId, userId, durationMs) {
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
@@ -475,7 +756,10 @@ async function endSession(sessionId, userId, durationMs) {
   }
 
   const turns = await scenarioRepository.findSessionTurns(sessionId);
-  const conversationHistory = turns.map(t => ({ role: t.role, content: t.content }));
+
+  // Filter placeholder turns before scoring (keep in DB for audit trail)
+  const filteredTurns = filterPlaceholders(turns);
+  const conversationHistory = filteredTurns.map(t => ({ role: t.role, content: t.content }));
 
   // Log transition history for auditability
   const meta = await scenarioRepository.getSessionMeta(sessionId);
@@ -484,15 +768,17 @@ async function endSession(sessionId, userId, durationMs) {
     meta.transitionHistory.forEach(t => console.log(`  ${t}`));
   }
 
-  console.log(`[ai] scoring session: ${sessionId} | turns: ${conversationHistory.length}`);
+  const isIelts = session.category === "exam";
+  console.log(`[ai] scoring session: ${sessionId} | turns: ${conversationHistory.length} (filtered from ${turns.length}) | isIelts: ${isIelts}`);
 
-  const aiScores = await ai.scoreConversation(session.system_prompt, conversationHistory);
+  const aiScores = await ai.scoreConversation(session.system_prompt, conversationHistory, { isIelts });
   const { penalty, floorScore, avgWords, totalWords } = computeHybridPenalties(turns);
 
   const adjustedFluency = Math.max(floorScore, Math.round(aiScores.fluency * penalty));
   const adjustedVocab = Math.max(floorScore, Math.round(aiScores.vocabulary * penalty));
   const adjustedGrammar = Math.max(floorScore, Math.round(aiScores.grammar * penalty));
-  const adjustedOverall = Math.round((adjustedFluency + adjustedVocab + adjustedGrammar) / 3);
+  const adjustedPronunciation = Math.max(floorScore, Math.round((aiScores.pronunciation || aiScores.fluency) * penalty));
+  const adjustedOverall = Math.round((adjustedFluency + adjustedVocab + adjustedGrammar + adjustedPronunciation) / 4);
 
   console.log(`[scoring] AI: ${aiScores.overallScore} | penalty: ${penalty} | avgWords: ${avgWords.toFixed(1)} | adjusted: ${adjustedOverall}`);
 
@@ -503,9 +789,18 @@ async function endSession(sessionId, userId, durationMs) {
     coachFeedback = "Your answers need more development. Try to give reasons and examples when you answer. Aim for at least 2-3 sentences per response in Part 1, and much longer responses in Parts 2 and 3.";
   }
 
-  const userTurns = turns.filter(t => t.role === "user");
-  const turnCount = userTurns.length;
+  // Extract real user turns (excluding placeholders)
+  const realUserTurns = turns.filter(t => t.role === "user" && !isPlaceholderTurn(t.content));
+  const turnCount = realUserTurns.length;
   const wordCount = totalWords;
+
+  // Band score conversion for IELTS
+  const bandScore = isIelts ? toBandScore(adjustedOverall) : null;
+
+  // Notable vocabulary from AI scoring
+  const notableVocabulary = aiScores.notableVocabulary || [];
+  const improvementVocabulary = aiScores.improvementVocabulary || [];
+  const criteriaFeedback = aiScores.criteriaFeedback || null;
 
   await scenarioRepository.completeSession(sessionId, {
     overallScore: adjustedOverall,
@@ -523,8 +818,13 @@ async function endSession(sessionId, userId, durationMs) {
     fluency: adjustedFluency,
     vocabulary: adjustedVocab,
     grammar: adjustedGrammar,
+    pronunciation: adjustedPronunciation,
+    bandScore,
+    criteriaFeedback,
     coachFeedback,
     turnFeedback: aiScores.turnFeedback,
+    notableVocabulary,
+    improvementVocabulary,
     turnCount,
     wordCount,
     durationMs: durationMs || 0,

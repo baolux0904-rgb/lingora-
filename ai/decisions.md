@@ -138,7 +138,7 @@ Adding a backend daily-goal endpoint would duplicate data already available clie
 
 | Limitation | Impact | Planned Fix |
 |---|---|---|
-| Placeholder turns included in scoring | Slight AI scoring noise from `[READY FOR PART 2]` etc. | Filter in `buildScoringPrompt` before sending to AI |
+| ~~Placeholder turns included in scoring~~ | ~~AI scoring noise from `[READY FOR PART 2]` etc.~~ | **FIXED** — `filterPlaceholders()` removes internal signals before scoring |
 | No retry on stuck `part2_intro` / `transition_to_part3` | User stuck if auto-advance call fails | Add retry with exponential backoff |
 | TTS has no timeout on frontend | `examinerSpeaking = true` forever if API hangs | Add 10s AbortController timeout to `synthesizeSpeech` |
 | Web Speech API is Chrome/Edge only | Safari users must use text input | No fix planned — text fallback is acceptable |
@@ -183,3 +183,100 @@ Adding a backend daily-goal endpoint would duplicate data already available clie
 - XP: 10/lesson (+5 perfect bonus), 20/exam, 50/final exam.
 
 **Constraint:** Never add a "skip" or "unlock all" button. The progression IS the product. If users find it too slow, add more content variety — don't remove the gate.
+
+---
+
+## IELTS Examiner Prompt — Natural, Not Robotic
+
+**Decision:** The IELTS examiner must never say "My name is the examiner" or use generic robotic greetings. The system prompt instructs the AI to use a real first name (Sarah, David, James, Emily) and follow authentic IELTS protocol: greeting → full name request → ID check → Part 1 questions.
+
+**Why:** Real IELTS examiners introduce themselves by name and follow a formal but natural script. "My name is the examiner" breaks immersion immediately.
+
+**Constraint:** Part 1 question 0 prompt must always include the natural greeting template. The AI picks a name itself — this adds variety across sessions.
+
+---
+
+## IELTS Scoring — 4 Criteria + Band Score
+
+**Decision:** IELTS sessions score on 4 criteria: Fluency & Coherence, Lexical Resource, Grammatical Range & Accuracy, Pronunciation. A band score (1.0–9.0) is derived from the 0-100 average using `toBandScore()`.
+
+**Why:** IELTS has exactly 4 scoring criteria. The previous 3-criteria system (fluency, vocabulary, grammar) was missing pronunciation and didn't provide band score equivalents.
+
+**Implementation:**
+- Backend `endSession` returns `pronunciation` (0-100) and `bandScore` (1.0-9.0)
+- `ScenarioSummary` displays all 4 criteria bars + band score badge for IELTS sessions
+- Non-IELTS scenarios still get 4 scores but no band score
+
+**Constraint:** Band score is an estimate based on text analysis — it cannot assess real pronunciation. The UI labels it "Estimated Band Score".
+
+---
+
+## IELTS Part 2 — Preparation End Announcement
+
+**Decision:** When Part 2 preparation time ends (timer expiry or "I'm Ready" click), the examiner MUST explicitly announce "Your preparation time is over. Please begin speaking now." via TTS before the mic activates.
+
+**Why:** Real IELTS examiners verbally announce the end of preparation. Silently switching to recording is jarring and unrealistic.
+
+**Implementation:** `handlePrepSkip` in `IeltsConversation.tsx` now awaits the backend response (which returns the announcement text), plays it via TTS, then transitions to `part2_speak` phase. `prepSkipFiredRef` prevents double-fire from timer + button click race.
+
+**Constraint:** The TTS must complete before mic starts. This adds 1-3 seconds of delay but is correct for realism.
+
+---
+
+## IELTS Part 3 — Adaptive Difficulty
+
+**Decision:** Part 3 question difficulty adapts based on candidate response quality measured during the session.
+
+**Why:** Real IELTS examiners adjust difficulty. Strong candidates get deeper abstract questions. Weaker candidates get more accessible questions. This makes the test fair and realistic.
+
+**Implementation:** `userWordCounts` array tracked in session state. `getResponseQuality()` computes "strong" (avg 40+ words), "moderate" (20+), or "limited" (<20). Part 3 prompt includes quality level with appropriate question style suggestions.
+
+**Constraint:** Adaptation is by prompt instruction only — no model switching or scoring changes. The AI decides how to calibrate.
+
+---
+
+## Notable Vocabulary Extraction — Two Tiers
+
+**Decision:** The scoring prompt requests both `notableVocabulary: string[]` (strong usage) and `improvementVocabulary: string[]` (needs improvement). These are displayed as separate sections in the summary UI.
+
+**Why:** Highlighting good language reinforces learning. Showing weak/overused words gives actionable direction. Real IELTS feedback always identifies both strengths and areas for improvement.
+
+**Constraint:** Both arrays may be empty. The UI handles this gracefully (sections hidden when empty). "Needs improvement" vocabulary includes overused words, misused collocations, and basic words that could be upgraded.
+
+---
+
+## IELTS Examiner Must Acknowledge Before Questioning
+
+**Decision:** After the candidate answers any question, the examiner MUST begin with a brief neutral acknowledgment ("Thank you.", "Okay.", "Right.", "Alright.", "I see.") before asking the next question. No two consecutive acknowledgments may be the same.
+
+**Why:** Real IELTS examiners always acknowledge. Jumping directly to the next question with no acknowledgment is the single biggest signal that it's a chatbot. This one behaviour change transforms perceived realism.
+
+**Constraint:** The examiner must NEVER praise ("Good answer!", "Interesting!"). Only neutral acknowledgments. This is controlled via the system prompt personality layer.
+
+---
+
+## Part 2 Speaking Minimum Enforcement
+
+**Decision:** If the user manually clicks "Finish Speaking" with fewer than 30 words, the system shows a nudge ("You still have time...") and does NOT end the long turn. Timer expiry always ends the turn regardless of word count.
+
+**Why:** In real IELTS, candidates who speak for less than 30 seconds on Part 2 receive severe penalties. The nudge teaches proper exam behavior without being blocking — they can ignore it and click again.
+
+**Constraint:** The nudge only fires on manual end, never on timer expiry. The `part2EndByTimerRef` flag distinguishes the two paths.
+
+---
+
+## Adaptive Difficulty — Multi-Signal Analysis
+
+**Decision:** Part 3 difficulty adapts based on three signals: average word count, vocabulary complexity (ratio of words > 6 chars), and sentence complexity (commas + conjunctions). These combine into a composite score that determines "strong", "moderate", or "limited" level.
+
+**Why:** Word count alone is a poor proxy. A user who writes many short simple sentences gets "strong" on word count but is actually "moderate". Adding vocabulary and grammar complexity signals produces more accurate difficulty calibration.
+
+**Implementation:** `analyzeResponseQuality(state)` reads `userResponses[]` stored in session meta. Composite score: word count (0-3 points) + vocab ratio (0-2 points) + complexity avg (0-2 points). Score >= 5 = strong, >= 3 = moderate, else limited.
+
+---
+
+## IELTS Scoring Must Cite Evidence
+
+**Decision:** The scoring prompt requires `criteriaFeedback` — per-criterion explanations that cite specific words/phrases from the candidate's actual responses. Generic feedback like "You spoke well" is not acceptable.
+
+**Why:** Evidence-based feedback is what separates a useful IELTS simulator from a toy. Users need to know exactly which of THEIR words/phrases contributed to their score. This makes the feedback actionable.
