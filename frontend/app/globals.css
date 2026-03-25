@@ -20,6 +20,48 @@
   --color-warning: #D97706;
   --color-examiner: #4F46E5;
   --color-examiner-soft: rgba(79, 70, 229, 0.06);
+
+  /* ── IELTS Exam Room (light) ── */
+  --ielts-bg: linear-gradient(160deg, #f5f6fa 0%, #eef0f8 40%, #e8eaf5 70%, #f5f6fa 100%);
+  --ielts-text: #1A1D2E;
+  --ielts-text-secondary: #6B7196;
+  --ielts-text-muted: #9CA3AF;
+  --ielts-text-faint: #D1D5DB;
+  --ielts-header-bg: rgba(255, 255, 255, 0.88);
+  --ielts-header-border: rgba(0, 0, 0, 0.06);
+  --ielts-card-bg: linear-gradient(145deg, #f8f9fc 0%, #f0f1f8 100%);
+  --ielts-card-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --ielts-surface: rgba(0, 0, 0, 0.02);
+  --ielts-surface-border: rgba(0, 0, 0, 0.05);
+  --ielts-input-bg: rgba(0, 0, 0, 0.03);
+  --ielts-input-border: rgba(0, 0, 0, 0.08);
+  --ielts-input-bar-bg: rgba(255, 255, 255, 0.92);
+  --ielts-ghost-bg: rgba(0, 0, 0, 0.03);
+  --ielts-ghost-color: #6B7196;
+  --ielts-ghost-border: rgba(0, 0, 0, 0.06);
+  --ielts-ghost-hover-bg: rgba(0, 0, 0, 0.06);
+  --ielts-ghost-hover-color: #1A1D2E;
+  --ielts-part-future-bg: rgba(0, 0, 0, 0.04);
+  --ielts-part-future-color: #9CA3AF;
+  --ielts-part-done-bg: rgba(22, 163, 74, 0.1);
+  --ielts-part-done-color: #16A34A;
+  --ielts-question-bg: rgba(99, 102, 241, 0.04);
+  --ielts-question-border: rgba(99, 102, 241, 0.1);
+  --ielts-answer-bg: rgba(22, 163, 74, 0.04);
+  --ielts-answer-border: rgba(22, 163, 74, 0.1);
+  --ielts-answer-text: #374151;
+  --ielts-label-color: #6366F1;
+  --ielts-user-label: #16A34A;
+  --ielts-transcript-color: #6B7196;
+  --ielts-mic-sm-bg: rgba(99, 102, 241, 0.08);
+  --ielts-mic-sm-color: #6366F1;
+  --ielts-mic-sm-border: rgba(99, 102, 241, 0.15);
+  --ielts-send-bg: rgba(99, 102, 241, 0.08);
+  --ielts-send-color: #6366F1;
+  --ielts-send-border: rgba(99, 102, 241, 0.15);
+  --ielts-dot-color: #6366F1;
+  --ielts-placeholder-color: #9CA3AF;
+  --ielts-score-track: rgba(0, 0, 0, 0.04);
 }
 
 /* ── Dark theme ── */
@@ -40,6 +82,48 @@
   --color-warning: #FBBF24;
   --color-examiner: #818CF8;
   --color-examiner-soft: rgba(129, 140, 248, 0.10);
+
+  /* ── IELTS Exam Room (dark) ── */
+  --ielts-bg: linear-gradient(160deg, #0a0a1a 0%, #0f0d2e 40%, #120e36 70%, #0a0a1a 100%);
+  --ielts-text: #E8ECF4;
+  --ielts-text-secondary: rgba(255,255,255,0.5);
+  --ielts-text-muted: rgba(255,255,255,0.3);
+  --ielts-text-faint: rgba(255,255,255,0.2);
+  --ielts-header-bg: rgba(15, 13, 46, 0.85);
+  --ielts-header-border: rgba(255,255,255,0.06);
+  --ielts-card-bg: linear-gradient(145deg, rgba(30,27,75,0.9) 0%, rgba(20,18,55,0.95) 100%);
+  --ielts-card-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(99,102,241,0.08);
+  --ielts-surface: rgba(255,255,255,0.02);
+  --ielts-surface-border: rgba(255,255,255,0.04);
+  --ielts-input-bg: rgba(255,255,255,0.04);
+  --ielts-input-border: rgba(255,255,255,0.08);
+  --ielts-input-bar-bg: rgba(10, 10, 26, 0.95);
+  --ielts-ghost-bg: rgba(255,255,255,0.04);
+  --ielts-ghost-color: rgba(255,255,255,0.5);
+  --ielts-ghost-border: rgba(255,255,255,0.06);
+  --ielts-ghost-hover-bg: rgba(255,255,255,0.08);
+  --ielts-ghost-hover-color: rgba(255,255,255,0.7);
+  --ielts-part-future-bg: rgba(255,255,255,0.05);
+  --ielts-part-future-color: rgba(255,255,255,0.25);
+  --ielts-part-done-bg: rgba(52,211,153,0.15);
+  --ielts-part-done-color: #34d399;
+  --ielts-question-bg: rgba(99,102,241,0.06);
+  --ielts-question-border: rgba(99,102,241,0.12);
+  --ielts-answer-bg: rgba(52,211,153,0.04);
+  --ielts-answer-border: rgba(52,211,153,0.08);
+  --ielts-answer-text: rgba(255,255,255,0.7);
+  --ielts-label-color: #a5b4fc;
+  --ielts-user-label: rgba(52,211,153,0.6);
+  --ielts-transcript-color: rgba(255,255,255,0.6);
+  --ielts-mic-sm-bg: rgba(99,102,241,0.15);
+  --ielts-mic-sm-color: #a5b4fc;
+  --ielts-mic-sm-border: rgba(99,102,241,0.2);
+  --ielts-send-bg: rgba(99,102,241,0.15);
+  --ielts-send-color: #a5b4fc;
+  --ielts-send-border: rgba(99,102,241,0.2);
+  --ielts-dot-color: #818cf8;
+  --ielts-placeholder-color: rgba(255,255,255,0.2);
+  --ielts-score-track: rgba(255,255,255,0.05);
 }
 
 body {
@@ -347,15 +431,15 @@ body {
 
 /* ── Background ── */
 .ielts-exam-bg {
-  background: linear-gradient(160deg, #0a0a1a 0%, #0f0d2e 40%, #120e36 70%, #0a0a1a 100%);
-  color: white;
+  background: var(--ielts-bg);
+  color: var(--ielts-text);
 }
 
 /* ── Header ── */
 .ielts-header {
-  background: rgba(15, 13, 46, 0.85);
+  background: var(--ielts-header-bg);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid var(--ielts-header-border);
 }
 
 /* ── Part indicator pills ── */
@@ -365,13 +449,13 @@ body {
   box-shadow: 0 0 16px rgba(99,102,241,0.4);
 }
 .ielts-part-done {
-  background: rgba(52,211,153,0.15);
-  color: #34d399;
+  background: var(--ielts-part-done-bg);
+  color: var(--ielts-part-done-color);
   font-size: 10px;
 }
 .ielts-part-future {
-  background: rgba(255,255,255,0.05);
-  color: rgba(255,255,255,0.25);
+  background: var(--ielts-part-future-bg);
+  color: var(--ielts-part-future-color);
 }
 
 /* ── Soundwave Orb (examiner presence) ── */
@@ -429,7 +513,7 @@ body {
 .ielts-dot {
   width: 6px; height: 6px;
   border-radius: 50%;
-  background: #818cf8;
+  background: var(--ielts-dot-color);
   animation: dotPulse 1.4s ease-in-out infinite;
 }
 
@@ -449,8 +533,8 @@ body {
 
 /* ── Question block ── */
 .ielts-question-block {
-  background: rgba(99,102,241,0.06);
-  border: 1px solid rgba(99,102,241,0.12);
+  background: var(--ielts-question-bg);
+  border: 1px solid var(--ielts-question-border);
   border-left: 3px solid #6366f1;
   border-radius: 16px;
   padding: 20px;
@@ -458,8 +542,8 @@ body {
 
 /* ── User answer ── */
 .ielts-user-answer {
-  background: rgba(52,211,153,0.04);
-  border: 1px solid rgba(52,211,153,0.08);
+  background: var(--ielts-answer-bg);
+  border: 1px solid var(--ielts-answer-border);
   border-radius: 12px;
   padding: 14px 16px;
   margin-left: 52px;
@@ -467,20 +551,21 @@ body {
 
 /* ── Transcript ── */
 .ielts-transcript {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
+  background: var(--ielts-surface);
+  border: 1px solid var(--ielts-surface-border);
   border-radius: 12px;
   padding: 16px;
 }
 
 /* ── Cue Card ── */
 .ielts-cue-card {
-  background: linear-gradient(145deg, rgba(30,27,75,0.9) 0%, rgba(20,18,55,0.95) 100%);
+  background: var(--ielts-card-bg);
   border: 1px solid rgba(99,102,241,0.2);
   border-top: 3px solid #6366f1;
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 60px rgba(99,102,241,0.08);
+  box-shadow: var(--ielts-card-shadow);
+  color: var(--ielts-text);
 }
 .ielts-cue-card-mini {
   background: rgba(99,102,241,0.06);
@@ -494,8 +579,8 @@ body {
   display: flex; flex-direction: column; align-items: center;
   padding: 16px 32px;
   border-radius: 16px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--ielts-surface);
+  border: 1px solid var(--ielts-surface-border);
 }
 .ielts-timer-urgent {
   border-color: rgba(239,68,68,0.3);
@@ -544,9 +629,9 @@ body {
   width: 40px; height: 40px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(99,102,241,0.15);
-  color: #a5b4fc;
-  border: 1px solid rgba(99,102,241,0.2);
+  background: var(--ielts-mic-sm-bg);
+  color: var(--ielts-mic-sm-color);
+  border: 1px solid var(--ielts-mic-sm-border);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -574,7 +659,7 @@ body {
   border: 1px solid rgba(99,102,241,0.1);
   border-radius: 12px;
   padding: 10px 16px;
-  color: rgba(255,255,255,0.6);
+  color: var(--ielts-transcript-color);
   font-style: italic;
   font-size: 14px;
   text-align: center;
@@ -583,9 +668,9 @@ body {
 
 /* ── Input bar ── */
 .ielts-input-bar {
-  background: rgba(10, 10, 26, 0.95);
+  background: var(--ielts-input-bar-bg);
   backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255,255,255,0.06);
+  border-top: 1px solid var(--ielts-header-border);
 }
 .ielts-textarea {
   flex: 1;
@@ -593,14 +678,14 @@ body {
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 14px;
-  color: white;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--ielts-text);
+  background: var(--ielts-input-bg);
+  border: 1px solid var(--ielts-input-border);
   outline: none;
   transition: border-color 0.2s;
 }
 .ielts-textarea:focus { border-color: rgba(99,102,241,0.3); }
-.ielts-textarea::placeholder { color: rgba(255,255,255,0.2); }
+.ielts-textarea::placeholder { color: var(--ielts-placeholder-color); }
 .ielts-textarea:disabled { opacity: 0.3; }
 
 .ielts-send-btn {
@@ -608,9 +693,9 @@ body {
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  background: rgba(99,102,241,0.15);
-  color: #a5b4fc;
-  border: 1px solid rgba(99,102,241,0.2);
+  background: var(--ielts-send-bg);
+  color: var(--ielts-send-color);
+  border: 1px solid var(--ielts-send-border);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -629,13 +714,13 @@ body {
 .ielts-btn-primary:active { transform: scale(0.98); }
 
 .ielts-btn-ghost {
-  background: rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.5);
-  border: 1px solid rgba(255,255,255,0.06);
+  background: var(--ielts-ghost-bg);
+  color: var(--ielts-ghost-color);
+  border: 1px solid var(--ielts-ghost-border);
   cursor: pointer;
   transition: all 0.2s;
 }
-.ielts-btn-ghost:hover { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+.ielts-btn-ghost:hover { background: var(--ielts-ghost-hover-bg); color: var(--ielts-ghost-hover-color); }
 
 /* ── Animations ── */
 @keyframes fadeIn {
@@ -685,161 +770,3 @@ body {
   50% { width: 80%; opacity: 1; }
   100% { width: 30%; opacity: 0.4; }
 }
-
-/* ══════════════════════════════════════════════════════════════════════
-   IELTS EXAM — Light Mode Overrides
-   Soft off-white background, dark readable text, subtle borders.
-   ══════════════════════════════════════════════════════════════════════ */
-
-:root .ielts-exam-bg {
-  background: linear-gradient(160deg, #f5f6fa 0%, #eef0f8 40%, #e8eaf5 70%, #f5f6fa 100%);
-  color: #1a1d2e;
-}
-:root .ielts-header {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-:root .ielts-header .font-sora { color: #1a1d2e; }
-:root .ielts-header .text-white\/50 { color: #6b7196; }
-
-:root .ielts-part-active {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
-}
-:root .ielts-part-done {
-  background: rgba(22, 163, 74, 0.1);
-  color: #16a34a;
-}
-:root .ielts-part-future {
-  background: rgba(0, 0, 0, 0.04);
-  color: #9ca3af;
-}
-
-:root .ielts-orb-inner {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
-
-:root .ielts-question-block {
-  background: rgba(99, 102, 241, 0.04);
-  border: 1px solid rgba(99, 102, 241, 0.1);
-  border-left: 3px solid #6366f1;
-}
-:root .ielts-question-block p { color: #1a1d2e; }
-:root .ielts-question-block .text-indigo-300 { color: #6366f1; }
-
-:root .ielts-examiner-avatar {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-}
-
-:root .ielts-user-answer {
-  background: rgba(22, 163, 74, 0.04);
-  border: 1px solid rgba(22, 163, 74, 0.1);
-}
-:root .ielts-user-answer p { color: #374151; }
-:root .ielts-user-answer .text-emerald-400\/60 { color: #16a34a; }
-
-:root .ielts-transcript {
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-:root .ielts-transcript .text-white\/20 { color: #9ca3af; }
-:root .ielts-transcript .text-white\/30 { color: #6b7280; }
-:root .ielts-transcript .text-white\/50 { color: #374151; }
-
-:root .ielts-cue-card {
-  background: linear-gradient(145deg, #f8f9fc 0%, #f0f1f8 100%);
-  border: 1px solid rgba(99, 102, 241, 0.15);
-  border-top: 3px solid #6366f1;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  color: #1a1d2e;
-}
-:root .ielts-cue-card .text-white { color: #1a1d2e; }
-:root .ielts-cue-card .text-white\/80 { color: #374151; }
-:root .ielts-cue-card .text-white\/40 { color: #6b7196; }
-:root .ielts-cue-card .text-indigo-300 { color: #6366f1; }
-
-:root .ielts-cue-card-mini {
-  background: rgba(99, 102, 241, 0.04);
-  border: 1px solid rgba(99, 102, 241, 0.1);
-}
-:root .ielts-cue-card-mini .text-white\/80 { color: #374151; }
-:root .ielts-cue-card-mini .text-indigo-300 { color: #6366f1; }
-
-:root .ielts-timer {
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-:root .ielts-timer .text-white\/40 { color: #6b7196; }
-:root .ielts-timer .text-white { color: #1a1d2e; }
-
-:root .ielts-input-bar {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-:root .ielts-textarea {
-  color: #1a1d2e;
-  background: rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
-:root .ielts-textarea:focus { border-color: rgba(99, 102, 241, 0.4); }
-:root .ielts-textarea::placeholder { color: #9ca3af; }
-
-:root .ielts-send-btn {
-  background: rgba(99, 102, 241, 0.08);
-  color: #6366f1;
-  border: 1px solid rgba(99, 102, 241, 0.15);
-}
-:root .ielts-send-btn:hover:not(:disabled) { background: #6366f1; color: white; }
-
-:root .ielts-btn-primary {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.2);
-}
-
-:root .ielts-btn-ghost {
-  background: rgba(0, 0, 0, 0.03);
-  color: #6b7196;
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
-:root .ielts-btn-ghost:hover { background: rgba(0, 0, 0, 0.06); color: #1a1d2e; }
-
-:root .ielts-mic-btn-sm {
-  background: rgba(99, 102, 241, 0.08);
-  color: #6366f1;
-  border: 1px solid rgba(99, 102, 241, 0.15);
-}
-
-:root .ielts-live-transcript {
-  background: rgba(99, 102, 241, 0.04);
-  border: 1px solid rgba(99, 102, 241, 0.1);
-  color: #6b7196;
-}
-
-:root .ielts-dot {
-  background: #6366f1;
-}
-
-/* Light mode: entering/ending text colors */
-:root .ielts-exam-bg .text-white { color: #1a1d2e; }
-:root .ielts-exam-bg .text-white\/40 { color: #6b7196; }
-:root .ielts-exam-bg .text-white\/50 { color: #6b7196; }
-:root .ielts-exam-bg .text-white\/70 { color: #374151; }
-:root .ielts-exam-bg .text-white\/30 { color: #9ca3af; }
-:root .ielts-exam-bg .text-white\/25 { color: #9ca3af; }
-:root .ielts-exam-bg .text-white\/20 { color: #d1d5db; }
-:root .ielts-exam-bg .text-red-400 { color: #dc2626; }
-:root .ielts-exam-bg .text-red-500 { color: #dc2626; }
-
-/* Dark mode: keep original dark styling (already default) */
-.dark .ielts-exam-bg .text-white { color: white; }
-.dark .ielts-exam-bg .text-white\/40 { color: rgba(255,255,255,0.4); }
-.dark .ielts-exam-bg .text-white\/50 { color: rgba(255,255,255,0.5); }
-.dark .ielts-exam-bg .text-white\/70 { color: rgba(255,255,255,0.7); }
-.dark .ielts-exam-bg .text-white\/30 { color: rgba(255,255,255,0.3); }
-.dark .ielts-exam-bg .text-white\/25 { color: rgba(255,255,255,0.25); }
-.dark .ielts-exam-bg .text-white\/20 { color: rgba(255,255,255,0.2); }
