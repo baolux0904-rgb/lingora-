@@ -16,6 +16,7 @@ import DragDropProvider, { type DragEndEvent } from "./exercises/DragDropProvide
 import DragToken, { DragTokenOverlay } from "./exercises/DragToken";
 import DropSlot from "./exercises/DropSlot";
 import { GrammarAmbientGlow, GRAMMAR_CARD_STYLE } from "./exercises/GrammarAmbient";
+import { useGrammarSounds } from "./exercises/useGrammarSounds";
 import { cn } from "@/lib/utils";
 
 interface GrammarExamProps {
@@ -45,6 +46,7 @@ export default function GrammarExam({
   const [finalScore, setFinalScore] = useState(0);
   const [passed, setPassed] = useState(false);
   const completedRef = useRef(false);
+  const { playCorrect, playWrong, playLevelUp } = useGrammarSounds();
 
   const current = questions[index];
   const isLast = index === questions.length - 1;
@@ -90,13 +92,17 @@ export default function GrammarExam({
       if (over?.id === "exam-slot") {
         const optText = String(active.id).replace("eopt-", "");
         setDroppedOption(optText);
-        if (optText === current.options[current.correctIndex]) {
+        const wasCorrect = optText === current.options[current.correctIndex];
+        if (wasCorrect) {
           setCorrectCount((c) => c + 1);
         }
-        setTimeout(() => setPhase("explanation"), 300);
+        setTimeout(() => {
+          wasCorrect ? playCorrect() : playWrong();
+          setPhase("explanation");
+        }, 300);
       }
     },
-    [phase, droppedOption, current]
+    [phase, droppedOption, current, playCorrect, playWrong]
   );
 
   const handleNext = useCallback(() => {
@@ -107,13 +113,14 @@ export default function GrammarExam({
       setFinalScore(score);
       setPassed(score >= passingScore);
       onComplete(score, score >= passingScore);
+      playLevelUp();
       setPhase("result");
     } else {
       setIndex((i) => i + 1);
       setDroppedOption(null);
       setPhase("question");
     }
-  }, [isLast, correctCount, questions.length, passingScore, onComplete]);
+  }, [isLast, correctCount, questions.length, passingScore, onComplete, playLevelUp]);
 
   // Format time
   const minutes = Math.floor(timeLeft / 60);

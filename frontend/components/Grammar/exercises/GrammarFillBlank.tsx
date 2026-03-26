@@ -16,6 +16,7 @@ import DragDropProvider, { type DragEndEvent } from "./DragDropProvider";
 import DragToken, { DragTokenOverlay } from "./DragToken";
 import DropSlot from "./DropSlot";
 import { GRAMMAR_CARD_STYLE } from "./GrammarAmbient";
+import { useGrammarSounds } from "./useGrammarSounds";
 
 // ---------------------------------------------------------------------------
 // Types (exported for reuse by other grammar modules)
@@ -64,6 +65,7 @@ export default function GrammarFillBlank({
   const [selected, setSelected] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const isCorrect = selected === exercise.correctAnswer;
+  const { playCorrect, playWrong } = useGrammarSounds();
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
@@ -86,8 +88,10 @@ export default function GrammarFillBlank({
   const handleSubmit = useCallback(() => {
     if (!selected || submitted) return;
     setSubmitted(true);
-    onAnswer({ exerciseId: exercise.id, isCorrect: selected === exercise.correctAnswer });
-  }, [selected, submitted, exercise, onAnswer]);
+    const wasCorrect = selected === exercise.correctAnswer;
+    wasCorrect ? playCorrect() : playWrong();
+    onAnswer({ exerciseId: exercise.id, isCorrect: wasCorrect });
+  }, [selected, submitted, exercise, onAnswer, playCorrect, playWrong]);
 
   // Build the sentence display
   const parts = exercise.sentence.split("___");

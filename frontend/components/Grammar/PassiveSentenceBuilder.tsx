@@ -17,6 +17,7 @@ import DragDropProvider, { type DragEndEvent } from "./exercises/DragDropProvide
 import DragToken, { DragTokenOverlay } from "./exercises/DragToken";
 import DropSlot from "./exercises/DropSlot";
 import { GrammarAmbientGlow, GRAMMAR_CARD_STYLE } from "./exercises/GrammarAmbient";
+import { useGrammarSounds } from "./exercises/useGrammarSounds";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -119,6 +120,7 @@ export default function PassiveSentenceBuilder({
   const [placed, setPlaced] = useState<(string | null)[]>([]);
   const [correctCount, setCorrectCount] = useState(0);
   const [isCurrentCorrect, setIsCurrentCorrect] = useState(false);
+  const { playCorrect, playWrong, playLevelUp } = useGrammarSounds();
   const [show, setShow] = useState(false);
 
   const current = EXERCISES[exerciseIndex];
@@ -180,20 +182,22 @@ export default function PassiveSentenceBuilder({
     const correct = placed.every((w, i) => w === current.correctOrder[i]);
     setIsCurrentCorrect(correct);
     if (correct) setCorrectCount((c) => c + 1);
+    correct ? playCorrect() : playWrong();
     setPhase("feedback");
-  }, [allSlotsFilled, phase, placed, current.correctOrder]);
+  }, [allSlotsFilled, phase, placed, current.correctOrder, playCorrect, playWrong]);
 
   const handleNext = useCallback(() => {
     if (isLast) {
       const score = Math.round((correctCount / EXERCISES.length) * 100);
       setPhase("complete");
+      playLevelUp();
       onComplete(score);
     } else {
       setExerciseIndex((i) => i + 1);
       setPhase("building");
       setIsCurrentCorrect(false);
     }
-  }, [isLast, correctCount, onComplete]);
+  }, [isLast, correctCount, onComplete, playLevelUp]);
 
   const handleReset = useCallback(() => {
     setPlaced(new Array(current.correctOrder.length).fill(null));
