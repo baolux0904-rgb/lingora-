@@ -20,6 +20,7 @@ import DragDropProvider, { type DragEndEvent } from "./exercises/DragDropProvide
 import DragToken, { DragTokenOverlay } from "./exercises/DragToken";
 import DropSlot from "./exercises/DropSlot";
 import { GrammarAmbientGlow, GRAMMAR_CARD_STYLE } from "./exercises/GrammarAmbient";
+import { useGrammarSounds } from "./exercises/useGrammarSounds";
 import { cn } from "@/lib/utils";
 
 interface GrammarLessonProps {
@@ -40,6 +41,7 @@ export default function GrammarLessonView({
   const [droppedOption, setDroppedOption] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [show, setShow] = useState(false);
+  const { playCorrect, playWrong, playLevelUp } = useGrammarSounds();
 
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 50);
@@ -57,20 +59,25 @@ export default function GrammarLessonView({
       if (over?.id === "answer-slot") {
         const optText = String(active.id).replace("qopt-", "");
         setDroppedOption(optText);
-        if (optText === current.options[current.correctIndex]) {
+        const wasCorrect = optText === current.options[current.correctIndex];
+        if (wasCorrect) {
           setCorrectCount((c) => c + 1);
         }
-        // Show explanation after brief delay
-        setTimeout(() => setPhase("explanation"), 300);
+        // Audio feedback after drop
+        setTimeout(() => {
+          wasCorrect ? playCorrect() : playWrong();
+          setPhase("explanation");
+        }, 300);
       }
     },
-    [phase, droppedOption, current]
+    [phase, droppedOption, current, playCorrect, playWrong]
   );
 
   const handleNext = useCallback(() => {
     if (isLast) {
       const score = Math.round((correctCount / lesson.questions.length) * 100);
       setPhase("complete");
+      playLevelUp();
       onComplete(score);
     } else {
       setIndex((i) => i + 1);

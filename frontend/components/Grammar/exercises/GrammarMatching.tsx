@@ -16,6 +16,7 @@ import DragDropProvider, { type DragEndEvent } from "./DragDropProvider";
 import DragToken, { DragTokenOverlay } from "./DragToken";
 import DropSlot from "./DropSlot";
 import { GRAMMAR_CARD_STYLE } from "./GrammarAmbient";
+import { useGrammarSounds } from "./useGrammarSounds";
 
 // ---------------------------------------------------------------------------
 // Types (exported for reuse)
@@ -78,6 +79,7 @@ export default function GrammarMatching({
   // matches: rightIndex → left item text (which left was dropped on which right)
   const [matches, setMatches] = useState<Record<number, string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const { playCorrect, playWrong } = useGrammarSounds();
 
   const correctMap = new Map(exercise.pairs.map((p) => [p.left, p.right]));
   const matchedLeftItems = new Set(Object.values(matches));
@@ -128,8 +130,9 @@ export default function GrammarMatching({
       if (correctMap.get(leftText) === rightText) correct++;
     }
     setSubmitted(true);
+    correct === exercise.pairs.length ? playCorrect() : playWrong();
     onAnswer({ exerciseId: exercise.id, correctCount: correct, totalPairs: exercise.pairs.length });
-  }, [allMatched, submitted, matches, rightItems, correctMap, exercise, onAnswer]);
+  }, [allMatched, submitted, matches, rightItems, correctMap, exercise, onAnswer, playCorrect, playWrong]);
 
   const correctCount = submitted
     ? Object.entries(matches).filter(

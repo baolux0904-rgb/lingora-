@@ -24,6 +24,7 @@ import {
   type DragEndEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
+import { useGrammarSounds } from "./useGrammarSounds";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -46,6 +47,7 @@ export default function DragDropProvider({
   renderOverlay,
 }: DragDropProviderProps) {
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const { playClick } = useGrammarSounds();
 
   // Sensors: pointer (mouse) + touch + keyboard accessibility
   // activationConstraint prevents accidental drags on tap
@@ -61,7 +63,8 @@ export default function DragDropProvider({
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id);
-  }, []);
+    playClick();
+  }, [playClick]);
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
