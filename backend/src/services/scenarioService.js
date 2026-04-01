@@ -123,6 +123,16 @@ function sanitizeExaminerOutput(text) {
     }
   }
 
+  // Final safety: examiner output must be a question
+  if (cleaned && !cleaned.endsWith("?")) {
+    // If it ends with a period, replace with question mark
+    if (cleaned.endsWith(".")) {
+      cleaned = cleaned.slice(0, -1) + "?";
+    } else {
+      cleaned += "?";
+    }
+  }
+
   return cleaned || "What is your opinion on that?";
 }
 
@@ -671,9 +681,11 @@ ABSOLUTE RULES:
 
       pushbackInstruction = `
 CHALLENGE MODE: The candidate just said: "${lastSummary}"
-Present a counterposition. Frame as "Some people argue..." or "But couldn't you say..." or "What about the opposite view?"
-Do NOT agree with the candidate. Test their ability to defend or qualify their position.
-Output ONE challenging question. Maximum 15 words.`;
+Challenge their position by asking a question from the opposite perspective.
+Examples: "But don't you think...?", "What would you say to people who believe...?", "Could it also be argued that...?"
+CRITICAL: Your output MUST be a question ending with "?". Never output a statement.
+Do NOT agree with the candidate. Test their ability to defend their position.
+Output ONE challenging question. Maximum 15 words. MUST end with "?".`;
     }
 
     return `${base}
