@@ -552,8 +552,13 @@ export async function getScenarios(category?: string): Promise<Scenario[]> {
 }
 
 /** POST /api/v1/scenarios/:scenarioId/start — start a new conversation session. */
-export async function startScenarioSession(scenarioId: string): Promise<StartSessionResult> {
-  return apiPostAuth<StartSessionResult>(`/scenarios/${scenarioId}/start`, {});
+export async function startScenarioSession(
+  scenarioId: string,
+  options?: { cueCardIndex?: number },
+): Promise<StartSessionResult> {
+  const body: Record<string, unknown> = {};
+  if (options?.cueCardIndex != null) body.cueCardIndex = options.cueCardIndex;
+  return apiPostAuth<StartSessionResult>(`/scenarios/${scenarioId}/start`, body);
 }
 
 /** POST /api/v1/scenarios/sessions/:sessionId/turns — submit a user message. */
@@ -580,6 +585,42 @@ export async function endScenarioSession(
   durationMs: number,
 ): Promise<EndSessionResult> {
   return apiPostAuth<EndSessionResult>(`/scenarios/sessions/${sessionId}/end`, { durationMs });
+}
+
+// ---------------------------------------------------------------------------
+// V2 Experimental API wrappers — append ?experimental=true to endpoints
+// ---------------------------------------------------------------------------
+
+/** V2: Submit turn with experimental examiner behavior. */
+export async function submitScenarioTurnV2(
+  sessionId: string,
+  content: string,
+  speechMetrics?: {
+    totalDurationMs: number;
+    wordsPerMinute: number;
+    pauseCount: number;
+    longestPauseMs: number;
+    segmentCount: number;
+    speakingRatio: number;
+  } | null,
+): Promise<SubmitTurnResult> {
+  const body: Record<string, unknown> = { content };
+  if (speechMetrics) body.speechMetrics = speechMetrics;
+  return apiPostAuth<SubmitTurnResult>(
+    `/scenarios/sessions/${sessionId}/turns?experimental=true`,
+    body
+  );
+}
+
+/** V2: End session with enhanced scoring (Vietnamese L1 detection). */
+export async function endScenarioSessionV2(
+  sessionId: string,
+  durationMs: number,
+): Promise<EndSessionResult> {
+  return apiPostAuth<EndSessionResult>(
+    `/scenarios/sessions/${sessionId}/end?experimental=true`,
+    { durationMs }
+  );
 }
 
 /** GET /api/v1/scenarios/sessions/:sessionId — get session detail with turns. */

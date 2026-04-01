@@ -42,6 +42,15 @@ const FIXED_TRANSITIONS = {
   prepStart: "Your preparation time is over. Please begin speaking now.",
 };
 
+// V2: More natural, professional examiner transitions
+const FIXED_TRANSITIONS_V2 = {
+  part1: "Let's begin with Part 1. I'm going to ask you some questions about yourself.",
+  part2: "Now I'm going to give you a topic, and I'd like you to talk about it for one to two minutes. Before you talk, you'll have one minute to think about what you're going to say.",
+  part3: "We've been talking about your topic, and I'd like to discuss some more general questions related to it.",
+  closing: "Thank you very much. That is the end of the speaking test. Thank you for your time.",
+  prepStart: "All right, your preparation time is over. Please begin speaking now.",
+};
+
 // ---------------------------------------------------------------------------
 // BANNED PHRASES — stripped from any LLM output
 // ---------------------------------------------------------------------------
@@ -217,6 +226,28 @@ const IELTS_CUE_CARDS = [
 ];
 
 // ---------------------------------------------------------------------------
+// V2: Cue card → preferred Part 1 topic alignment
+// Maps cue card index → preferred Part 1 topic set indices (0-based into IELTS_PART1_TOPIC_SETS)
+// Used on retry to keep Part 1 thematically consistent with Part 2.
+// Each entry lists 2 preferred topic sets that relate to the cue card theme.
+// ---------------------------------------------------------------------------
+
+const CUE_CARD_TOPIC_ALIGNMENT = [
+  /* 0: place to visit       */ [5, 2], // Travel & Transport, Hometown
+  /* 1: inspiring person      */ [7, 1], // Friends & Social, Work & Studies
+  /* 2: skill to learn        */ [1, 3], // Work & Studies, Daily Routine
+  /* 3: memorable journey     */ [5, 2], // Travel & Transport, Hometown
+  /* 4: book/film that made you think */ [3, 6], // Daily Routine & Leisure, Technology
+  /* 5: time you helped someone */ [7, 1], // Friends & Social, Work & Studies
+  /* 6: tradition you enjoy   */ [4, 2], // Food & Cooking, Hometown
+  /* 7: technology changed life */ [6, 3], // Technology, Daily Routine
+  /* 8: achievement proud of  */ [1, 3], // Work & Studies, Daily Routine
+  /* 9: difficult decision    */ [1, 7], // Work & Studies, Friends & Social
+  /* 10: public place you enjoy */ [2, 3], // Hometown, Daily Routine
+  /* 11: hobby/free time      */ [3, 7], // Daily Routine, Friends & Social
+];
+
+// ---------------------------------------------------------------------------
 // IELTS State Machine — Explicit Transitions
 // ---------------------------------------------------------------------------
 
@@ -235,11 +266,18 @@ const IELTS_CUE_CARDS = [
 /**
  * Create the initial IELTS state for a new session.
  */
-function createInitialIeltsState(cueCardIndex) {
-  // Select 2 different topic sets for Part 1 topic blocks
-  const allIndices = Array.from({ length: IELTS_PART1_TOPIC_SETS.length }, (_, i) => i);
-  const shuffled = allIndices.sort(() => Math.random() - 0.5);
-  const topicSetIndices = [shuffled[0], shuffled[1]];
+function createInitialIeltsState(cueCardIndex, useAlignedTopics = false) {
+  let topicSetIndices;
+
+  if (useAlignedTopics && CUE_CARD_TOPIC_ALIGNMENT[cueCardIndex]) {
+    // V2: Use thematically aligned Part 1 topics for retry consistency
+    topicSetIndices = CUE_CARD_TOPIC_ALIGNMENT[cueCardIndex];
+  } else {
+    // Default: random 2 topic sets
+    const allIndices = Array.from({ length: IELTS_PART1_TOPIC_SETS.length }, (_, i) => i);
+    const shuffled = allIndices.sort(() => Math.random() - 0.5);
+    topicSetIndices = [shuffled[0], shuffled[1]];
+  }
 
   return {
     part: 1,
@@ -322,14 +360,16 @@ function advanceIeltsState(currentState) {
     return next;
   }
 
-  // ── Part 2: long_turn → follow_up (examiner asks 1 follow-up) ──
+  // ── Part 2: long_turn → transition_to_part3 (skip follow-up for clean IELTS flow) ──
   if (next.part === 2 && next.phase === "long_turn") {
-    next.phase = "follow_up";
-    next.transitionHistory.push(`${from} → part2:follow_up:0`);
+    next.part = 3;
+    next.phase = "transition_to_part3";
+    next.questionIndex = 0;
+    next.transitionHistory.push(`${from} → part3:transition_to_part3:0`);
     return next;
   }
 
-  // ── Part 2: follow_up → transition_to_part3 ──
+  // ── Part 2: follow_up → transition_to_part3 (legacy — kept for backward compat) ──
   if (next.part === 2 && next.phase === "follow_up") {
     next.part = 3;
     next.phase = "transition_to_part3";
@@ -554,6 +594,128 @@ OUTPUT: One discussion question about "${themeLabel}". Maximum 15 words.`;
 }
 
 // ---------------------------------------------------------------------------
+// V2 Experimental: Enhanced examiner prompts with pushback
+// ---------------------------------------------------------------------------
+
+/**
+ * V2: Build IELTS system prompt with pushback/challenge behavior for Part 3.
+ * Every 2nd-3rd question challenges the candidate's previous position.
+ */
+function buildIeltsSystemPromptV2(state) {
+  const cueCard = IELTS_CUE_CARDS[state.cueCardIndex % IELTS_CUE_CARDS.length];
+
+  const base = `You generate IELTS Speaking examiner questions. Output ONLY the question — nothing else.
+
+ABSOLUTE RULES:
+- Output exactly ONE question. No commentary, no filler.
+- Maximum 15 words.
+- NEVER react to the candidate's answer. No "interesting", "good", "I see", "thank you".
+- NEVER use soft framing: no "Can you tell me", "I'd like to ask", "Let's talk about".
+- NEVER explain the test or mention which part it is.
+- Be direct and professional.`;
+
+  // For Part 1 and Part 2 — same as V1
+  if (state.part === 1 && state.phase === "opening") {
+    return `${base}\n\nOUTPUT: Ask the candidate for their full name. Nothing else.\nExample: "What is your full name?"`;
+  }
+
+  if (state.part === 1 && state.phase === "question") {
+    const topicSet = getCurrentTopicSet(state);
+    const questionHint = getQuestionHint(state);
+    return `${base}\n\nTopic: "${topicSet.theme}"\nGuide question (rephrase, do not copy): "${questionHint}"\n\nOUTPUT: One direct question about "${topicSet.theme}". Maximum 12 words.`;
+  }
+
+  if (state.part === 2 && state.phase === "follow_up") {
+    const part2Response = (state.userResponses || []).slice(-1)[0] || "";
+    const part2Summary = part2Response.length > 150 ? part2Response.substring(0, 150) + "..." : part2Response;
+    return `${base}\n\nThe candidate spoke about: "${cueCard.topic}"\nWhat they said: "${part2Summary}"\n\nOUTPUT: One brief follow-up question about what the candidate said. Maximum 12 words.`;
+  }
+
+  // ── V2 Part 3: Enhanced with pushback/challenge ──
+  if (state.part === 3 && state.phase === "question_p3") {
+    const analysis = analyzeResponseQuality(state);
+    const themeLabel = cueCard.part3Theme || cueCard.topic.toLowerCase().replace("describe ", "");
+    const tier = PART3_TIERS[state.part3Tier || 0] || "concrete";
+    const questionIdx = state.questionIndex || 0;
+
+    let tierHint;
+    switch (tier) {
+      case "concrete":
+        tierHint = "Ask about observable facts or common behaviors.";
+        break;
+      case "comparative":
+        tierHint = "Ask to compare across time, places, or groups.";
+        break;
+      case "analytical":
+        tierHint = "Ask about causes, effects, or reasons.";
+        break;
+      case "evaluative":
+        tierHint = "Ask to evaluate, judge, or predict.";
+        break;
+    }
+
+    let adaptiveNote = "";
+    if (analysis.level === "strong") {
+      adaptiveNote = " Use nuanced phrasing.";
+    } else if (analysis.level === "limited") {
+      adaptiveNote = " Use simple phrasing.";
+    }
+
+    // V2: Pushback on every 2nd question (indices 1, 3)
+    const shouldPushback = questionIdx % 2 === 1;
+    let pushbackInstruction = "";
+
+    if (shouldPushback) {
+      const lastUserResponse = (state.userResponses || []).slice(-1)[0] || "";
+      const lastSummary = lastUserResponse.length > 100 ? lastUserResponse.substring(0, 100) + "..." : lastUserResponse;
+
+      pushbackInstruction = `
+CHALLENGE MODE: The candidate just said: "${lastSummary}"
+Present a counterposition. Frame as "Some people argue..." or "But couldn't you say..." or "What about the opposite view?"
+Do NOT agree with the candidate. Test their ability to defend or qualify their position.
+Output ONE challenging question. Maximum 15 words.`;
+    }
+
+    return `${base}
+
+Theme: "${themeLabel}"
+Tier: ${tier.toUpperCase()} — ${tierHint}${adaptiveNote}
+${pushbackInstruction}
+OUTPUT: One ${shouldPushback ? "challenging" : "discussion"} question about "${themeLabel}". Maximum 15 words.`;
+  }
+
+  return base;
+}
+
+// ---------------------------------------------------------------------------
+// V2: Enhanced scoring prompt with Vietnamese L1 detection
+// ---------------------------------------------------------------------------
+
+const V2_SCORING_ADDENDUM = `
+
+VIETNAMESE L1 PRONUNCIATION PATTERNS (CRITICAL FOR THIS LEARNER):
+Vietnamese speakers have specific, predictable pronunciation patterns that IELTS examiners recognize.
+You MUST check for and report on these patterns in your criteriaFeedback.pronunciation:
+
+1. FINAL CONSONANT DELETION: Vietnamese has no final consonant clusters. Speakers commonly drop
+   word-final /t/, /d/, /s/, /z/, /k/, /θ/. Examples: "walked" → "walk", "friends" → "frien",
+   "months" → "mon". If you see simplified word endings in the transcript, mention this.
+
+2. FLAT INTONATION: Vietnamese is a tonal language but English uses pitch for emphasis/structure.
+   Vietnamese speakers often produce flat, monotone English. Note if responses lack natural stress
+   patterns or sound monotone.
+
+3. FILLER PATTERNS: Vietnamese speakers may use extended pauses or Vietnamese-influenced fillers.
+   Bridging phrases ("Let me think", "What I mean is") maintain fluency scores during thinking time.
+
+In criteriaFeedback.pronunciation, ALWAYS mention if you detect Vietnamese L1 interference patterns.
+Be specific: name the pattern, give examples from the transcript, explain impact on the score.
+
+BAND RANGE OUTPUT:
+For each criterion, also include a "bandRange" field in criteriaFeedback as a string like "5.5-6.0"
+to indicate the estimated IELTS band range (not just a single number).`;
+
+// ---------------------------------------------------------------------------
 // Part-tagging for scorer — provides structural context
 // ---------------------------------------------------------------------------
 
@@ -626,7 +788,7 @@ async function getScenario(id) {
 // Session lifecycle
 // ---------------------------------------------------------------------------
 
-async function startSession(scenarioId, userId) {
+async function startSession(scenarioId, userId, options = {}) {
   const scenario = await scenarioRepository.findScenarioById(scenarioId);
   if (!scenario) {
     const err = new Error("Scenario not found");
@@ -639,10 +801,16 @@ async function startSession(scenarioId, userId) {
 
   const isIelts = scenario.category === "exam";
   let openingContent;
+  let cueCardIndex = -1;
 
   if (isIelts) {
-    const cueCardIndex = Math.floor(Math.random() * IELTS_CUE_CARDS.length);
-    const initialState = createInitialIeltsState(cueCardIndex);
+    // V2: Allow cueCardIndex override for retry-same-topic
+    const isRetry = options.cueCardIndex != null && options.cueCardIndex >= 0 && options.cueCardIndex < IELTS_CUE_CARDS.length;
+    cueCardIndex = isRetry
+      ? options.cueCardIndex
+      : Math.floor(Math.random() * IELTS_CUE_CARDS.length);
+    // V2: On retry, align Part 1 topics with the cue card theme
+    const initialState = createInitialIeltsState(cueCardIndex, isRetry);
 
     // Persist state to DB
     await scenarioRepository.updateSessionMeta(session.id, initialState);
@@ -672,6 +840,7 @@ async function startSession(scenarioId, userId) {
     emoji: session.emoji,
     category: session.category,
     cueCard: cueCard || undefined,
+    cueCardIndex: isIelts ? cueCardIndex : undefined,
     turns: [{
       turnIndex: openingTurn.turn_index,
       role: openingTurn.role,
@@ -681,7 +850,7 @@ async function startSession(scenarioId, userId) {
   };
 }
 
-async function submitTurn(sessionId, userId, content, speechMetrics = null) {
+async function submitTurn(sessionId, userId, content, speechMetrics = null, options = {}) {
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
     const err = new Error("Session not found");
@@ -763,25 +932,31 @@ async function submitTurn(sessionId, userId, content, speechMetrics = null) {
 
     // ── OUTPUT CONTRACT: Generate response based on state ──
     // Transitions are HARDCODED. Questions go through LLM + validation.
+    const isExperimentalTransition = options.experimental === true;
+    const transitions = isExperimentalTransition ? FIXED_TRANSITIONS_V2 : FIXED_TRANSITIONS;
     if (nextState.phase === "complete") {
-      aiContent = FIXED_TRANSITIONS.closing;
+      aiContent = transitions.closing;
     } else if (nextState.phase === "part1_transition") {
-      aiContent = FIXED_TRANSITIONS.part1;
+      aiContent = transitions.part1;
     } else if (nextState.phase === "transition_to_part2") {
-      aiContent = FIXED_TRANSITIONS.part2;
+      aiContent = transitions.part2;
     } else if (nextState.phase === "transition_to_part3") {
-      aiContent = FIXED_TRANSITIONS.part3;
+      aiContent = transitions.part3;
     } else if (nextState.phase === "cue_card") {
       const cueCard = IELTS_CUE_CARDS[nextState.cueCardIndex % IELTS_CUE_CARDS.length];
       aiContent = `Your topic is: "${cueCard.topic}".`;
     } else if (nextState.phase === "long_turn") {
-      aiContent = FIXED_TRANSITIONS.prepStart;
+      aiContent = transitions.prepStart;
     } else {
       // LLM generates a question — then we sanitize it
-      const systemPrompt = buildIeltsSystemPrompt(nextState);
+      // V2: Use enhanced prompt with pushback if experimental mode
+      const isExperimental = options.experimental === true;
+      const systemPrompt = isExperimental
+        ? buildIeltsSystemPromptV2(nextState)
+        : buildIeltsSystemPrompt(nextState);
       const rawResponse = await ai.generateResponse(systemPrompt, conversationHistory, { category: "exam" });
       aiContent = sanitizeExaminerOutput(rawResponse);
-      console.log(`[ielts] raw="${rawResponse.slice(0, 80)}" → sanitized="${aiContent}"`);
+      console.log(`[ielts${isExperimental ? "-v2" : ""}] raw="${rawResponse.slice(0, 80)}" → sanitized="${aiContent}"`);
     }
 
     // ── Persist the new state to DB ──
@@ -908,7 +1083,7 @@ function toBandScore(score100) {
   return 2.0;
 }
 
-async function endSession(sessionId, userId, durationMs) {
+async function endSession(sessionId, userId, durationMs, options = {}) {
   const session = await scenarioRepository.findSessionById(sessionId);
   if (!session) {
     const err = new Error("Session not found");
@@ -967,9 +1142,11 @@ async function endSession(sessionId, userId, durationMs) {
     scoringHistory = tagConversationParts(filteredTurns, meta);
   }
 
+  const isExperimental = options.experimental === true;
   const aiScores = await ai.scoreConversation(session.system_prompt, scoringHistory, {
     isIelts,
     speechFlow, // Pass speech analysis to scoring prompt
+    experimentalAddendum: isExperimental ? V2_SCORING_ADDENDUM : null,
   });
   const { penalty, floorScore, avgWords, totalWords } = computeHybridPenalties(turns);
 

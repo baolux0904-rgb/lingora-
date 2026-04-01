@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Topbar from "@/components/Topbar";
 import BottomNav from "@/components/BottomNav";
 import StartSpeakingCard from "@/components/StartSpeakingCard";
@@ -11,6 +12,7 @@ import { GrammarTab } from "@/components/Grammar";
 import ScenarioList from "@/components/ScenarioList";
 import ScenarioConversation from "@/components/ScenarioConversation";
 import IeltsConversation from "@/components/IeltsConversation";
+import IeltsConversationV2 from "@/components/IeltsConversationV2";
 import ExamScreen from "@/components/ExamScreen";
 import ProfileScreen from "@/components/ProfileScreen";
 import AnimatedBackground from "@/components/AnimatedBackground";
@@ -25,6 +27,20 @@ import { getScenarios } from "@/lib/api";
 import type { Scenario, FocusRecommendation } from "@/lib/types";
 
 export default function HomePage() {
+  const searchParams = useSearchParams();
+  // Persist experimental flag in sessionStorage so it survives internal navigation
+  const isExperimental = (() => {
+    const urlParam = searchParams.get("experimental") === "true";
+    if (typeof window !== "undefined") {
+      if (urlParam) {
+        sessionStorage.setItem("ielts_experimental", "true");
+        return true;
+      }
+      return sessionStorage.getItem("ielts_experimental") === "true";
+    }
+    return urlParam;
+  })();
+
   const [activeTab, setActiveTab] = useState("home");
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [ieltsScenario, setIeltsScenario] = useState<Scenario | null>(null);
@@ -77,10 +93,11 @@ export default function HomePage() {
     setActiveTab(rec.actionTarget);
   };
 
-  // Full-screen IELTS overlay
+  // Full-screen IELTS overlay — V2 (experimental) or V1 (stable)
   if (ieltsScenario) {
+    const IeltsComponent = isExperimental ? IeltsConversationV2 : IeltsConversation;
     return (
-      <IeltsConversation
+      <IeltsComponent
         scenario={ieltsScenario}
         onClose={() => { setIeltsScenario(null); }}
         onComplete={handleConversationComplete}
