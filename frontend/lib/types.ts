@@ -175,6 +175,7 @@ export interface StartSessionResult {
   emoji: string;
   category: string;
   cueCard?: IeltsCueCard;
+  cueCardIndex?: number;
   turns: ConversationTurn[];
 }
 
@@ -295,4 +296,62 @@ export interface PronunciationResult {
   completenessScore:  number;
   pronunciationScore: number;
   words:              WordDetail[];
+}
+
+// ---------------------------------------------------------------------------
+// Experimental IELTS V2 types
+// ---------------------------------------------------------------------------
+
+/** Band range for a single IELTS criterion (e.g., "5.5–6.0") */
+export interface BandRange {
+  low:  number;  // e.g., 5.5
+  high: number;  // e.g., 6.0
+}
+
+/** Per-criterion diagnostic with justification + action */
+export interface CriterionDiagnostic {
+  label:         string;     // "Fluency & Coherence"
+  bandRange:     BandRange;
+  score100:      number;     // raw 0-100 for animated bar
+  justification: string;     // evidence-based, cites user's words
+  action:        string;     // one specific thing to improve
+  l1Tag?:        string;     // Vietnamese L1 pattern tag (pronunciation only)
+}
+
+/** Vietnamese L1 pronunciation pattern detected */
+export interface VietnameseL1Pattern {
+  pattern:    string;   // "final_consonant_deletion" | "cluster_simplification" | "flat_intonation"
+  label:      string;   // human-readable label
+  words:      string[]; // affected words from the session
+  suggestion: string;   // practice suggestion
+}
+
+/** Full diagnostic report for experimental IELTS V2 */
+export interface IeltsDiagnosticData {
+  overallBandRange:    BandRange;
+  overallScore100:     number;
+  criteria:            CriterionDiagnostic[];
+  topPriority:         string;     // single highest-impact action
+  vietnameseL1:        VietnameseL1Pattern[];
+  speechInsights:      SpeechInsights | null;
+  coachFeedback:       string;
+  turnFeedback:        TurnFeedback[];
+  notableVocabulary:   string[];
+  improvementVocabulary: string[];
+  turnCount:           number;
+  wordCount:           number;
+  durationMs:          number;
+  // Retry comparison data (populated on 2nd attempt of same topic)
+  previousAttempt?:    {
+    overallBandRange: BandRange;
+    criteria: Array<{ label: string; bandRange: BandRange; score100: number }>;
+  } | null;
+}
+
+/** Accuracy check response */
+export type FeedbackAccuracy = 'too_generous' | 'about_right' | 'too_harsh';
+
+/** Extended EndSessionResult with V2 diagnostic data */
+export interface EndSessionResultV2 extends EndSessionResult {
+  diagnostic?: IeltsDiagnosticData | null;
 }

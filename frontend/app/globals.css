@@ -626,6 +626,36 @@ body {
   padding: 16px;
 }
 
+/* ── V2: History Sidebar (desktop) ── */
+.ielts-history-sidebar {
+  background: var(--ielts-surface);
+  border: 1px solid var(--ielts-surface-border);
+  border-radius: 16px;
+  padding: 20px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.ielts-history-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.ielts-history-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ielts-history-sidebar::-webkit-scrollbar-thumb {
+  background: var(--ielts-surface-border);
+  border-radius: 4px;
+}
+
+.ielts-history-item {
+  padding: 8px 12px;
+  background: var(--ielts-card-bg);
+  border-radius: 10px;
+  border: 1px solid var(--ielts-surface-border);
+}
+
 /* ── Cue Card ── */
 .ielts-cue-card {
   background: var(--ielts-card-bg);

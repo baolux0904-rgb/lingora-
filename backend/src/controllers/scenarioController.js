@@ -77,7 +77,9 @@ async function startSession(req, res, next) {
       return sendError(res, { status: 400, message: "Valid scenarioId (UUID) is required" });
     }
 
-    const result = await scenarioService.startSession(scenarioId, userId);
+    // V2: Optional cueCardIndex for retry-same-topic
+    const cueCardIndex = req.body.cueCardIndex != null ? Number(req.body.cueCardIndex) : undefined;
+    const result = await scenarioService.startSession(scenarioId, userId, { cueCardIndex });
 
     return sendSuccess(res, {
       data: result,
@@ -117,7 +119,9 @@ async function submitTurn(req, res, next) {
       ? speechMetrics
       : null;
 
-    const result = await scenarioService.submitTurn(sessionId, userId, content.trim(), validMetrics);
+    // V2: Pass experimental flag from query param
+    const experimental = req.query.experimental === "true";
+    const result = await scenarioService.submitTurn(sessionId, userId, content.trim(), validMetrics, { experimental });
 
     return sendSuccess(res, {
       data: result,
@@ -149,7 +153,9 @@ async function endSession(req, res, next) {
     }
 
     const duration = durationMs != null ? Math.round(Number(durationMs)) : null;
-    const result = await scenarioService.endSession(sessionId, userId, duration);
+    // V2: Pass experimental flag from query param
+    const experimental = req.query.experimental === "true";
+    const result = await scenarioService.endSession(sessionId, userId, duration, { experimental });
 
     return sendSuccess(res, {
       data: result,

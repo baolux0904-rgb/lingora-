@@ -186,6 +186,7 @@ async function scoreConversation(systemPrompt, conversationHistory, options = {}
   try {
     const isIelts = options.isIelts || false;
     const speechFlow = options.speechFlow || null;
+    const experimentalAddendum = options.experimentalAddendum || null;
 
     // Build speech flow context for the scorer (only if data available)
     let speechFlowContext = "";
@@ -278,7 +279,7 @@ Rules:
 - overallScore = average of fluency, vocabulary, grammar, pronunciation (rounded)
 - turnFeedback: include 2-4 entries for user turns with the most room for improvement
 - If a criterion has no clear evidence, default to 55 and explain why evidence was limited
-${speechFlowContext}`
+${speechFlowContext}${experimentalAddendum || ""}`
       : `You are an English speaking coach evaluating a practice conversation. \
 Analyze the LEARNER's messages (role: "user") in the conversation and return ONLY a valid JSON object \
 with this exact structure — no extra text, no markdown:
