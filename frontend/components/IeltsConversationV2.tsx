@@ -1720,8 +1720,8 @@ export default function IeltsConversationV2({
             </div>
 
             {!voice.isSupported && (
-              <p className="text-[10px] mt-2 text-center" style={{ color: 'var(--ielts-text-faint)' }}>
-                Voice input requires Chrome or Edge
+              <p className="text-xs mt-2 px-3 py-1.5 rounded text-center" style={{ color: 'var(--ielts-text-faint)', backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                Voice input is not available in this browser. Use Chrome or Edge for the best experience, or type your answers below.
               </p>
             )}
           </div>
