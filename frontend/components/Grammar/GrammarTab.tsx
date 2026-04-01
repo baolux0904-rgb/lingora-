@@ -623,7 +623,7 @@ export default function GrammarTab() {
   const tensesExamsPassed = GRAMMAR_UNITS.filter((u) => progress.isExamPassed(u.id)).length;
 
   return (
-    <div className="max-w-[540px] mx-auto">
+    <div className="max-w-[540px] lg:max-w-[800px] xl:max-w-[960px] mx-auto">
       {/* XP Gain Popup */}
       {xpGain !== null && <XpGainPopup xp={xpGain} onDone={() => setXpGain(null)} />}
       {/* Level Up Toast */}
