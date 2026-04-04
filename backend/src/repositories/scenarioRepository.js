@@ -116,7 +116,7 @@ async function findSessionsByUser(userId, limit = 20) {
   const result = await query(
     `SELECT ss.id, ss.scenario_id, ss.status, ss.overall_score,
             ss.fluency_score, ss.vocabulary_score, ss.grammar_score,
-            ss.total_turns, ss.total_user_words, ss.duration_ms,
+            ss.turn_count AS total_turns, ss.word_count AS total_user_words, ss.duration_ms,
             ss.started_at, ss.completed_at,
             s.title, s.emoji, s.category, s.difficulty
        FROM scenario_sessions ss
@@ -152,9 +152,9 @@ async function completeSession(id, scores) {
             fluency_score = $3,
             vocabulary_score = $4,
             grammar_score = $5,
-            feedback_summary = $6,
-            total_turns = $7,
-            total_user_words = $8,
+            coach_feedback = $6,
+            turn_count = $7,
+            word_count = $8,
             duration_ms = $9,
             completed_at = NOW()
       WHERE id = $1
