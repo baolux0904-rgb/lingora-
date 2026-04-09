@@ -15,18 +15,10 @@ export default function RootPage() {
     }
   }, [isLoading, user, router]);
 
-  if (isLoading) {
-    return (
-      <div
-        className="min-h-dvh flex items-center justify-center"
-        style={{ backgroundColor: "#0A0F1E" }}
-      >
-        <div className="w-8 h-8 border-2 border-[#00A896] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
+  // Already confirmed logged in — redirect is in flight, show nothing
   if (user) return null;
 
+  // No user (either still loading or confirmed guest) — show landing immediately.
+  // If auth resolves to a logged-in user, the useEffect above handles the redirect.
   return <LandingPage />;
 }
