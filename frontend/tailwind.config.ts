@@ -46,7 +46,8 @@ const config: Config = {
 
       fontFamily: {
         sora: ["Sora", "sans-serif"],
-        sans: ["DM Sans", "sans-serif"],
+        sans: ["var(--font-dm-sans)", "DM Sans", "sans-serif"],
+        playfair: ["var(--font-playfair)", "Playfair Display", "serif"],
       },
 
       borderColor: {

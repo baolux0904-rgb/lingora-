@@ -6,5 +6,5 @@ import { redirect } from "next/navigation";
  * search-engine links, shared URLs) to the home page.
  */
 export default function LessonsRedirect() {
-  redirect("/");
+  redirect("/home");
 }

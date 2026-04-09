@@ -1,220 +1,32 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import dynamic from "next/dynamic";
-import Topbar from "@/components/Topbar";
-import BottomNav from "@/components/BottomNav";
-import StartSpeakingCard from "@/components/StartSpeakingCard";
-import PracticeScenarios from "@/components/PracticeScenarios";
-import CoachTipCard from "@/components/CoachTipCard";
-import TodayFocusCard from "@/components/TodayFocusCard";
-import AnimatedBackground from "@/components/AnimatedBackground";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/lib/stores/authStore";
+import LandingPage from "@/components/landing/LandingPage";
 
-/* Code-split heavy tab components — loaded on demand, not in initial bundle */
-const GrammarTab = dynamic(() => import("@/components/Grammar").then(m => ({ default: m.GrammarTab })), { ssr: false });
-const ScenarioList = dynamic(() => import("@/components/ScenarioList"), { ssr: false });
-const ScenarioConversation = dynamic(() => import("@/components/ScenarioConversation"), { ssr: false });
-const IeltsConversationV2 = dynamic(() => import("@/components/IeltsConversationV2"), { ssr: false });
-const ExamScreen = dynamic(() => import("@/components/ExamScreen"), { ssr: false });
-const ProfileScreen = dynamic(() => import("@/components/ProfileScreen"), { ssr: false });
-const Onboarding = dynamic(() => import("@/components/Onboarding"), { ssr: false });
-import { useCurrentUserId } from "@/hooks/useCurrentUserId";
-import { useProgress } from "@/hooks/useProgress";
-import { useLessons } from "@/hooks/useLessons";
-import { useUserStats } from "@/hooks/useUserStats";
-import { useGamification } from "@/hooks/useGamification";
-import { useSpeakingMetrics } from "@/hooks/useSpeakingMetrics";
-import { useTodayFocus }      from "@/hooks/useTodayFocus";
-import { getScenarios } from "@/lib/api";
-import type { Scenario, FocusRecommendation } from "@/lib/types";
+export default function RootPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuthStore();
 
-export default function HomePage() {
-  return (
-    <Suspense>
-      <HomePageContent />
-    </Suspense>
-  );
-}
-
-function HomePageContent() {
-  const searchParams = useSearchParams();
-  // Persist experimental flag in sessionStorage so it survives internal navigation
-  const isExperimental = (() => {
-    const urlParam = searchParams.get("experimental") === "true";
-    if (typeof window !== "undefined") {
-      if (urlParam) {
-        sessionStorage.setItem("ielts_experimental", "true");
-        return true;
-      }
-      return sessionStorage.getItem("ielts_experimental") === "true";
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/home");
     }
-    return urlParam;
-  })();
+  }, [isLoading, user, router]);
 
-  const [activeTab, setActiveTab] = useState("home");
-  const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
-  const [ieltsScenario, setIeltsScenario] = useState<Scenario | null>(null);
-  const [grammarOverlayOpen, setGrammarOverlayOpen] = useState(false);
-
-  const userId = useCurrentUserId();
-  const { progress } = useProgress(userId);
-  const { apiLessons } = useLessons();
-  const stats = useUserStats(progress, apiLessons);
-  const { data: gamification, refetch: refetchGamification } = useGamification(userId);
-  const { data: metrics, loading: metricsLoading } = useSpeakingMetrics(userId);
-  const { recommendations: focusRecs, loading: focusLoading } = useTodayFocus(userId);
-
-  const displayStreak = gamification?.streak.currentStreak ?? stats.streak;
-
-  const handleStartSpeaking = () => {
-    setActiveTab("speak");
-  };
-
-  const handleScenarioSelect = (scenarioOrId: Scenario | string) => {
-    if (typeof scenarioOrId === "string") {
-      setActiveTab("speak");
-    } else if (scenarioOrId.exam_type === "ielts") {
-      setIeltsScenario(scenarioOrId);
-    } else {
-      setActiveScenario(scenarioOrId);
-    }
-  };
-
-  const handleConversationClose = () => {
-    setActiveScenario(null);
-  };
-
-  const handleConversationComplete = () => {
-    refetchGamification();
-  };
-
-  const handleFocusAction = async (rec: FocusRecommendation) => {
-    if (rec.scenarioId && rec.actionTarget === "speak") {
-      try {
-        const scenarios = await getScenarios();
-        const match = scenarios.find((s) => s.id === rec.scenarioId);
-        if (match) {
-          handleScenarioSelect(match);
-          return;
-        }
-      } catch {
-        // Fall through to tab navigation
-      }
-    }
-    setActiveTab(rec.actionTarget);
-  };
-
-  // Full-screen IELTS overlay — V2 is now the default
-  if (ieltsScenario) {
+  if (isLoading) {
     return (
-      <IeltsConversationV2
-        scenario={ieltsScenario}
-        onClose={() => { setIeltsScenario(null); }}
-        onComplete={handleConversationComplete}
-      />
+      <div
+        className="min-h-dvh flex items-center justify-center"
+        style={{ backgroundColor: "#0A0F1E" }}
+      >
+        <div className="w-8 h-8 border-2 border-[#00A896] border-t-transparent rounded-full animate-spin" />
+      </div>
     );
   }
 
-  // Full-screen regular scenario overlay
-  if (activeScenario) {
-    return (
-      <ScenarioConversation
-        scenario={activeScenario}
-        onClose={handleConversationClose}
-        onComplete={handleConversationComplete}
-      />
-    );
-  }
+  if (user) return null;
 
-  const bgClass =
-    activeTab === "home" ? "bg-home" :
-    activeTab === "speak" ? "bg-speak" :
-    activeTab === "exam" ? "bg-exam" :
-    activeTab === "practice" ? "bg-practice" : "";
-
-  const blobVariant: "expressive" | "subtle" | "minimal" | "none" =
-    activeTab === "home" ? "expressive" :
-    activeTab === "speak" ? "subtle" :
-    activeTab === "exam" ? "minimal" :
-    activeTab === "practice" ? "subtle" : "none";
-
-  return (
-    <div className={`flex flex-col min-h-dvh ${bgClass} relative`} style={{ backgroundColor: "var(--color-bg)" }}>
-      <AnimatedBackground
-        variant={blobVariant}
-        centerGlow={activeTab === "home" || activeTab === "speak"}
-      />
-      {!grammarOverlayOpen && <Topbar streak={displayStreak} />}
-
-      <main className="flex-1 overflow-y-auto pb-24">
-        <div className={`mx-auto px-5 py-6 ${activeTab === "practice" ? "max-w-xl lg:max-w-3xl xl:max-w-5xl" : "max-w-xl"}`}>
-
-          {/* ── HOME TAB ── */}
-          {activeTab === "home" && (
-            <div className="flex flex-col gap-8 animate-fadeSlideUp">
-              {/* Primary CTA — dominant, above the fold */}
-              <StartSpeakingCard onStart={handleStartSpeaking} />
-
-              {/* Secondary — personalized recommendations (only if relevant) */}
-              <TodayFocusCard
-                recommendations={focusRecs}
-                loading={focusLoading}
-                onAction={handleFocusAction}
-              />
-
-              {/* Tertiary — browsable options */}
-              <PracticeScenarios onSelect={(id) => handleScenarioSelect(id)} />
-
-              {/* Ambient — non-blocking, dismissible */}
-              <CoachTipCard />
-            </div>
-          )}
-
-          {/* ── SPEAK TAB — Scenario browser (no exam scenarios) ── */}
-          {activeTab === "speak" && (
-            <div className="animate-fadeSlideUp">
-              <ScenarioList
-                onSelect={(scenario) => handleScenarioSelect(scenario)}
-                excludeExam
-              />
-            </div>
-          )}
-
-          {/* ── GRAMMAR TAB — Gamified tenses curriculum ── */}
-          {/* No animate-fadeSlideUp wrapper here — the CSS animation's
-              transform: translateY(0) creates a stacking context that traps
-              grammar lesson/exam overlays (fixed z-50) below BottomNav (z-40). */}
-          {activeTab === "practice" && (
-            <GrammarTab onOverlayChange={setGrammarOverlayOpen} />
-          )}
-
-          {/* ── EXAM TAB ── */}
-          {activeTab === "exam" && (
-            <div className="animate-fadeSlideUp">
-              <ExamScreen
-                onStartIelts={(scenario) => setIeltsScenario(scenario)}
-              />
-            </div>
-          )}
-
-          {/* ── PROFILE TAB ── */}
-          {activeTab === "profile" && (
-            <div className="animate-fadeSlideUp">
-              <ProfileScreen
-                userId={userId}
-                metrics={metrics}
-                metricsLoading={metricsLoading}
-                gamification={gamification}
-              />
-            </div>
-          )}
-
-        </div>
-      </main>
-
-      {!grammarOverlayOpen && <BottomNav active={activeTab} onChange={setActiveTab} />}
-      <Onboarding />
-    </div>
-  );
+  return <LandingPage />;
 }
