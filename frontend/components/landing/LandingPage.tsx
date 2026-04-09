@@ -7,7 +7,8 @@ import SocialProofBar from "./SocialProofBar";
 import FeaturesSection from "./FeaturesSection";
 import HowItWorksSection from "./HowItWorksSection";
 import PricingSection from "./PricingSection";
-import TestimonialsSection from "./TestimonialsSection";
+// TestimonialsSection hidden until real user reviews exist
+// import TestimonialsSection from "./TestimonialsSection";
 import FinalCTA from "./FinalCTA";
 import Footer from "./Footer";
 
@@ -27,7 +28,7 @@ export default function LandingPage() {
       <FeaturesSection />
       <HowItWorksSection />
       <PricingSection />
-      <TestimonialsSection />
+      {/* <TestimonialsSection /> — hidden until real user reviews */}
       <FinalCTA />
       <Footer />
     </div>
