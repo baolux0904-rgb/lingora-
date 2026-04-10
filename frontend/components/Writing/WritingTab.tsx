@@ -3,12 +3,12 @@
 /**
  * WritingTab.tsx — Main IELTS Writing container.
  *
- * Phase state machine: editor → pending → result → history
+ * Phase state machine: intro → editor → pending → result → history
  * Includes: task type toggle, question input, textarea with live word count,
- * submit button, usage indicator, and navigation between phases.
+ * submit button, usage indicator, countdown timer, and navigation between phases.
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { submitWritingEssay } from "@/lib/api";
 import { useWritingResult } from "@/hooks/useWritingResult";
 import WritingResult from "./WritingResult";
@@ -20,45 +20,71 @@ interface WritingTabProps {
 }
 
 // ---------------------------------------------------------------------------
-// Preset questions for Task 2 (Task 1 lets user type their own)
+// Constants
 // ---------------------------------------------------------------------------
 
-const TASK2_QUESTIONS = [
-  "Some people think that the best way to reduce crime is to give longer prison sentences. Others, however, believe there are better alternative ways of reducing crime. Discuss both views and give your opinion.",
-  "In many countries, the amount of crime is increasing. What do you think are the main causes of crime? How can we deal with those causes?",
-  "Some people believe that universities should focus on providing academic skills. Others think that universities should prepare students for their future careers. Discuss both views and give your opinion.",
-  "The increasing use of technology is changing the way people interact with each other. Do you think this is a positive or negative development?",
-  "Some people say that advertising encourages us to buy things we really do not need. Others say that advertisements tell us about new products that may improve our lives. Which viewpoint do you agree with?",
-];
-
 const MIN_WORDS: Record<WritingTaskType, number> = { task1: 150, task2: 250 };
+const TIMER_SECONDS: Record<WritingTaskType, number> = { task1: 1200, task2: 2400 };
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
-type Phase = "editor" | "pending" | "result" | "history";
+type Phase = "intro" | "editor" | "pending" | "result" | "history";
 
 export default function WritingTab({ onClose }: WritingTabProps) {
-  // Phase management
-  const [phase, setPhase] = useState<Phase>("editor");
+  // Phase management — starts with intro
+  const [phase, setPhase] = useState<Phase>("intro");
 
   // Editor state
   const [taskType, setTaskType] = useState<WritingTaskType>("task2");
-  const [questionText, setQuestionText] = useState(TASK2_QUESTIONS[0]);
+  const [questionText, setQuestionText] = useState("");
   const [essayText, setEssayText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [timerStarted, setTimerStarted] = useState(false);
 
   // Result state
   const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
   const { submission, loading: resultLoading, polling } = useWritingResult(
     phase === "pending" || phase === "result" ? activeSubmissionId : null
   );
+
+  // ---------------------------------------------------------------------------
+  // Intro phase — auto-advance after 1.5s
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (phase === "intro") {
+      const t = setTimeout(() => setPhase("editor"), 1500);
+      return () => clearTimeout(t);
+    }
+  }, [phase]);
+
+  // ---------------------------------------------------------------------------
+  // Countdown timer
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
+    if (!timerStarted || timeLeft === null || timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((t) => (t !== null ? t - 1 : null));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [timerStarted, timeLeft]);
 
   // When polling completes, move to result phase
   if (phase === "pending" && submission && submission.status !== "pending") {
@@ -69,15 +95,32 @@ export default function WritingTab({ onClose }: WritingTabProps) {
   const minRequired = MIN_WORDS[taskType];
   const isValid = wordCount >= minRequired && questionText.trim().length > 0;
 
-  // Handle task type switch
+  // ---------------------------------------------------------------------------
+  // Handlers
+  // ---------------------------------------------------------------------------
+
+  // Handle task type switch — resets essay and timer
   const handleTaskSwitch = useCallback((type: WritingTaskType) => {
     setTaskType(type);
-    if (type === "task2") {
-      setQuestionText(TASK2_QUESTIONS[0]);
-    } else {
-      setQuestionText("");
-    }
+    setQuestionText("");
+    setEssayText("");
+    setTimeLeft(null);
+    setTimerStarted(false);
   }, []);
+
+  // Handle essay text change — starts timer on first keystroke
+  const handleEssayChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const newText = e.target.value;
+      // Start timer on first keystroke
+      if (essayText === "" && newText.length > 0 && !timerStarted) {
+        setTimeLeft(TIMER_SECONDS[taskType]);
+        setTimerStarted(true);
+      }
+      setEssayText(newText);
+    },
+    [essayText, timerStarted, taskType]
+  );
 
   // Submit essay
   const handleSubmit = useCallback(async () => {
@@ -110,9 +153,25 @@ export default function WritingTab({ onClose }: WritingTabProps) {
   const handleNewEssay = useCallback(() => {
     setPhase("editor");
     setEssayText("");
+    setQuestionText("");
     setActiveSubmissionId(null);
     setSubmitError(null);
+    setTimeLeft(null);
+    setTimerStarted(false);
   }, []);
+
+  // ---------------------------------------------------------------------------
+  // Timer display helpers
+  // ---------------------------------------------------------------------------
+
+  const timerColor =
+    timeLeft !== null && timeLeft < 60
+      ? "#EF4444"
+      : timeLeft !== null && timeLeft < 300
+        ? "#F59E0B"
+        : "var(--color-text-secondary)";
+
+  const timerBold = timeLeft !== null && timeLeft < 60;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -145,24 +204,36 @@ export default function WritingTab({ onClose }: WritingTabProps) {
             IELTS Writing
           </div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+            {phase === "intro" && "Preparing..."}
             {phase === "editor" && "Write your essay"}
             {phase === "pending" && "Analyzing your essay..."}
             {phase === "result" && "Your results"}
             {phase === "history" && "Past submissions"}
           </div>
         </div>
-        {/* History button */}
+
+        {/* Timer + History button */}
         {phase === "editor" && (
-          <button
-            onClick={() => setPhase("history")}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{
-              background: "var(--color-bg-secondary)",
-              color: "var(--color-text-secondary)",
-            }}
-          >
-            History
-          </button>
+          <div className="flex items-center gap-2">
+            {timerStarted && timeLeft !== null && (
+              <span
+                className={`text-sm font-mono ${timerBold ? "font-bold" : ""}`}
+                style={{ color: timerColor }}
+              >
+                {formatTime(timeLeft)}
+              </span>
+            )}
+            <button
+              onClick={() => setPhase("history")}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium"
+              style={{
+                background: "var(--color-bg-secondary)",
+                color: "var(--color-text-secondary)",
+              }}
+            >
+              History
+            </button>
+          </div>
         )}
         {(phase === "history" || phase === "result") && (
           <button
@@ -180,6 +251,21 @@ export default function WritingTab({ onClose }: WritingTabProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
+        {/* ── INTRO PHASE ── */}
+        {phase === "intro" && (
+          <div className="flex flex-col items-center justify-center py-20 gap-6">
+            <div className="text-4xl">📋</div>
+            <div className="text-center">
+              <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
+                Examiner is preparing your test...
+              </p>
+              <p className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>
+                Please wait a moment
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* ── EDITOR PHASE ── */}
         {phase === "editor" && (
           <div className="flex flex-col gap-4 max-w-2xl mx-auto">
@@ -203,42 +289,27 @@ export default function WritingTab({ onClose }: WritingTabProps) {
               ))}
             </div>
 
-            {/* Question */}
+            {/* Question — textarea for both Task 1 and Task 2 */}
             <div>
               <label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: "var(--color-text-tertiary)" }}>
                 Question
               </label>
-              {taskType === "task2" ? (
-                <select
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  className="w-full rounded-lg px-3 py-2.5 text-sm"
-                  style={{
-                    background: "var(--color-bg-card)",
-                    border: "1px solid var(--color-border)",
-                    color: "var(--color-text)",
-                  }}
-                >
-                  {TASK2_QUESTIONS.map((q, i) => (
-                    <option key={i} value={q}>
-                      {q.slice(0, 80)}...
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <textarea
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder="Describe the chart/graph/diagram provided..."
-                  rows={3}
-                  className="w-full rounded-lg px-3 py-2.5 text-sm resize-none"
-                  style={{
-                    background: "var(--color-bg-card)",
-                    border: "1px solid var(--color-border)",
-                    color: "var(--color-text)",
-                  }}
-                />
-              )}
+              <textarea
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                placeholder={
+                  taskType === "task1"
+                    ? "Describe the chart/graph/diagram provided..."
+                    : "Enter the essay question here..."
+                }
+                rows={3}
+                className="w-full rounded-lg px-3 py-2.5 text-sm resize-none"
+                style={{
+                  background: "var(--color-bg-card)",
+                  border: "1px solid var(--color-border)",
+                  color: "var(--color-text)",
+                }}
+              />
             </div>
 
             {/* Essay Textarea */}
@@ -248,14 +319,17 @@ export default function WritingTab({ onClose }: WritingTabProps) {
               </label>
               <textarea
                 value={essayText}
-                onChange={(e) => setEssayText(e.target.value)}
+                onChange={handleEssayChange}
                 placeholder={`Write your ${taskType === "task1" ? "Task 1" : "Task 2"} essay here (minimum ${minRequired} words)...`}
                 rows={14}
+                maxLength={5000}
                 className="w-full rounded-lg px-3 py-3 text-sm leading-relaxed resize-none"
                 style={{
                   background: "var(--color-bg-card)",
                   border: `1px solid ${wordCount > 0 && wordCount < minRequired ? "rgba(239,68,68,0.4)" : "var(--color-border)"}`,
                   color: "var(--color-text)",
+                  minHeight: "280px",
+                  height: "auto",
                 }}
               />
               {/* Word count indicator */}
