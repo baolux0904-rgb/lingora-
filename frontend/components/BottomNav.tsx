@@ -1,6 +1,6 @@
 "use client";
 
-import { IconHome, IconMic, IconBook, IconGraduationCap, IconUsers, IconUser } from "./Icons";
+import { IconHome, IconMic, IconBook, IconGraduationCap, IconSwords, IconUsers, IconUser } from "./Icons";
 import useSound from "@/hooks/useSound";
 
 interface BottomNavProps {
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { id: "speak", label: "Speak", Icon: IconMic },
   { id: "practice", label: "Grammar", Icon: IconBook },
   { id: "exam", label: "Exam", Icon: IconGraduationCap },
+  { id: "battle", label: "Battle", Icon: IconSwords },
   { id: "social", label: "Friends", Icon: IconUsers },
   { id: "profile", label: "Profile", Icon: IconUser },
 ] as const;

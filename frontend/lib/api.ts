@@ -1016,3 +1016,65 @@ export async function generateShareCard(body: { templateKey: string; triggerType
 export async function getShareCardHistory(): Promise<{ history: unknown[] }> {
   return apiFetchAuth<{ history: unknown[] }>("/share-cards/history");
 }
+
+// ---------------------------------------------------------------------------
+// Battle
+// ---------------------------------------------------------------------------
+
+import type {
+  BattleHome, BattleMatchStatus, BattleResult,
+  BattleLeaderboardEntry, BattleProfile,
+} from "./types";
+
+/** POST /battle/queue/join */
+export async function joinBattleQueue(mode: "ranked" | "unranked" = "ranked"): Promise<{ status: string; match: { id: string } }> {
+  return apiPostAuth<{ status: string; match: { id: string } }>("/battle/queue/join", { mode });
+}
+
+/** POST /battle/queue/leave */
+export async function leaveBattleQueue(): Promise<unknown> {
+  return apiPostAuth<unknown>("/battle/queue/leave", {});
+}
+
+/** GET /battle/matches/:matchId */
+export async function getBattleMatch(matchId: string): Promise<BattleMatchStatus> {
+  return apiFetchAuth<BattleMatchStatus>(`/battle/matches/${matchId}`);
+}
+
+/** POST /battle/matches/:matchId/submit */
+export async function submitBattleAnswers(
+  matchId: string,
+  body: { answers: Array<{ questionId?: string; orderIndex?: number; answer: string }>; timeSeconds: number }
+): Promise<{ status: string; score: number; matchId: string }> {
+  return apiPostAuth<{ status: string; score: number; matchId: string }>(`/battle/matches/${matchId}/submit`, body);
+}
+
+/** GET /battle/matches/:matchId/result */
+export async function getBattleResult(matchId: string): Promise<BattleResult> {
+  return apiFetchAuth<BattleResult>(`/battle/matches/${matchId}/result`);
+}
+
+/** GET /battle/profile/me */
+export async function getBattleProfile(): Promise<{ profile: BattleProfile; rank: number | null; recentMatches: unknown[] }> {
+  return apiFetchAuth<{ profile: BattleProfile; rank: number | null; recentMatches: unknown[] }>("/battle/profile/me");
+}
+
+/** GET /battle/leaderboard */
+export async function getBattleLeaderboard(): Promise<{ entries: BattleLeaderboardEntry[]; myEntry: BattleLeaderboardEntry | null }> {
+  return apiFetchAuth<{ entries: BattleLeaderboardEntry[]; myEntry: BattleLeaderboardEntry | null }>("/battle/leaderboard");
+}
+
+/** POST /battle/challenges */
+export async function createBattleChallenge(targetUserId: string): Promise<unknown> {
+  return apiPostAuth<unknown>("/battle/challenges", { targetUserId });
+}
+
+/** POST /battle/challenges/:id/accept */
+export async function acceptBattleChallenge(challengeId: string): Promise<unknown> {
+  return apiPostAuth<unknown>(`/battle/challenges/${challengeId}/accept`, {});
+}
+
+/** GET /battle/home */
+export async function getBattleHome(): Promise<BattleHome> {
+  return apiFetchAuth<BattleHome>("/battle/home");
+}

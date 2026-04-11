@@ -551,3 +551,116 @@ export interface ShareCardStats {
   predictedBand: number | null;
   level: number;
 }
+
+// ---------------------------------------------------------------------------
+// Battle types
+// ---------------------------------------------------------------------------
+
+export type BattleRankTier = 'iron' | 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'challenger';
+
+export interface BattleProfile {
+  user_id: string;
+  name?: string;
+  username?: string;
+  current_rank_points: number;
+  current_rank_tier: BattleRankTier;
+  wins: number;
+  losses: number;
+  no_submit_losses: number;
+  placement_matches_completed: number;
+}
+
+export interface BattlePassage {
+  id: string;
+  topic: string;
+  difficulty: string;
+  estimated_minutes: number;
+  passage_title: string;
+  passage_text: string;
+}
+
+export interface BattleQuestion {
+  id: string;
+  passage_id: string;
+  order_index: number;
+  type: 'mcq' | 'tfng' | 'matching';
+  question_text: string;
+  options: Record<string, string> | null;
+  correct_answer: string;
+}
+
+export interface BattleMatch {
+  id: string;
+  mode: 'ranked' | 'unranked';
+  status: 'queued' | 'matched' | 'active' | 'awaiting_opponent' | 'completed' | 'expired' | 'cancelled';
+  skill_type: string;
+  winner_user_id: string | null;
+  submission_deadline_at: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface BattleMatchStatus {
+  match: BattleMatch;
+  participant: {
+    id: string;
+    user_id: string;
+    status: string;
+    individual_score: number;
+    rank_points_before: number | null;
+  };
+  content: {
+    passage: BattlePassage;
+    questions: BattleQuestion[];
+  } | null;
+}
+
+export interface BattleResult {
+  match: BattleMatch;
+  myResult: {
+    name: string;
+    individual_score: number;
+    rank_delta: number | null;
+    xp_reward: number;
+    rank_points_after: number | null;
+  };
+  opponentResult: {
+    name: string;
+    username: string | null;
+    score: number;
+    rankDelta: number | null;
+  } | null;
+  isWinner: boolean;
+  isDraw: boolean;
+}
+
+export interface BattleLeaderboardEntry {
+  user_id: string;
+  name: string;
+  username: string | null;
+  current_rank_points: number;
+  current_rank_tier: BattleRankTier;
+  wins: number;
+  losses: number;
+  rank: number;
+}
+
+export interface BattleRecentMatch {
+  id: string;
+  mode: string;
+  status: string;
+  winner_user_id: string | null;
+  completed_at: string | null;
+  individual_score: number;
+  rank_delta: number | null;
+  xp_reward: number;
+  passage_title: string | null;
+}
+
+export interface BattleHome {
+  profile: BattleProfile;
+  rank: number | null;
+  leaderboardPreview: BattleLeaderboardEntry[];
+  recentMatches: BattleRecentMatch[];
+}
