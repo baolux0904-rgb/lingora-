@@ -106,6 +106,17 @@ function createApp() {
   // Share cards: progress card generation
   app.use("/api/v1/share-cards", require("./routes/shareCardRoutes"));
 
+  // IELTS Battle: 1v1 async reading battles with ranked matchmaking
+  app.use("/api/v1/battle", require("./routes/battleRoutes"));
+
+  // ── Battle match expiry job (every 5 minutes) ──
+  const { expireOverdueMatches } = require("./services/battleService");
+  setInterval(() => {
+    expireOverdueMatches().catch((err) => {
+      console.error("[battle] expiry job error:", err.message);
+    });
+  }, 5 * 60 * 1000);
+
   // ── Mock storage route (development only) ──
   // When using the mock storage provider, the frontend PUTs audio blobs to
   // /mock-storage/:key.  This route accepts the binary body and stores it
