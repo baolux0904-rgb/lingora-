@@ -272,9 +272,71 @@ async function findOverdueMatches() {
 }
 
 // ---------------------------------------------------------------------------
-// Random passage selection
+// Band-aware passage selection
 // ---------------------------------------------------------------------------
 
+/**
+ * Map a user's estimated band to a difficulty tier.
+ */
+function bandToDifficulty(band) {
+  if (band == null || band < 6.0) return "band_50_55";
+  if (band < 7.0) return "band_60_65";
+  if (band < 8.0) return "band_70_80";
+  return "band_80_plus";
+}
+
+/**
+ * Get a passage the user hasn't seen recently, matched to their band.
+ * Falls back to any unseen passage, then any passage if all seen.
+ */
+async function getPassageForUser(userId) {
+  // Get user's estimated band (default 5.0)
+  const userRow = await query(
+    `SELECT estimated_band FROM users WHERE id = $1`,
+    [userId]
+  );
+  const band = userRow.rows[0]?.estimated_band ?? 5.0;
+  const difficulty = bandToDifficulty(Number(band));
+
+  // Try unseen passage in matching difficulty
+  let result = await query(
+    `SELECT rp.id FROM reading_passages rp
+      WHERE rp.review_status != 'rejected'
+        AND rp.difficulty = $2
+        AND rp.id NOT IN (
+          SELECT bm.question_set_id FROM battle_matches bm
+            JOIN battle_match_participants bmp ON bmp.match_id = bm.id
+           WHERE bmp.user_id = $1 AND bm.question_set_id IS NOT NULL
+        )
+      ORDER BY RANDOM() LIMIT 1`,
+    [userId, difficulty]
+  );
+  if (result.rows[0]) return result.rows[0].id;
+
+  // Fallback: any unseen passage (any difficulty)
+  result = await query(
+    `SELECT rp.id FROM reading_passages rp
+      WHERE rp.review_status != 'rejected'
+        AND rp.id NOT IN (
+          SELECT bm.question_set_id FROM battle_matches bm
+            JOIN battle_match_participants bmp ON bmp.match_id = bm.id
+           WHERE bmp.user_id = $1 AND bm.question_set_id IS NOT NULL
+        )
+      ORDER BY RANDOM() LIMIT 1`,
+    [userId]
+  );
+  if (result.rows[0]) return result.rows[0].id;
+
+  // Final fallback: any passage (user has seen all)
+  result = await query(
+    `SELECT id FROM reading_passages WHERE review_status != 'rejected' ORDER BY RANDOM() LIMIT 1`
+  );
+  return result.rows[0]?.id || null;
+}
+
+/**
+ * Legacy: random passage without band filtering.
+ */
 async function getRandomPassage() {
   const result = await query(
     `SELECT id FROM reading_passages WHERE review_status != 'rejected' ORDER BY RANDOM() LIMIT 1`
@@ -336,6 +398,7 @@ module.exports = {
   getUserBattleRank,
   getRecentMatches,
   findOverdueMatches,
+  getPassageForUser,
   getRandomPassage,
   getPassageWithQuestions,
   cancelQueuedMatchForUser,

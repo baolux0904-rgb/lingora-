@@ -61,8 +61,8 @@ async function joinQueue(userId, mode = "ranked") {
     return { status: "matched", match, content };
   }
 
-  // No match found — create one and wait
-  const passageId = await repo.getRandomPassage();
+  // No match found — create one and wait (band-aware selection)
+  const passageId = await repo.getPassageForUser(userId);
   if (!passageId) {
     const err = new Error("No reading passages available for battle");
     err.status = 503;
@@ -350,7 +350,7 @@ async function createDirectChallenge(userId, targetUserId) {
     const e = new Error("Cannot challenge yourself"); e.status = 400; throw e;
   }
 
-  const passageId = await repo.getRandomPassage();
+  const passageId = await repo.getPassageForUser(userId);
   if (!passageId) { const e = new Error("No passages available"); e.status = 503; throw e; }
 
   const match = await repo.createMatch({
