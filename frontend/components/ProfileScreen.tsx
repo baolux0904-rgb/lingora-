@@ -6,12 +6,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import SpeakingMetrics from "./SpeakingMetrics";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { logoutUser, getLeaderboard } from "@/lib/api";
 import type { SpeakingMetricsData, GamificationData } from "@/lib/types";
+
+const ShareCardModal = dynamic(() => import("./Social/ShareCardModal"), { ssr: false });
 
 interface ProfileScreenProps {
   userId: string | null;
@@ -151,6 +154,7 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
   const [loggingOut, setLoggingOut] = useState(false);
   const [weeklyRank, setWeeklyRank] = useState<number | null>(null);
   const [allTimeRank, setAllTimeRank] = useState<number | null>(null);
+  const [showShareCard, setShowShareCard] = useState(false);
 
   const loadRanks = useCallback(async () => {
     if (!user) return;
@@ -283,22 +287,36 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
         </Card>
       )}
 
-      {/* Logout */}
+      {/* Share Progress + Logout */}
       {!isGuest && (
-        <button
-          onClick={handleLogout}
-          disabled={loggingOut}
-          className="w-full py-3 rounded-full text-sm font-semibold transition-colors duration-150"
-          style={{
-            background: "transparent",
-            color: "var(--color-text-tertiary)",
-            border: "1px solid var(--color-border)",
-            opacity: loggingOut ? 0.6 : 1,
-          }}
-        >
-          {loggingOut ? "Logging out..." : "Log out"}
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={() => setShowShareCard(true)}
+            className="w-full py-3 rounded-full text-sm font-semibold transition-all active:scale-[0.98]"
+            style={{
+              background: "linear-gradient(135deg, #00A896, #00C4B0)",
+              color: "#fff",
+            }}
+          >
+            Share Progress 🎯
+          </button>
+          <button
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="w-full py-3 rounded-full text-sm font-semibold transition-colors duration-150"
+            style={{
+              background: "transparent",
+              color: "var(--color-text-tertiary)",
+              border: "1px solid var(--color-border)",
+              opacity: loggingOut ? 0.6 : 1,
+            }}
+          >
+            {loggingOut ? "Logging out..." : "Log out"}
+          </button>
+        </div>
       )}
+
+      <ShareCardModal isOpen={showShareCard} onClose={() => setShowShareCard(false)} />
     </div>
   );
 }

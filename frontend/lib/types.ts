@@ -472,3 +472,82 @@ export interface SocialProfile {
   qrToken: string | null;
   friendCount: number;
 }
+
+// ---------------------------------------------------------------------------
+// Study Room types
+// ---------------------------------------------------------------------------
+
+export interface StudyRoom {
+  id: string;
+  name: string;
+  status: 'active' | 'archived';
+  room_streak: number;
+  max_members: number;
+  created_at: string;
+  activeGoal?: StudyRoomGoal | null;
+  memberCount?: number;
+  members?: StudyRoomMember[];
+}
+
+export interface StudyRoomMember {
+  user_id: string;
+  name: string;
+  username: string | null;
+  role: 'owner' | 'member';
+  practiced_today: boolean;
+  xp_today: number;
+  speaking_sessions_today: number;
+  writing_sessions_today: number;
+}
+
+export interface StudyRoomGoal {
+  id: string;
+  goal_type: 'speaking_sessions' | 'writing_tasks' | 'xp' | 'consistency_days' | 'lessons';
+  target_value: number;
+  start_date: string;
+  end_date: string;
+  status: 'active' | 'completed' | 'failed';
+  total_progress?: number;
+  contributions?: Array<{ user_id: string; name: string; value: number }>;
+}
+
+export interface StudyRoomNote {
+  id: string;
+  user_id: string;
+  author_name: string;
+  note_type: 'tip' | 'reminder' | 'motivation' | 'question';
+  content: string;
+  is_pinned: boolean;
+  created_at: string;
+}
+
+export interface StudyRoomDashboard {
+  room: StudyRoom;
+  members: StudyRoomMember[];
+  activeGoal: StudyRoomGoal | null;
+  recentFeed: Array<{
+    user_id: string;
+    name: string;
+    activity_type: string;
+    metadata: Record<string, unknown>;
+    created_at: string;
+  }>;
+  pinnedNotes: StudyRoomNote[];
+  allNotes: StudyRoomNote[];
+}
+
+// ---------------------------------------------------------------------------
+// Share Card types
+// ---------------------------------------------------------------------------
+
+export interface ShareCardStats {
+  displayName: string;
+  streak: number;
+  weeklyXp: number;
+  totalXp: number;
+  weeklyRank: number | null;
+  speakingSessionsThisWeek: number;
+  writingTasksThisWeek: number;
+  predictedBand: number | null;
+  level: number;
+}

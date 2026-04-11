@@ -97,6 +97,12 @@ async function completeLesson(userId, lessonId, score, timeTakenMs) {
   const { level: levelBefore } = computeLevel(xpBefore); // computeLevel is a pure fn — no DB call
   const leveledUp              = level > levelBefore;
 
+  // Fire-and-forget: update study room activity tracking
+  try {
+    const { onUserCompletedActivity } = require("./studyRoomService");
+    onUserCompletedActivity(userId, "lessons", 1).catch(() => {});
+  } catch { /* module load safety */ }
+
   // ── Build response ────────────────────────────────────────────────────────
   return {
     // Core progress fields (unchanged from before)

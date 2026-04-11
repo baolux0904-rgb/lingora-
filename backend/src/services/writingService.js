@@ -94,6 +94,12 @@ async function submitEssay(userId, role, isPro, { taskType, questionText, essayT
       });
 
       console.log(`[writing] Submission ${submissionId} scored — band ${result.overall_band}`);
+
+      // Fire-and-forget: update study room activity tracking
+      try {
+        const { onUserCompletedActivity } = require("./studyRoomService");
+        onUserCompletedActivity(userId, "writing_tasks", 1).catch(() => {});
+      } catch { /* module load safety */ }
     } catch (err) {
       console.error(`[writing] Submission ${submissionId} failed:`, err.message);
       await writingRepository.updateSubmissionResult(submissionId, {

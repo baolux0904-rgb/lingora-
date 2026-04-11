@@ -25,7 +25,10 @@ import {
 } from "@/lib/api";
 import type { Friend, FriendRequest, SocialProfile } from "@/lib/types";
 
-type SubTab = "friends" | "requests" | "add";
+import dynamic from "next/dynamic";
+const StudyRoomTab = dynamic(() => import("./StudyRoomTab"), { ssr: false });
+
+type SubTab = "friends" | "requests" | "add" | "rooms";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -480,7 +483,8 @@ function AddFriend() {
 const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: "friends", label: "Friends" },
   { id: "requests", label: "Requests" },
-  { id: "add", label: "Add Friend" },
+  { id: "add", label: "Add" },
+  { id: "rooms", label: "Rooms" },
 ];
 
 export default function FriendsTab() {
@@ -520,6 +524,7 @@ export default function FriendsTab() {
       {subTab === "friends" && <FriendsList />}
       {subTab === "requests" && <RequestsList />}
       {subTab === "add" && <AddFriend />}
+      {subTab === "rooms" && <StudyRoomTab />}
     </div>
   );
 }

@@ -1232,6 +1232,12 @@ async function endSession(sessionId, userId, durationMs, options = {}) {
     avgSpeakingRatio: speechFlow.avgSpeakingRatio,
   };
 
+  // Fire-and-forget: update study room activity tracking
+  try {
+    const { onUserCompletedActivity } = require("./studyRoomService");
+    onUserCompletedActivity(userId, "speaking_sessions", 1).catch(() => {});
+  } catch { /* module load safety */ }
+
   return {
     overallScore: adjustedOverall,
     fluency: adjustedFluency,

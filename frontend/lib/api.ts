@@ -931,3 +931,88 @@ export async function markNotificationRead(id: string): Promise<unknown> {
 export async function markAllNotificationsRead(): Promise<unknown> {
   return apiPostAuth<unknown>("/social/notifications/read-all", {});
 }
+
+// ---------------------------------------------------------------------------
+// Study Rooms
+// ---------------------------------------------------------------------------
+
+import type { StudyRoom, StudyRoomDashboard, StudyRoomNote, ShareCardStats } from "./types";
+
+/** POST /study-rooms */
+export async function createStudyRoom(body: { name: string; invitedUserIds?: string[]; goalType?: string; targetValue?: number }): Promise<unknown> {
+  return apiPostAuth<unknown>("/study-rooms", body);
+}
+
+/** GET /study-rooms */
+export async function getMyStudyRooms(): Promise<{ rooms: StudyRoom[] }> {
+  return apiFetchAuth<{ rooms: StudyRoom[] }>("/study-rooms");
+}
+
+/** GET /study-rooms/:roomId/dashboard */
+export async function getStudyRoomDashboard(roomId: string): Promise<StudyRoomDashboard> {
+  return apiFetchAuth<StudyRoomDashboard>(`/study-rooms/${roomId}/dashboard`);
+}
+
+/** POST /study-rooms/:roomId/accept */
+export async function acceptRoomInvite(roomId: string): Promise<unknown> {
+  return apiPostAuth<unknown>(`/study-rooms/${roomId}/accept`, {});
+}
+
+/** DELETE /study-rooms/:roomId/leave */
+export async function leaveStudyRoom(roomId: string): Promise<unknown> {
+  return apiDeleteAuth(`/study-rooms/${roomId}/leave`);
+}
+
+/** POST /study-rooms/:roomId/goals */
+export async function createRoomGoal(roomId: string, body: { goalType: string; targetValue: number; startDate: string; endDate: string }): Promise<unknown> {
+  return apiPostAuth<unknown>(`/study-rooms/${roomId}/goals`, body);
+}
+
+/** GET /study-rooms/:roomId/notes */
+export async function getRoomNotes(roomId: string): Promise<{ notes: StudyRoomNote[] }> {
+  return apiFetchAuth<{ notes: StudyRoomNote[] }>(`/study-rooms/${roomId}/notes`);
+}
+
+/** POST /study-rooms/:roomId/notes */
+export async function createRoomNote(roomId: string, body: { noteType: string; content: string }): Promise<unknown> {
+  return apiPostAuth<unknown>(`/study-rooms/${roomId}/notes`, body);
+}
+
+/** DELETE /study-rooms/:roomId/notes/:noteId */
+export async function deleteRoomNote(roomId: string, noteId: string): Promise<unknown> {
+  return apiDeleteAuth(`/study-rooms/${roomId}/notes/${noteId}`);
+}
+
+/** POST /study-rooms/:roomId/notes/:noteId/pin */
+export async function pinRoomNote(roomId: string, noteId: string): Promise<unknown> {
+  return apiPostAuth<unknown>(`/study-rooms/${roomId}/notes/${noteId}/pin`, {});
+}
+
+/** GET /study-rooms/:roomId/feed */
+export async function getRoomFeed(roomId: string): Promise<{ feed: unknown[] }> {
+  return apiFetchAuth<{ feed: unknown[] }>(`/study-rooms/${roomId}/feed`);
+}
+
+/** POST /study-rooms/:roomId/nudge */
+export async function sendRoomNudge(roomId: string, body: { targetUserId: string }): Promise<unknown> {
+  return apiPostAuth<unknown>(`/study-rooms/${roomId}/nudge`, body);
+}
+
+// ---------------------------------------------------------------------------
+// Share Cards
+// ---------------------------------------------------------------------------
+
+/** GET /share-cards/preview-data */
+export async function getShareCardPreviewData(): Promise<ShareCardStats> {
+  return apiFetchAuth<ShareCardStats>("/share-cards/preview-data");
+}
+
+/** POST /share-cards/generate */
+export async function generateShareCard(body: { templateKey: string; triggerType?: string }): Promise<unknown> {
+  return apiPostAuth<unknown>("/share-cards/generate", body);
+}
+
+/** GET /share-cards/history */
+export async function getShareCardHistory(): Promise<{ history: unknown[] }> {
+  return apiFetchAuth<{ history: unknown[] }>("/share-cards/history");
+}

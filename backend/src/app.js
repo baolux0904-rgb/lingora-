@@ -100,6 +100,12 @@ function createApp() {
   // Social: friends, pings, notifications, profile
   app.use("/api/v1/social", require("./routes/socialRoutes"));
 
+  // Study rooms: group study with goals, notes, activity feed
+  app.use("/api/v1/study-rooms", require("./routes/studyRoomRoutes"));
+
+  // Share cards: progress card generation
+  app.use("/api/v1/share-cards", require("./routes/shareCardRoutes"));
+
   // ── Mock storage route (development only) ──
   // When using the mock storage provider, the frontend PUTs audio blobs to
   // /mock-storage/:key.  This route accepts the binary body and stores it
