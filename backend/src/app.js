@@ -103,6 +103,16 @@ function createApp() {
   // Onboarding: status, complete, skip
   app.use("/api/v1/users", require("./routes/onboardingRoutes"));
 
+  // Profile: update, avatar, stats, public view
+  app.use("/api/v1", require("./routes/profileRoutes"));
+
+  // Serve avatar images + voice notes
+  app.use("/avatars", require("express").static(require("path").join(__dirname, "..", "public", "avatars")));
+  app.use("/voice-notes", require("express").static(require("path").join(__dirname, "..", "public", "voice-notes")));
+
+  // Friend chat: conversations, messages, voice notes
+  app.use("/api/v1/chat", require("./routes/chatRoutes"));
+
   // User feedback: post-activity rating + comments
   app.use("/api/v1/feedback", require("./routes/feedbackRoutes"));
 
@@ -120,11 +130,14 @@ function createApp() {
 
   // ── Battle match expiry job (every 5 minutes) ──
   const { expireOverdueMatches } = require("./services/battleService");
-  setInterval(() => {
+  const battleExpiryInterval = setInterval(() => {
     expireOverdueMatches().catch((err) => {
       console.error("[battle] expiry job error:", err.message);
     });
   }, 5 * 60 * 1000);
+
+  // Expose interval ID for graceful shutdown
+  app._battleExpiryInterval = battleExpiryInterval;
 
   // ── Mock storage route (development only) ──
   // When using the mock storage provider, the frontend PUTs audio blobs to
