@@ -21,6 +21,7 @@ const ReadingTab = dynamic(() => import("@/components/Reading/ReadingTab"), { ss
 const BattleTab = dynamic(() => import("@/components/Battle/BattleTab"), { ssr: false });
 const FriendsTab = dynamic(() => import("@/components/Social/FriendsTab"), { ssr: false });
 const ProfileScreen = dynamic(() => import("@/components/ProfileScreen"), { ssr: false });
+const SettingsScreen = dynamic(() => import("@/components/SettingsScreen"), { ssr: false });
 const Onboarding = dynamic(() => import("@/components/Onboarding"), { ssr: false });
 const OnboardingFlow = dynamic(() => import("@/components/Onboarding/OnboardingFlow"), { ssr: false });
 const BandProgressCard = dynamic(() => import("@/components/Dashboard/BandProgressCard"), { ssr: false });
@@ -292,6 +293,11 @@ function AppHomeContent() {
           {contentTab === "profile" && (
             <div className="animate-fadeSlideUp">
               <ProfileScreen userId={userId} metrics={metrics} metricsLoading={metricsLoading} gamification={gamification} />
+            </div>
+          )}
+          {contentTab === "settings" && (
+            <div className="animate-fadeSlideUp">
+              <SettingsScreen />
             </div>
           )}
         </div>

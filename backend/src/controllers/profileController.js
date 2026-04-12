@@ -79,19 +79,30 @@ async function getProfileStats(req, res, next) {
   try {
     const userId = req.user.id;
 
+    // Run each query with individual error safety — a single table missing
+    // (e.g. migration not yet deployed) must not break the entire endpoint.
+    const safe = (promise) => promise.catch((err) => {
+      console.error("[profileStats] query failed:", err.message);
+      return { rows: [], rowCount: 0 };
+    });
+
     const [userRow, xpRow, streakRow, badgesRow, speakingRow, writingRow, battleRow, friendRow, totalUsersRow] = await Promise.all([
-      query(`SELECT name, username, bio, location, avatar_url, target_band, estimated_band, band_history, is_pro, created_at FROM users WHERE id = $1`, [userId]),
-      query(`SELECT COALESCE(SUM(delta), 0)::int AS total_xp FROM xp_ledger WHERE user_id = $1`, [userId]),
-      query(`SELECT current_streak, longest_streak FROM user_streaks WHERE user_id = $1`, [userId]),
-      query(`SELECT b.slug, b.name FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = $1`, [userId]),
-      query(`SELECT COUNT(*)::int AS total, COALESCE(AVG(overall_score), 0)::int AS avg_score FROM scenario_sessions WHERE user_id = $1 AND status = 'completed'`, [userId]),
-      query(`SELECT COUNT(*)::int AS total, COALESCE(AVG(overall_band), 0) AS avg_band FROM writing_submissions WHERE user_id = $1 AND status = 'completed'`, [userId]),
-      query(`SELECT current_rank_points, current_rank_tier, wins, losses FROM battle_player_profiles WHERE user_id = $1`, [userId]),
-      query(`SELECT friend_count FROM users WHERE id = $1`, [userId]),
-      query(`SELECT COUNT(*)::int AS total FROM users WHERE deleted_at IS NULL`, []),
+      safe(query(`SELECT name, username, bio, location, avatar_url, target_band, estimated_band, band_history, is_pro, created_at FROM users WHERE id = $1`, [userId])),
+      safe(query(`SELECT COALESCE(SUM(delta), 0)::int AS total_xp FROM xp_ledger WHERE user_id = $1`, [userId])),
+      safe(query(`SELECT current_streak, longest_streak FROM user_streaks WHERE user_id = $1`, [userId])),
+      safe(query(`SELECT b.slug, b.name FROM user_badges ub JOIN badges b ON b.id = ub.badge_id WHERE ub.user_id = $1`, [userId])),
+      safe(query(`SELECT COUNT(*)::int AS total, COALESCE(AVG(overall_score), 0)::int AS avg_score FROM scenario_sessions WHERE user_id = $1 AND status = 'completed'`, [userId])),
+      safe(query(`SELECT COUNT(*)::int AS total, COALESCE(AVG(overall_band), 0) AS avg_band FROM writing_submissions WHERE user_id = $1 AND status = 'completed'`, [userId])),
+      safe(query(`SELECT current_rank_points, current_rank_tier, wins, losses FROM battle_player_profiles WHERE user_id = $1`, [userId])),
+      safe(query(`SELECT friend_count FROM users WHERE id = $1`, [userId])),
+      safe(query(`SELECT COUNT(*)::int AS total FROM users WHERE deleted_at IS NULL`, [])),
     ]);
 
     const user = userRow.rows[0];
+    if (!user) {
+      return sendError(res, { status: 404, message: "User not found" });
+    }
+
     const totalXp = xpRow.rows[0]?.total_xp ?? 0;
     const THRESHOLDS = [0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500, 5500];
     let level = 1;
@@ -99,10 +110,15 @@ async function getProfileStats(req, res, next) {
       if (totalXp >= THRESHOLDS[i]) { level = i + 1; break; }
     }
 
-    // Percentile calculation
-    const totalUsers = totalUsersRow.rows[0]?.total ?? 1;
-    const higherXpCount = await query(`SELECT COUNT(*)::int AS count FROM xp_ledger GROUP BY user_id HAVING SUM(delta) > $1`, [totalXp]);
-    const percentile = Math.max(1, Math.round((1 - (higherXpCount.rowCount || 0) / totalUsers) * 100));
+    // Percentile calculation (safe — uses separate query)
+    let percentile = 50;
+    try {
+      const totalUsers = totalUsersRow.rows[0]?.total ?? 1;
+      const higherXpCount = await query(`SELECT COUNT(*)::int AS count FROM xp_ledger GROUP BY user_id HAVING SUM(delta) > $1`, [totalXp]);
+      percentile = Math.max(1, Math.round((1 - (higherXpCount.rowCount || 0) / totalUsers) * 100));
+    } catch (err) {
+      console.error("[profileStats] percentile query failed:", err.message);
+    }
 
     const battle = battleRow.rows[0];
     const streak = streakRow.rows[0];
@@ -110,10 +126,10 @@ async function getProfileStats(req, res, next) {
     return sendSuccess(res, {
       data: {
         user: {
-          name: user?.name, username: user?.username, bio: user?.bio, location: user?.location,
-          avatar_url: user?.avatar_url, target_band: user?.target_band ? Number(user.target_band) : null,
-          estimated_band: user?.estimated_band ? Number(user.estimated_band) : null,
-          band_history: user?.band_history || [], is_pro: user?.is_pro, joined_at: user?.created_at,
+          name: user.name, username: user.username, bio: user.bio, location: user.location,
+          avatar_url: user.avatar_url, target_band: user.target_band ? Number(user.target_band) : null,
+          estimated_band: user.estimated_band ? Number(user.estimated_band) : null,
+          band_history: user.band_history || [], is_pro: user.is_pro, joined_at: user.created_at,
         },
         gamification: {
           totalXp, level,
