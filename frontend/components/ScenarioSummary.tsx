@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import FeedbackSheet from "@/components/FeedbackSheet";
-import type { EndSessionResult, CriteriaFeedback } from "@/lib/types";
+import type { EndSessionResult, CriteriaFeedback, FeedbackCard } from "@/lib/types";
 
 interface ScenarioSummaryProps {
   result: EndSessionResult;
@@ -341,6 +341,82 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
               ))}
             </div>
           </div>
+        )}
+
+        {/* Feedback Cards — evidence-based issue/strength cards */}
+        {result.feedbackCards && result.feedbackCards.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <div className="text-xs font-bold" style={{ color: "var(--color-primary)" }}>
+              Key Feedback
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 md:grid md:grid-cols-2 md:overflow-visible">
+              {result.feedbackCards.map((card: FeedbackCard, i: number) => {
+                const cfg: Record<string, { border: string; bg: string; icon: string }> = {
+                  grammar_error:   { border: "#EF4444", bg: "rgba(239,68,68,0.06)", icon: "G" },
+                  vocab_repetition:{ border: "#F59E0B", bg: "rgba(245,158,11,0.06)", icon: "V" },
+                  fluency_pause:   { border: "#F97316", bg: "rgba(249,115,22,0.06)", icon: "F" },
+                  strength:        { border: "#22C55E", bg: "rgba(34,197,94,0.06)", icon: "+" },
+                  pronunciation:   { border: "#3B82F6", bg: "rgba(59,130,246,0.06)", icon: "P" },
+                };
+                const c = cfg[card.type] || cfg.grammar_error;
+                return (
+                  <div key={i} className="rounded-lg p-4 min-w-[280px] md:min-w-0 shrink-0"
+                    style={{ background: c.bg, borderLeft: `4px solid ${c.border}` }}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{ background: `${c.border}20`, color: c.border }}>{c.icon}</span>
+                      <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{card.title}</span>
+                    </div>
+                    <p className="text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>{card.impact}</p>
+                    {card.fix.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {card.fix.map((f, j) => (
+                          <span key={j} className="px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{ background: `${c.border}12`, color: c.border }}>{f}</span>
+                        ))}
+                      </div>
+                    )}
+                    {card.example && (
+                      <p className="text-xs italic" style={{ color: "var(--color-text-secondary)" }}>{card.example}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Top 3 Priorities */}
+        {result.top3Priorities && result.top3Priorities.length > 0 && (
+          <div className="rounded-lg p-5" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+            <div className="text-xs font-bold mb-3" style={{ color: "var(--color-primary)" }}>
+              Top Priorities to Improve
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {result.top3Priorities.map((p, i) => (
+                <div key={i} className="flex gap-2.5 items-start">
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                    style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>{i + 1}</span>
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>{p}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sample Band 8 Answer */}
+        {result.sampleBand8Answer && (
+          <details className="rounded-lg overflow-hidden" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+            <summary className="px-5 py-4 cursor-pointer text-sm font-semibold flex items-center justify-between"
+              style={{ color: "var(--color-text)" }}>
+              <span>Sample Band 8.0 Answer</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                style={{ color: "var(--color-text-tertiary)" }}><polyline points="6 9 12 15 18 9" /></svg>
+            </summary>
+            <div className="px-5 pb-4 text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)", borderTop: "1px solid var(--color-border)" }}>
+              <p className="pt-3">{result.sampleBand8Answer}</p>
+            </div>
+          </details>
         )}
 
         {/* Done button */}

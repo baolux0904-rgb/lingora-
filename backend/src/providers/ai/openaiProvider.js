@@ -262,12 +262,34 @@ IELTS BAND DESCRIPTOR MAPPING (0-100 scale):
 - Score based on written evidence: natural contractions ("I'd", "it's"), phrasal verbs, idiomatic phrasing, natural word order.
   Higher = natural English rhythm. Lower = awkward/non-native phrasing patterns.
 
+ADDITIONAL ANALYSIS FIELDS (include in your JSON output):
+
+"feedback_cards": [max 5 cards, each card is the most impactful issue or strength]:
+  { "type": "grammar_error|vocab_repetition|fluency_pause|strength|pronunciation",
+    "title": "<concise issue title, e.g. 'Repeated very 4 times'>",
+    "impact": "<how this affects IELTS band, e.g. 'Limits Lexical Resource — band capped at 6.0'>",
+    "fix": ["<alternative word/phrase 1>", "<alternative 2>", "<alternative 3>"],
+    "example": "<specific corrected sentence using candidate's own words>" }
+  - Always include at least 1 card with type "strength".
+  - Cite the candidate's EXACT words in each card.
+
+"sample_band8_answer": "<A model Band 8.0 response to the SAME question the candidate answered in Part 2 or the most substantial question. Max 150 words. Natural, fluent, with advanced vocabulary and complex grammar.>"
+
+"session_strengths": ["<specific strength 1, citing their words>", "<strength 2>"]
+
+"top_3_priorities": [
+  "<Most important action to improve band, specific and actionable>",
+  "<Second priority>",
+  "<Third priority>"
+]
+
 EVIDENCE REQUIREMENT (CRITICAL):
 - criteriaFeedback MUST cite specific examples from the candidate's actual responses. Quote their words.
 - coachFeedback MUST reference what the candidate actually said, not generic advice.
 - turnFeedback tips MUST reference the specific content of each turn.
+- feedback_cards MUST quote the candidate's exact words and provide concrete alternatives.
 - notableVocabulary: 3-8 genuinely strong words/phrases/collocations the candidate used. NOT basic words.
-- improvementVocabulary: 2-5 words/phrases that were weak, overused, or incorrect. Examples: overusing "very", misusing a collocation, etc.
+- improvementVocabulary: 2-5 words/phrases that were weak, overused, or incorrect.
 
 PART WEIGHTING (CRITICAL):
 - User messages are tagged with part labels like [Part 1, Q2], [Part 2 — Long Turn], [Part 3, Q1].
@@ -324,7 +346,7 @@ Scenario context: ${systemPrompt}`;
       openai.chat.completions.create({
         model: _model,
         messages,
-        max_tokens: 800,
+        max_tokens: 1500,
         temperature: 0.3,
         response_format: { type: "json_object" },
       })

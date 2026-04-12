@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import FeedbackSheet from "@/components/FeedbackSheet";
-import type { WritingSubmission, WritingFeedback } from "@/lib/types";
+import type { WritingSubmission, WritingFeedback, WritingFeedbackCard, ParagraphAnalysis } from "@/lib/types";
 
 interface WritingResultProps {
   submission: WritingSubmission;
@@ -142,6 +142,24 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
         </div>
       </div>
 
+      {/* Word Count Analysis */}
+      {feedback.word_count_feedback && (
+        <div className="rounded-lg px-4 py-3 flex items-center gap-3" style={{
+          background: feedback.word_count_feedback.status === "good" ? "rgba(34,197,94,0.06)" : "rgba(245,158,11,0.06)",
+          border: `1px solid ${feedback.word_count_feedback.status === "good" ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.15)"}`,
+        }}>
+          <span className="text-base">{feedback.word_count_feedback.status === "good" ? "✅" : "⚠️"}</span>
+          <div>
+            <div className="text-sm font-medium" style={{ color: "var(--color-text)" }}>
+              {feedback.word_count_feedback.actual} words
+            </div>
+            <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+              {feedback.word_count_feedback.comment}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 4 Criteria Cards */}
       <div className="flex flex-col gap-3">
         <CriteriaCard
@@ -258,34 +276,105 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
         </div>
       )}
 
+      {/* Feedback Cards */}
+      {feedback.feedback_cards && feedback.feedback_cards.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Key Feedback</div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 md:grid md:grid-cols-2 md:overflow-visible">
+            {feedback.feedback_cards.map((card: WritingFeedbackCard, i: number) => {
+              const cfg: Record<string, { border: string; bg: string; icon: string }> = {
+                grammar_error:    { border: "#EF4444", bg: "rgba(239,68,68,0.06)", icon: "G" },
+                vocab_repetition: { border: "#F59E0B", bg: "rgba(245,158,11,0.06)", icon: "V" },
+                coherence:        { border: "#F97316", bg: "rgba(249,115,22,0.06)", icon: "C" },
+                task_achievement: { border: "#3B82F6", bg: "rgba(59,130,246,0.06)", icon: "T" },
+                strength:         { border: "#22C55E", bg: "rgba(34,197,94,0.06)", icon: "+" },
+              };
+              const c = cfg[card.type] || cfg.grammar_error;
+              return (
+                <div key={i} className="rounded-lg p-4 min-w-[280px] md:min-w-0 shrink-0"
+                  style={{ background: c.bg, borderLeft: `4px solid ${c.border}`, animationDelay: `${i * 100}ms` }}>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ background: `${c.border}20`, color: c.border }}>{c.icon}</span>
+                    <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{card.title}</span>
+                  </div>
+                  <p className="text-xs mb-2" style={{ color: "var(--color-text-secondary)" }}>{card.impact}</p>
+                  {card.fix.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {card.fix.map((f, j) => (
+                        <span key={j} className="px-2 py-0.5 rounded-full text-xs font-medium"
+                          style={{ background: `${c.border}12`, color: c.border }}>{f}</span>
+                      ))}
+                    </div>
+                  )}
+                  {card.example && (
+                    <p className="text-xs italic" style={{ color: "var(--color-text-secondary)" }}>{card.example}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Paragraph Analysis */}
+      {feedback.paragraph_analysis && feedback.paragraph_analysis.length > 0 && (
+        <div className="rounded-lg p-4 flex flex-col gap-2.5"
+          style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+          <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Paragraph Breakdown</div>
+          {feedback.paragraph_analysis.map((p: ParagraphAnalysis) => {
+            const scoreCfg = { strong: { icon: "✅", color: "#22C55E" }, adequate: { icon: "⚠️", color: "#F59E0B" }, weak: { icon: "❌", color: "#EF4444" } };
+            const sc = scoreCfg[p.score] || scoreCfg.adequate;
+            return (
+              <div key={p.paragraph_number} className="flex items-start gap-3 py-2"
+                style={{ borderTop: p.paragraph_number > 1 ? "1px solid var(--color-border)" : "none" }}>
+                <span className="text-sm shrink-0 pt-0.5">{sc.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-sm font-medium capitalize" style={{ color: "var(--color-text)" }}>{p.type}</span>
+                    <span className="text-xs font-medium capitalize" style={{ color: sc.color }}>{p.score}</span>
+                  </div>
+                  <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{p.feedback}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Sample Essay (collapsible) */}
       {feedback.sample_essay && (
-        <div
-          className="rounded-lg overflow-hidden"
-          style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-        >
-          <button
-            onClick={() => setShowSample(!showSample)}
-            className="w-full flex items-center justify-between p-4 text-sm font-semibold"
-            style={{ color: "var(--color-text)" }}
-          >
-            <span>Sample Essay (Band 7.5+)</span>
-            <svg
-              width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-              style={{ transform: showSample ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 200ms" }}
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-          {showSample && (
-            <div
-              className="px-4 pb-4 text-sm leading-relaxed whitespace-pre-wrap"
-              style={{ color: "var(--color-text-secondary)" }}
-            >
+        <details className="rounded-lg overflow-hidden" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+          <summary className="px-4 py-4 cursor-pointer text-sm font-semibold flex items-center justify-between" style={{ color: "var(--color-text)" }}>
+            <span>Band 7.5+ Model Answer</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              style={{ color: "var(--color-text-tertiary)" }}><polyline points="6 9 12 15 18 9" /></svg>
+          </summary>
+          <div className="px-4 pb-4" style={{ borderTop: "1px solid var(--color-border)" }}>
+            <p className="text-xs mb-2 pt-3" style={{ color: "#00A896" }}>
+              Notice: specific examples, varied vocabulary, clear structure
+            </p>
+            <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--color-text-secondary)" }}>
               {feedback.sample_essay}
             </div>
-          )}
+          </div>
+        </details>
+      )}
+
+      {/* Top 3 Priorities */}
+      {feedback.top_3_priorities && feedback.top_3_priorities.length > 0 && (
+        <div className="rounded-lg p-4 flex flex-col gap-2.5"
+          style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+          <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
+            Your Focus for Next Essay
+          </div>
+          {feedback.top_3_priorities.map((p, i) => (
+            <div key={i} className="flex gap-2.5 items-start">
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>{i + 1}</span>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>{p}</p>
+            </div>
+          ))}
         </div>
       )}
 

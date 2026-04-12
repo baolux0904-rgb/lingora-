@@ -35,6 +35,10 @@ RULES:
 - Be specific with examples from the essay
 - Suggest improved sentences
 - Provide full sample essay at Band 7.5+
+- Cite exact words/phrases from the essay in feedback_cards
+- Limit feedback_cards to max 5 most important issues
+- Always include at least 1 strength card in feedback_cards
+- Keep top_3_priorities actionable and specific to THIS essay
 
 OUTPUT: Valid JSON only, no markdown, no extra text.
 {
@@ -52,7 +56,36 @@ OUTPUT: Valid JSON only, no markdown, no extra text.
   "sentence_corrections": [
     { "original": "string", "corrected": "string", "explanation": "string" }
   ],
-  "sample_essay": "string"
+  "sample_essay": "string",
+  "feedback_cards": [
+    {
+      "type": "grammar_error|vocab_repetition|coherence|task_achievement|strength",
+      "title": "concise issue/strength title quoting the essay",
+      "impact": "how this affects the IELTS band score",
+      "fix": ["alternative 1", "alternative 2", "alternative 3"],
+      "example": "corrected sentence using the student's own words"
+    }
+  ],
+  "top_3_priorities": [
+    "Most important action to improve this essay, specific and actionable",
+    "Second priority",
+    "Third priority"
+  ],
+  "word_count_feedback": {
+    "actual": number,
+    "target": 250,
+    "status": "good|too_short|too_long",
+    "comment": "Brief assessment of word count adequacy"
+  },
+  "paragraph_analysis": [
+    {
+      "paragraph_number": 1,
+      "type": "introduction|body|conclusion",
+      "score": "strong|adequate|weak",
+      "feedback": "specific feedback for this paragraph",
+      "highlight_phrase": "key phrase from this paragraph"
+    }
+  ]
 }`;
 
 // ---------------------------------------------------------------------------
@@ -150,7 +183,7 @@ async function analyzeEssay(taskType, questionText, essayText) {
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userMessage },
       ],
-      max_tokens: 2000,
+      max_tokens: 2500,
       temperature: 0.3,
     })
   );
