@@ -198,7 +198,14 @@ export default function BattleTab() {
                 </div>
               </div>
             </div>
-          ) : null}
+          ) : (
+            <div className="rounded-2xl p-5 text-center"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="text-3xl mb-2">⚔️</div>
+              <p className="text-sm font-medium mb-1" style={{ color: "var(--color-text)" }}>No rank yet</p>
+              <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Play your first match to earn a rank</p>
+            </div>
+          )}
 
           {/* Win streak + last match (desktop only) */}
           <div className="hidden lg:flex flex-col gap-3">
@@ -361,7 +368,11 @@ export default function BattleTab() {
         {/* ── RIGHT COLUMN: Leaderboard + Season ── */}
         <div className="flex flex-col gap-4 order-3">
           {/* Live leaderboard */}
-          {data && data.leaderboardPreview.length > 0 && (
+          {loading ? (
+            <div className="rounded-2xl p-4" style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <Skeleton.List count={5} />
+            </div>
+          ) : data && data.leaderboardPreview.length > 0 ? (
             <div
               className="rounded-2xl p-4 relative overflow-hidden"
               style={{
@@ -410,6 +421,12 @@ export default function BattleTab() {
                   );
                 })}
               </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl p-4 text-center"
+              style={{ backgroundColor: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="text-3xl mb-2">🏆</div>
+              <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Play matches to see the leaderboard</p>
             </div>
           )}
 

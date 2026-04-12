@@ -133,12 +133,22 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
   const [showEdit, setShowEdit] = useState(false);
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const loadStats = useCallback(async () => {
     if (!user) return;
     setStatsLoading(true);
-    try { setStats(await getProfileStats()); } catch { /* silent */ }
+    setStatsError(false);
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3000);
+      const result = await getProfileStats();
+      clearTimeout(timeout);
+      setStats(result);
+    } catch {
+      setStatsError(true);
+    }
     setStatsLoading(false);
   }, [user]);
 
@@ -176,8 +186,29 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
     );
   }
 
-  if (statsLoading || !stats) {
+  if (statsLoading) {
     return <Skeleton.Profile />;
+  }
+
+  if (statsError || !stats) {
+    return (
+      <div className="flex flex-col items-center gap-4 py-16">
+        <div className="text-4xl">😕</div>
+        <h3 className="text-base font-display font-bold" style={{ color: "var(--color-text)" }}>
+          Couldn&apos;t load profile
+        </h3>
+        <p className="text-sm text-center max-w-xs" style={{ color: "var(--color-text-secondary)" }}>
+          There was a problem fetching your profile data. Check your connection and try again.
+        </p>
+        <button
+          onClick={loadStats}
+          className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-[0.97]"
+          style={{ background: "#00A896", color: "#fff" }}
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   const { user: u, gamification: g, battle, speaking, writing, social, leaderboard: lb } = stats;

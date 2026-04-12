@@ -258,7 +258,7 @@ function AppHomeContent() {
           )}
           {contentTab === "exam" && (
             <div className="animate-fadeSlideUp">
-              <ExamScreen onStartIelts={(scenario) => setIeltsScenario(scenario)} onStartWriting={() => setWritingActive(true)} onStartReading={() => setReadingActive(true)} />
+              <ExamScreen onStartIelts={(scenario) => setIeltsScenario(scenario)} onStartWriting={() => setWritingActive(true)} onStartReading={() => setReadingActive(true)} onScenarioSelect={handleScenarioSelect} />
             </div>
           )}
           {contentTab === "grammar" && (

@@ -367,7 +367,13 @@ function ChatWindow({ conversation, onBack }: { conversation: Conversation; onBa
 // Main ChatTab
 // ---------------------------------------------------------------------------
 
-export default function ChatTab() {
+interface ChatTabProps {
+  /** When provided, renders ChatWindow directly (desktop embed from FriendsTab) */
+  externalConversation?: Conversation | null;
+  onBack?: () => void;
+}
+
+export default function ChatTab({ externalConversation, onBack }: ChatTabProps = {}) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
@@ -393,6 +399,11 @@ export default function ChatTab() {
     }, 10000);
     return () => clearInterval(poll);
   }, []);
+
+  // External conversation mode — render ChatWindow directly
+  if (externalConversation) {
+    return <ChatWindow conversation={externalConversation} onBack={onBack || (() => {})} />;
+  }
 
   const activeId = activeConversation?.friend_id ?? null;
 

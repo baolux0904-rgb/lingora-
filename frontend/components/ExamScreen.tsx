@@ -6,16 +6,20 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { IconMic, IconHeadphones, IconOpenBook, IconPen } from "./Icons";
 import Badge from "@/components/ui/Badge";
 import { getScenarios } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type { Scenario } from "@/lib/types";
 
+const ScenarioList = dynamic(() => import("./ScenarioList"), { ssr: false });
+
 interface ExamScreenProps {
   onStartIelts: (scenario: Scenario) => void;
   onStartWriting: () => void;
   onStartReading: () => void;
+  onScenarioSelect?: (scenario: Scenario) => void;
 }
 
 interface ExamModule {
@@ -67,7 +71,7 @@ const EXAM_MODULES: ExamModule[] = [
   },
 ];
 
-export default function ExamScreen({ onStartIelts, onStartWriting, onStartReading }: ExamScreenProps) {
+export default function ExamScreen({ onStartIelts, onStartWriting, onStartReading, onScenarioSelect }: ExamScreenProps) {
   const router = useRouter();
   const isAuthenticated = useAuthStore((s) => !!s.user);
   const authReady = !useAuthStore((s) => s.isLoading);
@@ -199,6 +203,17 @@ export default function ExamScreen({ onStartIelts, onStartWriting, onStartReadin
           </button>
         );
       })}
+
+      {/* Conversation Scenarios */}
+      {onScenarioSelect && (
+        <div>
+          <div className="text-xs font-bold uppercase tracking-[1.5px] mb-3"
+            style={{ color: "var(--color-text-tertiary)", letterSpacing: "1.5px" }}>
+            Conversation Practice
+          </div>
+          <ScenarioList onSelect={onScenarioSelect} excludeExam />
+        </div>
+      )}
 
       {/* Coming soon modules */}
       <div>
