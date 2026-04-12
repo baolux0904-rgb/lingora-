@@ -7,6 +7,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { getWritingHistory } from "@/lib/api";
+import Skeleton from "@/components/ui/Skeleton";
 import type { WritingSubmissionSummary } from "@/lib/types";
 
 interface WritingHistoryProps {
@@ -52,12 +53,7 @@ export default function WritingHistory({ onSelect }: WritingHistoryProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div
-          className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }}
-        />
-      </div>
+      <Skeleton.List count={3} />
     );
   }
 

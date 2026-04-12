@@ -10,6 +10,7 @@ import {
   acceptRoomInvite, leaveStudyRoom, createRoomNote, sendRoomNudge,
   getFriends,
 } from "@/lib/api";
+import Skeleton from "@/components/ui/Skeleton";
 import type { StudyRoom, StudyRoomDashboard, StudyRoomMember, Friend } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
@@ -326,9 +327,7 @@ export default function StudyRoomTab() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
-        </div>
+        <Skeleton.List count={3} />
       ) : rooms.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-3xl mb-3">📚</div>

@@ -10,6 +10,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { getBattleHome } from "@/lib/api";
+import Skeleton from "@/components/ui/Skeleton";
 import type { BattleHome, BattleRankTier } from "@/lib/types";
 
 const BattleQueue = dynamic(() => import("./BattleQueue"), { ssr: false });
@@ -109,9 +110,7 @@ export default function BattleTab() {
 
       {/* Rank Card */}
       {loading ? (
-        <div className="flex justify-center py-8">
-          <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
-        </div>
+        <Skeleton.RankCard />
       ) : profile ? (
         <div
           className="rounded-xl p-5 text-center"

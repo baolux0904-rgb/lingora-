@@ -7,6 +7,7 @@
 import { useState, useEffect } from "react";
 import { getBattleLeaderboard } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
+import Skeleton from "@/components/ui/Skeleton";
 import type { BattleLeaderboardEntry, BattleRankTier } from "@/lib/types";
 
 interface BattleLeaderboardProps {
@@ -59,9 +60,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
-          </div>
+          <div className="max-w-2xl mx-auto"><Skeleton.Leaderboard /></div>
         ) : entries.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-3xl mb-3">⚔️</div>

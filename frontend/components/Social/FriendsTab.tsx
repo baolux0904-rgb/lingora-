@@ -24,11 +24,13 @@ import {
   getQrToken,
 } from "@/lib/api";
 import type { Friend, FriendRequest, SocialProfile } from "@/lib/types";
+import Skeleton from "@/components/ui/Skeleton";
 
 import dynamic from "next/dynamic";
 const StudyRoomTab = dynamic(() => import("./StudyRoomTab"), { ssr: false });
+const ChatTab = dynamic(() => import("./ChatTab"), { ssr: false });
 
-type SubTab = "friends" | "requests" | "add" | "rooms";
+type SubTab = "chat" | "friends" | "requests" | "add" | "rooms";
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -83,11 +85,7 @@ function FriendsList() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
-      </div>
-    );
+    return <Skeleton.List count={4} />;
   }
 
   if (friends.length === 0) {
@@ -192,11 +190,7 @@ function RequestsList() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center py-8">
-        <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
-      </div>
-    );
+    return <Skeleton.List count={3} />;
   }
 
   return (
@@ -481,6 +475,7 @@ function AddFriend() {
 // ---------------------------------------------------------------------------
 
 const SUB_TABS: { id: SubTab; label: string }[] = [
+  { id: "chat", label: "Chat" },
   { id: "friends", label: "Friends" },
   { id: "requests", label: "Requests" },
   { id: "add", label: "Add" },
@@ -488,7 +483,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
 ];
 
 export default function FriendsTab() {
-  const [subTab, setSubTab] = useState<SubTab>("friends");
+  const [subTab, setSubTab] = useState<SubTab>("chat");
 
   return (
     <div className="flex flex-col gap-5">
@@ -521,6 +516,7 @@ export default function FriendsTab() {
         ))}
       </div>
 
+      {subTab === "chat" && <ChatTab />}
       {subTab === "friends" && <FriendsList />}
       {subTab === "requests" && <RequestsList />}
       {subTab === "add" && <AddFriend />}
