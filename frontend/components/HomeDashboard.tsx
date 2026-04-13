@@ -15,6 +15,7 @@ import { useState, useEffect, useCallback } from "react";
 import { IconMic, IconPen, IconOpenBook, IconBook, IconSwords, IconFire } from "./Icons";
 import Skeleton from "@/components/ui/Skeleton";
 import DailyMissionPanel from "@/components/DailyMissions/DailyMissionPanel";
+import StreakWarningBanner from "@/components/StreakWarningBanner";
 import { getBattleHome, getFriends } from "@/lib/api";
 import type {
   GamificationData,
@@ -245,6 +246,9 @@ export default function HomeDashboard({
           </div>
         </div>
       </div>
+
+      {/* Streak warning — inline banner */}
+      <StreakWarningBanner streak={streak} onNavigate={onNavigate} />
 
       {/* ══════════════════════════════════════════════════════════════════════
           MIDDLE ROW — Quick Actions | Battle | Friends

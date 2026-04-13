@@ -5,13 +5,13 @@
  *
  * Place this once at the app level (inside RewardProvider).
  * It reads the current event from RewardContext and renders
- * XPToast, BadgeToast, or delegates to LevelUpModal.
+ * XPToast, BadgeToast, or LevelUpOverlay.
  */
 
 import { useReward } from "@/contexts/RewardContext";
 import XPToast from "./XPToast";
 import BadgeToast from "./BadgeToast";
-import LevelUpModal from "@/components/LevelUpModal";
+import LevelUpOverlay from "./LevelUpOverlay";
 
 export default function RewardOverlay() {
   const { activeEvent, dismiss } = useReward();
@@ -24,7 +24,7 @@ export default function RewardOverlay() {
     case "badge_unlock":
       return <BadgeToast event={activeEvent} onDone={dismiss} />;
     case "level_up":
-      return <LevelUpModal level={activeEvent.newLevel} onClose={dismiss} />;
+      return <LevelUpOverlay event={activeEvent} onDone={dismiss} />;
     default:
       return null;
   }
