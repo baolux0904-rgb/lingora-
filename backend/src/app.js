@@ -53,6 +53,13 @@ function createApp() {
   app.use(cookieParser());   // populates req.cookies — needed for refresh token
 
   // -------------------------------------------------------------------------
+  // Passport (Google OAuth — stateless, no sessions)
+  // -------------------------------------------------------------------------
+  const { configurePassport, passport: pp } = require("./config/passport");
+  configurePassport();
+  app.use(pp.initialize());
+
+  // -------------------------------------------------------------------------
   // Logging
   // -------------------------------------------------------------------------
   if (process.env.NODE_ENV !== "test") {
@@ -127,6 +134,9 @@ function createApp() {
 
   // IELTS Battle: 1v1 async reading battles with ranked matchmaking
   app.use("/api/v1/battle", require("./routes/battleRoutes"));
+
+  // Admin (promo emails, announcements)
+  app.use("/api/v1/admin", require("./routes/adminRoutes"));
 
   // ── Battle match expiry job (every 5 minutes) ──
   const { expireOverdueMatches } = require("./services/battleService");

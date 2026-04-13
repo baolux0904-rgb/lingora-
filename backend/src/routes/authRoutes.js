@@ -51,4 +51,62 @@ router.post("/refresh",  authController.refresh);
 /** Revoke the refresh token and clear the cookie */
 router.post("/logout",   authController.logout);
 
+// ─── Google OAuth ────────────────────────────────────────────────────────────
+
+const { passport } = require("../config/passport");
+const authService = require("../services/authService");
+const config = require("../config");
+
+const REFRESH_COOKIE_NAME = "lingora_refresh";
+
+/**
+ * GET /api/v1/auth/google — redirect to Google consent screen.
+ * Only registered if GOOGLE_CLIENT_ID is set.
+ */
+if (process.env.GOOGLE_CLIENT_ID) {
+  router.get("/google", passport.authenticate("google", {
+    session: false,
+    scope: ["profile", "email"],
+  }));
+
+  /**
+   * GET /api/v1/auth/google/callback — handle Google redirect.
+   * Issues JWT + refresh cookie, then redirects to frontend callback page.
+   */
+  router.get("/google/callback",
+    passport.authenticate("google", { session: false, failureRedirect: "/login?error=google_failed" }),
+    async (req, res, next) => {
+      try {
+        const profile = req.user;
+        const email = profile.emails?.[0]?.value;
+        const name = profile.displayName || "User";
+        const googleId = profile.id;
+        const avatarUrl = profile.photos?.[0]?.value || null;
+
+        if (!email) {
+          return res.redirect("/login?error=no_email");
+        }
+
+        const result = await authService.googleAuth({ googleId, email, name, avatarUrl });
+
+        // Set refresh cookie (same as login)
+        res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, {
+          httpOnly: true,
+          secure: config.cookie.secure,
+          sameSite: config.cookie.sameSite,
+          path: config.cookie.path,
+          expires: result.refreshExpiresAt,
+        });
+
+        // Redirect to frontend callback with access token in URL
+        const frontendUrl = process.env.FRONTEND_URL || "https://lingona.app";
+        const callbackUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(result.accessToken)}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+        res.redirect(callbackUrl);
+      } catch (err) {
+        next(err);
+      }
+    }
+  );
+}
+
 module.exports = router;

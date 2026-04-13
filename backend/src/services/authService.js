@@ -293,9 +293,67 @@ async function logout(rawToken) {
   await authRepository.revokeRefreshToken(tokenHash);
 }
 
+/**
+ * Authenticate via Google OAuth.
+ *
+ * Find user by google_id. If not found, find by email. If still not found,
+ * create a new user (no password). Link google_id in all cases.
+ *
+ * @param {{ googleId: string, email: string, name: string, avatarUrl?: string }} params
+ * @returns {Promise<{ user: object, accessToken: string, refreshToken: string, refreshExpiresAt: Date }>}
+ */
+async function googleAuth({ googleId, email, name, avatarUrl }) {
+  const db = require("../config/db");
+
+  // 1. Try to find by google_id
+  let userRow;
+  const byGoogleId = await db.query(
+    `SELECT * FROM users WHERE google_id = $1 AND deleted_at IS NULL`, [googleId]
+  );
+  userRow = byGoogleId.rows[0];
+
+  if (!userRow) {
+    // 2. Try to find by email (link existing account)
+    userRow = await authRepository.findByEmail(email);
+
+    if (userRow) {
+      // Link google_id to existing account
+      await db.query(`UPDATE users SET google_id = $1, updated_at = now() WHERE id = $2`, [googleId, userRow.id]);
+    } else {
+      // 3. Create new user (no password)
+      const { rows } = await db.query(
+        `INSERT INTO users (email, name, google_id, avatar_url, role)
+         VALUES ($1, $2, $3, $4, 'kid')
+         RETURNING id, email, name, role, avatar_url, created_at`,
+        [email, name, googleId, avatarUrl || null]
+      );
+      userRow = rows[0];
+    }
+  }
+
+  // 4. Issue tokens (same as login)
+  const accessToken = generateAccessToken(userRow);
+  const refreshData = generateRefreshToken();
+
+  await authRepository.storeRefreshToken({
+    userId: userRow.id,
+    tokenHash: refreshData.hash,
+    family: refreshData.family,
+    expiresAt: refreshData.expiresAt,
+  });
+
+  return {
+    user: formatUser(userRow),
+    accessToken,
+    refreshToken: refreshData.token,
+    refreshExpiresAt: refreshData.expiresAt,
+  };
+}
+
 module.exports = {
   register,
   login,
   refreshTokens,
   logout,
+  googleAuth,
 };

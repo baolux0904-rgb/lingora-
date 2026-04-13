@@ -133,6 +133,10 @@ async function register(req, res, next) {
       refreshCookieOptions(result.refreshExpiresAt)
     );
 
+    // Send welcome email (non-blocking — never fails the registration)
+    const { sendWelcomeEmail } = require("../services/emailService");
+    sendWelcomeEmail(result.user).catch(() => {});
+
     return sendSuccess(res, {
       status:  201,
       message: "Account created successfully.",
