@@ -14,6 +14,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { IconMic, IconPen, IconOpenBook, IconBook, IconSwords, IconFire } from "./Icons";
 import Skeleton from "@/components/ui/Skeleton";
+import DailyMissionPanel from "@/components/DailyMissions/DailyMissionPanel";
 import { getBattleHome, getFriends } from "@/lib/api";
 import type {
   GamificationData,
@@ -268,11 +269,11 @@ export default function HomeDashboard({
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          BOTTOM ROW — XP Chart | Recent Badges
+          BOTTOM ROW — XP Chart | Daily Missions
          ══════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-5">
         <WeeklyXpChart xp={xp} />
-        <RecentBadges badges={badges} />
+        <DailyMissionPanel gamification={gamification} />
       </div>
     </div>
   );

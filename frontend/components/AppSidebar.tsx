@@ -225,11 +225,11 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
           </span>
         </div>
 
-        {/* XP bar */}
+        {/* XP bar — easeOutCubic animated fill */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>
-              Level {xp?.level ?? 1}
+            <span className="text-xs font-bold" style={{ color: "var(--color-text-secondary)" }}>
+              Lv {xp?.level ?? 1}
             </span>
             <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
               {xp?.xpInLevel ?? 0} / {xp?.xpToNextLevel ?? 100} XP
@@ -240,7 +240,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
             style={{ backgroundColor: "var(--sidebar-xp-track)" }}
           >
             <div
-              className="h-full rounded-full animate-xp-fill"
+              className="h-full rounded-full xp-bar-animated"
               style={{
                 width: `${xpPercent}%`,
                 background: "var(--sidebar-xp-fill)",

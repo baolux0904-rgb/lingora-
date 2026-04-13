@@ -7,6 +7,8 @@ import AppShell from "@/components/AppShell";
 import Topbar from "@/components/Topbar";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import HomeDashboard from "@/components/HomeDashboard";
+import { RewardProvider } from "@/contexts/RewardContext";
+import RewardOverlay from "@/components/Rewards/RewardOverlay";
 
 const GrammarTab = dynamic(() => import("@/components/Grammar").then(m => ({ default: m.GrammarTab })), { ssr: false });
 const ScenarioConversation = dynamic(() => import("@/components/ScenarioConversation"), { ssr: false });
@@ -33,9 +35,12 @@ import type { Scenario, FocusRecommendation, BattleRankTier } from "@/lib/types"
 
 export default function AppHomePage() {
   return (
-    <Suspense>
-      <AppHomeContent />
-    </Suspense>
+    <RewardProvider>
+      <Suspense>
+        <AppHomeContent />
+      </Suspense>
+      <RewardOverlay />
+    </RewardProvider>
   );
 }
 
