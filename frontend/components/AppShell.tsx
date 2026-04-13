@@ -12,6 +12,8 @@ interface AppShellProps {
   gamification: GamificationData | null;
   rankTier?: BattleRankTier;
   userName?: string;
+  /** Fallback streak when gamification hasn't loaded */
+  displayStreak?: number;
   /** Hide navigation entirely (used during overlays like grammar, onboarding) */
   hideNav?: boolean;
 }
@@ -37,6 +39,7 @@ export default function AppShell({
   gamification,
   rankTier,
   userName,
+  displayStreak,
   hideNav = false,
 }: AppShellProps) {
   const isDesktop = useIsDesktop();
@@ -51,6 +54,7 @@ export default function AppShell({
           gamification={gamification}
           rankTier={rankTier}
           userName={userName}
+          displayStreak={displayStreak}
         />
       )}
 

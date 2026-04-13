@@ -12,7 +12,7 @@
    Typography:  Playfair Display (headings) + DM Sans (body)
    ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Light theme (default) ── */
+/* ── Light theme (default) — Linear/Notion-inspired warm white ── */
 :root {
   /* ── Motion tokens ── */
   --duration-fast: 150ms;
@@ -23,39 +23,50 @@
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* ── Surface tokens ── */
-  --color-bg: #F3F4F6;               /* gray-100 page background */
-  --color-bg-secondary: #E5E7EB;     /* gray-200 input backgrounds */
+  /* ── Surface tokens — warm off-white ── */
+  --color-bg: #F8F7F4;               /* warm off-white page bg */
+  --color-bg-secondary: #F0EFEC;     /* warm gray input backgrounds */
   --color-bg-card: #FFFFFF;           /* white card surface */
-  --color-bg-card-hover: #F9FAFB;    /* gray-50 card hover */
+  --color-bg-card-hover: #FAFAF8;    /* warm white card hover */
   --color-bg-overlay: rgba(15, 30, 51, 0.6); /* navy overlay */
 
-  /* ── Brand tokens — Navy + Teal ── */
-  --color-primary: #1B2B4B;
-  --color-primary-soft: rgba(27, 43, 75, 0.06);
-  --color-primary-glow: rgba(27, 43, 75, 0.12);
+  /* ── Brand tokens ── */
+  --color-primary: #1A1A1A;
+  --color-primary-soft: rgba(26, 26, 26, 0.05);
+  --color-primary-glow: rgba(26, 26, 26, 0.08);
   --color-accent: #00A896;
   --color-accent-soft: rgba(0, 168, 150, 0.08);
 
-  /* ── Text tokens ── */
-  --color-text: #1B2B4B;             /* navy — primary text */
-  --color-text-secondary: #4B5563;   /* gray-600 */
-  --color-text-tertiary: #9CA3AF;    /* gray-400 */
+  /* ── Text tokens — high contrast ── */
+  --color-text: #1A1A1A;             /* near-black primary */
+  --color-text-secondary: #666666;   /* medium gray */
+  --color-text-tertiary: #999999;    /* light gray */
 
-  /* ── Border ── */
-  --color-border: #E5E7EB;
-  --color-success: #22C55E;
-  --color-success-soft: rgba(34, 197, 94, 0.10);
-  --color-warning: #F59E0B;
-  --color-warning-soft: rgba(245, 158, 11, 0.10);
-  --color-error: #EF4444;
-  --color-error-soft: rgba(239, 68, 68, 0.10);
+  /* ── Border — warm gray ── */
+  --color-border: #E8E8E4;
+  --color-success: #16A34A;
+  --color-success-soft: rgba(22, 163, 74, 0.08);
+  --color-warning: #D97706;
+  --color-warning-soft: rgba(217, 119, 6, 0.08);
+  --color-error: #DC2626;
+  --color-error-soft: rgba(220, 38, 38, 0.08);
   --color-teal: #00A896;
-  --color-teal-soft: rgba(0, 168, 150, 0.10);
-  --color-text-on-dark: #F3F4F6;
-  --color-text-muted: #6B7280;
-  --color-examiner: #1B2B4B;
-  --color-examiner-soft: rgba(27, 43, 75, 0.06);
+  --color-teal-soft: rgba(0, 168, 150, 0.08);
+  --color-text-on-dark: #F8F7F4;
+  --color-text-muted: #888888;
+  --color-examiner: #1A1A1A;
+  --color-examiner-soft: rgba(26, 26, 26, 0.05);
+
+  /* ── Dashboard card tokens (light) ── */
+  --dash-card-bg: #FFFFFF;
+  --dash-card-border: #E8E8E4;
+  --dash-card-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.02);
+  --dash-hero-bg: linear-gradient(135deg, #FFFFFF 0%, #F0FAFA 100%);
+  --dash-hero-border: #E8E8E4;
+  --dash-hero-text: #1A1A1A;
+  --dash-hero-sub: #666666;
+  --dash-stat-bg: #FFFFFF;
+  --dash-stat-border: #E8E8E4;
 
   /* ── IELTS Exam Room (light) ── */
   --ielts-bg: linear-gradient(160deg, #f5f6fa 0%, #eef0f8 40%, #e8eaf5 70%, #f5f6fa 100%);
@@ -128,6 +139,17 @@
   --color-text-muted: #6B7280;
   --color-examiner: #00C4B0;
   --color-examiner-soft: rgba(0, 196, 176, 0.10);
+
+  /* ── Dashboard card tokens (dark) ── */
+  --dash-card-bg: rgba(255,255,255,0.03);
+  --dash-card-border: rgba(255,255,255,0.06);
+  --dash-card-shadow: none;
+  --dash-hero-bg: linear-gradient(135deg, rgba(27,43,75,0.6) 0%, rgba(15,30,51,0.8) 100%);
+  --dash-hero-border: rgba(255,255,255,0.06);
+  --dash-hero-text: #FFFFFF;
+  --dash-hero-sub: rgba(255,255,255,0.45);
+  --dash-stat-bg: rgba(255,255,255,0.03);
+  --dash-stat-border: rgba(255,255,255,0.06);
 
   /* ── IELTS Exam Room (dark) ── */
   --ielts-bg: linear-gradient(160deg, #0A1325 0%, #0F1E33 40%, #162740 70%, #0A1325 100%);
@@ -871,18 +893,19 @@ body {
    SIDEBAR + APP SHELL — Desktop-First Layout System
    ══════════════════════════════════════════════════════════════════════ */
 
-/* ── Sidebar tokens ── */
+/* ── Sidebar tokens — Light: solid white, no glassmorphism ── */
 :root {
   --sidebar-width: 240px;
-  --sidebar-bg: rgba(255, 255, 255, 0.03);
-  --sidebar-border: rgba(0, 0, 0, 0.06);
-  --sidebar-item-hover: rgba(0, 0, 0, 0.04);
-  --sidebar-item-active-bg: rgba(0, 168, 150, 0.08);
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #E8E8E4;
+  --sidebar-item-hover: rgba(0, 0, 0, 0.03);
+  --sidebar-item-active-bg: #F0FAFA;
   --sidebar-active-indicator: #00A896;
-  --sidebar-xp-track: rgba(0, 0, 0, 0.06);
+  --sidebar-xp-track: #E8E8E4;
   --sidebar-xp-fill: linear-gradient(90deg, #00A896, #00C4B0);
 }
 
+/* ── Sidebar tokens — Dark: glassmorphism ── */
 .dark {
   --sidebar-bg: rgba(255, 255, 255, 0.03);
   --sidebar-border: rgba(255, 255, 255, 0.06);
@@ -898,7 +921,7 @@ body {
   background: linear-gradient(180deg, #0c0f1a 0%, #0a0e1a 40%, #070a12 100%);
 }
 :root .bg-deep-gradient {
-  background: linear-gradient(180deg, #f0f2f5 0%, #e8eaef 40%, #f3f4f6 100%);
+  background: #F8F7F4;
 }
 .dark .bg-deep-gradient {
   background: linear-gradient(180deg, #0c0f1a 0%, #0a0e1a 40%, #070a12 100%);

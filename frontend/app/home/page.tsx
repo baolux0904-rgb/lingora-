@@ -238,6 +238,7 @@ function AppHomeContent() {
       gamification={gamification}
       rankTier={rankTier}
       userName={user.name}
+      displayStreak={displayStreak}
       hideNav={grammarOverlayOpen}
     >
       <div className={`min-h-dvh relative ${bgClass}`}>

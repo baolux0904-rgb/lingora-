@@ -44,9 +44,11 @@ interface AppSidebarProps {
   gamification: GamificationData | null;
   rankTier?: BattleRankTier;
   userName?: string;
+  /** Fallback streak count when gamification data hasn't loaded yet */
+  displayStreak?: number;
 }
 
-export default function AppSidebar({ active, onChange, gamification, rankTier = "iron", userName }: AppSidebarProps) {
+export default function AppSidebar({ active, onChange, gamification, rankTier = "iron", userName, displayStreak }: AppSidebarProps) {
   const { play } = useSound();
   const { shields } = useReward();
   const [learnOpen, setLearnOpen] = useState(
@@ -203,7 +205,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
             </svg>
           </span>
           <span className="text-sm font-bold" style={{ color: "#F59E0B" }}>
-            {streak?.currentStreak ?? 0}
+            {streak?.currentStreak ?? displayStreak ?? 0}
           </span>
           <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
             day streak

@@ -102,9 +102,9 @@ export default function HomeDashboard({
         <div
           className="rounded-2xl p-6 lg:p-8 relative overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, rgba(27,43,75,0.6) 0%, rgba(15,30,51,0.8) 100%)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            backdropFilter: "blur(12px)",
+            background: "var(--dash-hero-bg)",
+            border: "1px solid var(--dash-hero-border)",
+            boxShadow: "var(--dash-card-shadow)",
           }}
         >
           {/* Ambient glow */}
@@ -114,15 +114,15 @@ export default function HomeDashboard({
           />
 
           <div className="relative z-10">
-            <p className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>
+            <p className="text-sm mb-1" style={{ color: "var(--dash-hero-sub)" }}>
               Welcome back
             </p>
-            <h1 className="text-2xl lg:text-3xl font-display font-bold text-white leading-tight">
+            <h1 className="text-2xl lg:text-3xl font-display font-bold leading-tight" style={{ color: "var(--dash-hero-text)" }}>
               {firstName} 👋
             </h1>
 
             {/* Today's progress */}
-            <p className="text-sm mt-2 mb-6" style={{ color: "rgba(255,255,255,0.45)" }}>
+            <p className="text-sm mt-2 mb-6" style={{ color: "var(--dash-hero-sub)" }}>
               {xp ? `${xp.xpInLevel} XP toward Level ${xp.level + 1}` : "Start practicing to earn XP"}
               {streak && streak.currentStreak > 0 && ` · ${streak.currentStreak} day streak`}
             </p>
@@ -174,11 +174,11 @@ export default function HomeDashboard({
           <div
             className="flex-1 rounded-2xl p-4 flex items-center gap-3"
             style={{
-              background: "rgba(255,255,255,0.03)",
+              background: "var(--dash-stat-bg)",
               border: streakUrgent
                 ? "1px solid rgba(245,158,11,0.3)"
-                : "1px solid rgba(255,255,255,0.06)",
-              boxShadow: streakUrgent ? "0 0 16px rgba(245,158,11,0.1)" : "none",
+                : "1px solid var(--dash-stat-border)",
+              boxShadow: streakUrgent ? "0 0 16px rgba(245,158,11,0.1)" : "var(--dash-card-shadow)",
             }}
           >
             <div
@@ -210,8 +210,9 @@ export default function HomeDashboard({
           <div
             className="flex-1 rounded-2xl p-4 flex items-center gap-3"
             style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--dash-stat-bg)",
+              border: "1px solid var(--dash-stat-border)",
+              boxShadow: "var(--dash-card-shadow)",
             }}
           >
             <div
@@ -234,8 +235,9 @@ export default function HomeDashboard({
           <div
             className="flex-1 rounded-2xl p-4 flex items-center gap-3"
             style={{
-              background: "rgba(255,255,255,0.03)",
-              border: "1px solid rgba(255,255,255,0.06)",
+              background: "var(--dash-stat-bg)",
+              border: "1px solid var(--dash-stat-border)",
+              boxShadow: "var(--dash-card-shadow)",
             }}
           >
             <div
@@ -308,8 +310,9 @@ function QuickActions({ onNavigate }: { onNavigate: (tab: string) => void }) {
     <div
       className="rounded-2xl p-5"
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "var(--dash-card-bg)",
+        border: "1px solid var(--dash-card-border)",
+        boxShadow: "var(--dash-card-shadow)",
       }}
     >
       <div className="text-[10px] font-bold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
@@ -426,8 +429,9 @@ function FriendsActivity({
     <div
       className="rounded-2xl p-5 flex flex-col"
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "var(--dash-card-bg)",
+        border: "1px solid var(--dash-card-border)",
+        boxShadow: "var(--dash-card-shadow)",
       }}
     >
       <div className="flex items-center justify-between mb-4">
@@ -522,8 +526,9 @@ function WeeklyXpChart({ xp }: { xp: GamificationData["xp"] | undefined }) {
     <div
       className="rounded-2xl p-5"
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "var(--dash-card-bg)",
+        border: "1px solid var(--dash-card-border)",
+        boxShadow: "var(--dash-card-shadow)",
       }}
     >
       <div className="text-[10px] font-bold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
@@ -595,8 +600,9 @@ function RecentBadges({ badges }: { badges: Badge[] }) {
     <div
       className="rounded-2xl p-5"
       style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid rgba(255,255,255,0.06)",
+        background: "var(--dash-card-bg)",
+        border: "1px solid var(--dash-card-border)",
+        boxShadow: "var(--dash-card-shadow)",
       }}
     >
       <div className="text-[10px] font-bold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
