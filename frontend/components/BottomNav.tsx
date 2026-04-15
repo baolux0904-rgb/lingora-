@@ -9,11 +9,11 @@ interface BottomNavProps {
 }
 
 const NAV_ITEMS = [
-  { id: "home", label: "Home", Icon: IconHome },
-  { id: "exam", label: "Exam", Icon: IconGraduationCap },
-  { id: "battle", label: "Battle", Icon: IconSwords },
-  { id: "social", label: "Friends", Icon: IconUsers },
-  { id: "profile", label: "Profile", Icon: IconUser },
+  { id: "home", label: "Trang chủ", Icon: IconHome },
+  { id: "exam", label: "Thi", Icon: IconGraduationCap },
+  { id: "battle", label: "Đấu", Icon: IconSwords },
+  { id: "social", label: "Bạn bè", Icon: IconUsers },
+  { id: "profile", label: "Hồ sơ", Icon: IconUser },
 ] as const;
 
 export default function BottomNav({ active, onChange }: BottomNavProps) {
