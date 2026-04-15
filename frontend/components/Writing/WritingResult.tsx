@@ -294,7 +294,7 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
                 <div key={i} className="rounded-lg p-4 min-w-[280px] md:min-w-0 shrink-0"
                   style={{ background: c.bg, borderLeft: `4px solid ${c.border}`, animationDelay: `${i * 100}ms` }}>
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold"
                       style={{ background: `${c.border}20`, color: c.border }}>{c.icon}</span>
                     <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{card.title}</span>
                   </div>
@@ -370,7 +370,7 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
           </div>
           {feedback.top_3_priorities.map((p, i) => (
             <div key={i} className="flex gap-2.5 items-start">
-              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                 style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>{i + 1}</span>
               <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>{p}</p>
             </div>

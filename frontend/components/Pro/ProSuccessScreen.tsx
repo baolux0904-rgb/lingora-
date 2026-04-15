@@ -62,7 +62,7 @@ export default function ProSuccessScreen({ isTrial, onContinue }: ProSuccessScre
         </div>
 
         <button onClick={onContinue}
-          className="px-6 py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
+          className="px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
           style={{ background: "linear-gradient(135deg, #8B71EA, #2DD4BF)", color: "#fff", boxShadow: "0 4px 16px rgba(139,113,234,0.25)" }}>
           Bắt đầu luyện tập →
         </button>

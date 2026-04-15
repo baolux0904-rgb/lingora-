@@ -290,7 +290,7 @@ export default function GrammarMatching({
               background: "var(--color-bg-card)",
             }}
           >
-            <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
               {allCorrect ? `✓ Perfect! ${correctCount}/${exercise.pairs.length}` : `${correctCount}/${exercise.pairs.length} correct`} — Summary
             </p>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>

@@ -175,7 +175,7 @@ export default function CompletionScreen({
       {/* Headline — gradient text */}
       <div className="text-center">
         <p
-          className="text-xl font-sora font-bold"
+          className="text-xl font-bold"
           style={{
             background: "linear-gradient(135deg, var(--color-primary), var(--color-accent))",
             WebkitBackgroundClip: "text",
@@ -203,7 +203,7 @@ export default function CompletionScreen({
             opacity: xpAnimated ? 1 : 0,
           }}
         >
-          <span className="text-lg font-sora font-bold" style={{ color: "var(--color-success)" }}>
+          <span className="text-lg font-bold" style={{ color: "var(--color-success)" }}>
             +{xpDisplay} XP
           </span>
           {bestScore >= 100 && (
@@ -277,7 +277,7 @@ export default function CompletionScreen({
                 Daily Goal
               </span>
               <span
-                className="text-xs font-bold"
+                className="text-xs font-semibold"
                 style={{ color: dailyGoalMet ? "var(--color-warning)" : "var(--color-text-secondary)" }}
               >
                 {dailyXp} / {dailyGoal} XP

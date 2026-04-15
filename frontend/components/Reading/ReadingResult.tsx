@@ -52,7 +52,7 @@ export default function ReadingResult({ result, onPracticeAgain, onClose }: Read
               const correct = g.items.filter((r) => r.is_correct).length;
               return (
                 <div key={g.label} className="px-4 py-2 rounded-lg text-center" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-                  <div className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{correct}/{g.items.length}</div>
+                  <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{correct}/{g.items.length}</div>
                   <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>{g.label}</div>
                 </div>
               );
@@ -61,7 +61,7 @@ export default function ReadingResult({ result, onPracticeAgain, onClose }: Read
 
         {/* Per-question review */}
         <div>
-          <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
             Question Review
           </div>
           <div className="flex flex-col gap-2">
@@ -71,7 +71,7 @@ export default function ReadingResult({ result, onPracticeAgain, onClose }: Read
                   onClick={() => setExpandedQ(expandedQ === q.order_index ? null : q.order_index)}
                   className="w-full flex items-center gap-3 p-3 text-left"
                 >
-                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                     style={{ background: q.is_correct ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)", color: q.is_correct ? "#22C55E" : "#EF4444" }}>
                     {q.is_correct ? "✓" : "✗"}
                   </span>
@@ -106,7 +106,7 @@ export default function ReadingResult({ result, onPracticeAgain, onClose }: Read
 
         {/* Actions */}
         <div className="flex flex-col gap-3">
-          <button onClick={onPracticeAgain} className="w-full py-3 rounded-xl text-sm font-bold" style={{ background: "#00A896", color: "#fff" }}>
+          <button onClick={onPracticeAgain} className="w-full py-3 rounded-xl text-sm font-semibold" style={{ background: "#00A896", color: "#fff" }}>
             Practice Again
           </button>
           <button onClick={onClose} className="w-full py-3 rounded-xl text-sm font-medium" style={{ background: "var(--color-bg-card)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>

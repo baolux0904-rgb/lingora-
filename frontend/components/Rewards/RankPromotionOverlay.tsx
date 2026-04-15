@@ -179,7 +179,7 @@ export default function RankPromotionOverlay({ event, onDone }: RankPromotionOve
                       className="flex flex-col items-center"
                     >
                       <p
-                        className="text-[10px] font-bold uppercase tracking-[3px] mb-1.5"
+                        className="text-xs font-semibold uppercase tracking-[3px] mb-1.5"
                         style={{ color: `${newStyle.color}CC` }}
                       >
                         Lên hạng!
@@ -206,7 +206,7 @@ export default function RankPromotionOverlay({ event, onDone }: RankPromotionOve
                         <button
                           onClick={handleDismiss}
                           disabled={!canDismiss}
-                          className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.97] cursor-pointer disabled:cursor-default"
+                          className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] cursor-pointer disabled:cursor-default"
                           style={{
                             background: `linear-gradient(135deg, ${newStyle.color}30, ${newStyle.color}15)`,
                             border: `1px solid ${newStyle.color}40`,

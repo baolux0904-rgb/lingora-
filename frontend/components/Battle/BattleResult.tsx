@@ -110,7 +110,7 @@ export default function BattleResultScreen({ matchId, onClose, onPlayAgain }: Ba
         <div className="w-full flex flex-col gap-3 mt-2">
           <button
             onClick={onPlayAgain}
-            className="w-full py-3.5 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
+            className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.98]"
             style={{
               background: "linear-gradient(135deg, #00A896, #00C4B0)",
               color: "#fff",

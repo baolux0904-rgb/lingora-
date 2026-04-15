@@ -14,7 +14,7 @@ function LabelPill({ type, label }: { type: FocusType; label: string }) {
   const style = LABEL_STYLES[type] ?? LABEL_STYLES.scenario;
   return (
     <span
-      className="inline-block text-xs font-bold uppercase tracking-widest rounded-full px-2.5 py-0.5"
+      className="inline-block text-xs font-semibold uppercase tracking-widest rounded-full px-2.5 py-0.5"
       style={{ background: style.bg, color: style.color }}
     >
       {label}

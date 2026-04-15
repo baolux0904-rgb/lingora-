@@ -121,7 +121,7 @@ export function PathNodeItem({ node, index, onOpen }: { node: PathNodeType; inde
         )}
         {node.xp && node.status !== "locked" && (
           <span
-            className="absolute -bottom-1 -right-1 text-xs font-bold px-1.5 py-0.5 rounded-full"
+            className="absolute -bottom-1 -right-1 text-xs font-semibold px-1.5 py-0.5 rounded-full"
             style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid rgba(0,168,150,0.3)", color: "#00A896" }}
           >
             +{node.xp}

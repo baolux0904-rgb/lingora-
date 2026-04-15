@@ -252,7 +252,7 @@ export default function PassiveSentenceBuilder({
             {score >= 90 ? "\u{1F31F}" : score >= 70 ? "\u{1F3C6}" : "\u{1F4AA}"}
           </div>
           <div className="text-center">
-            <p className="text-lg font-sora font-bold" style={{ color: "var(--color-text)" }}>
+            <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
               {score >= 90 ? "Excellent!" : score >= 70 ? "Well done!" : "Keep practicing!"}
             </p>
             <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
@@ -263,7 +263,7 @@ export default function PassiveSentenceBuilder({
             className="px-6 py-3 rounded-full"
             style={{ border: "1px solid rgba(46,211,198,0.25)", background: "rgba(46,211,198,0.08)" }}
           >
-            <span className="text-xl font-sora font-bold" style={{ color: "var(--color-success)" }}>{score}%</span>
+            <span className="text-xl font-bold" style={{ color: "var(--color-success)" }}>{score}%</span>
             <span className="text-sm ml-2" style={{ color: "var(--color-text-secondary)" }}>({correctCount}/{EXERCISES.length} correct)</span>
           </div>
           <button
@@ -424,7 +424,7 @@ export default function PassiveSentenceBuilder({
               className="rounded-xl p-4 mb-4 w-full"
               style={{ border: "1px solid var(--color-border)", background: "var(--color-bg-card)" }}
             >
-              <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
+              <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
                 Rule
               </p>
               <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>

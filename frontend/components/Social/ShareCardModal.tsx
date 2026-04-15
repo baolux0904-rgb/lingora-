@@ -146,7 +146,7 @@ export default function ShareCardModal({ isOpen, onClose }: ShareCardModalProps)
     <div className="fixed inset-0 z-sheet flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-lg rounded-t-2xl px-5 py-5 max-h-[85vh] overflow-y-auto" style={{ background: "var(--color-bg-card)", borderTop: "1px solid var(--color-border)" }}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-bold" style={{ color: "var(--color-text)" }}>Share Progress</h3>
+          <h3 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>Share Progress</h3>
           <button onClick={onClose} className="text-xs font-medium" style={{ color: "var(--color-text-tertiary)" }}>Close</button>
         </div>
 

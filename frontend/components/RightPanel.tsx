@@ -20,7 +20,7 @@ function DailyGoal() {
 
   return (
     <div className="rounded-lg p-5 border border-white/[0.07]" style={{ background: "var(--color-bg-card)" }}>
-      <div className="flex items-center gap-2 mb-4 font-sora font-bold text-sm">
+      <div className="flex items-center gap-2 mb-4 font-semibold text-sm">
         <div className="w-6 h-6 rounded-sm flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--color-teal) 10%, transparent)", color: "var(--color-teal)" }}>
           <IconClock size={13} />
         </div>
@@ -53,7 +53,7 @@ function DailyGoal() {
             </defs>
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="font-sora font-black text-lg leading-none" style={{ color: "var(--color-teal)" }}>{progress}%</span>
+            <span className="font-black text-lg leading-none" style={{ color: "var(--color-teal)" }}>{progress}%</span>
             <span className="text-xs mt-0.5 tracking-[0.3px]" style={{ color: "var(--color-text-muted)" }}>of daily goal</span>
           </div>
         </div>
@@ -102,7 +102,7 @@ function SkillProgress() {
 
   return (
     <div className="rounded-lg p-5 border border-white/[0.07]" style={{ background: "var(--color-bg-card)" }}>
-      <div className="flex items-center gap-2 mb-4 font-sora font-bold text-sm">
+      <div className="flex items-center gap-2 mb-4 font-semibold text-sm">
         <div className="w-6 h-6 rounded-sm flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--color-accent) 10%, transparent)", color: "var(--color-accent)" }}>
           <IconBarChart size={13} />
         </div>
@@ -122,7 +122,7 @@ function SkillProgress() {
                 }}
               />
             </div>
-            <span className="font-sora text-xs font-bold w-[30px] text-right" style={{ color: "var(--color-text)" }}>
+            <span className="text-xs font-semibold w-[30px] text-right" style={{ color: "var(--color-text)" }}>
               {skill.value}%
             </span>
           </div>
@@ -146,7 +146,7 @@ const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 function StudyCalendar() {
   return (
     <div className="rounded-lg p-5 border border-white/[0.07]" style={{ background: "var(--color-bg-card)" }}>
-      <div className="flex items-center gap-2 mb-4 font-sora font-bold text-sm">
+      <div className="flex items-center gap-2 mb-4 font-semibold text-sm">
         <div className="w-6 h-6 rounded-sm flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--color-teal) 10%, transparent)", color: "var(--color-teal)" }}>
           <IconCalendar />
         </div>

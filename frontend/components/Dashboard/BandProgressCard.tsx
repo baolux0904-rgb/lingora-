@@ -40,7 +40,7 @@ function SkillBar({ label, value, max, color }: { label: string; value: number; 
           style={{ width: `${pct}%`, background: color }}
         />
       </div>
-      <span className="text-xs font-bold w-8 text-right" style={{ color }}>{value.toFixed(1)}</span>
+      <span className="text-xs font-semibold w-8 text-right" style={{ color }}>{value.toFixed(1)}</span>
     </div>
   );
 }
@@ -187,7 +187,7 @@ export default function BandProgressCard({ userId }: BandProgressCardProps) {
           <button onClick={() => setExpanded(false)} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(255,255,255,0.06)" }}>
             <span style={{ color: "#E2E8F0" }}>←</span>
           </button>
-          <span className="font-display font-bold text-base" style={{ color: "#E2E8F0" }}>Band Progress</span>
+          <span className="font-display font-semibold text-base" style={{ color: "#E2E8F0" }}>Band Progress</span>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -228,7 +228,7 @@ export default function BandProgressCard({ userId }: BandProgressCardProps) {
 
             {/* Session history */}
             <div>
-              <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>Session History</div>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>Session History</div>
               <div className="flex flex-col gap-1.5">
                 {filteredHistory.slice().reverse().map((h, i) => (
                   <div key={i} className="flex items-center gap-3 py-2 px-3 rounded-lg" style={{ background: "rgba(255,255,255,0.02)" }}>
@@ -238,7 +238,7 @@ export default function BandProgressCard({ userId }: BandProgressCardProps) {
                       color: h.skill === "speaking" ? "#2DD4BF" : "#8B71EA",
                     }}>{h.skill}</span>
                     <span className="flex-1" />
-                    <span className="text-sm font-bold" style={{ color: "#E2E8F0" }}>Band {h.band.toFixed(1)}</span>
+                    <span className="text-sm font-semibold" style={{ color: "#E2E8F0" }}>Band {h.band.toFixed(1)}</span>
                   </div>
                 ))}
               </div>
@@ -247,7 +247,7 @@ export default function BandProgressCard({ userId }: BandProgressCardProps) {
             {/* Insights */}
             {insights.length > 0 && (
               <div className="rounded-xl p-4" style={{ background: "rgba(139,113,234,0.06)", border: "1px solid rgba(139,113,234,0.1)" }}>
-                <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "#A5B4FC" }}>Insights</div>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#A5B4FC" }}>Insights</div>
                 {insights.map((ins, i) => (
                   <div key={i} className="flex items-center gap-2 py-1 text-sm" style={{ color: "#E2E8F0" }}>
                     <span style={{ color: "#8B71EA" }}>•</span> {ins}
@@ -279,7 +279,7 @@ export default function BandProgressCard({ userId }: BandProgressCardProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.35)" }}>
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.35)" }}>
           Band Progress
         </span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"

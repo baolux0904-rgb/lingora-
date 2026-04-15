@@ -51,7 +51,7 @@ export default function XPToast({ event, onDone }: XPToastProps) {
             <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            <span className="text-white font-bold text-sm">
+            <span className="text-white font-semibold text-sm">
               +{event.amount} XP
             </span>
           </div>
@@ -68,7 +68,7 @@ export default function XPToast({ event, onDone }: XPToastProps) {
                 boxShadow: "0 2px 12px rgba(245,158,11,0.3)",
               }}
             >
-              <span className="text-white font-bold text-xs">
+              <span className="text-white font-semibold text-xs">
                 +{event.bonus} Bonus
               </span>
             </motion.div>

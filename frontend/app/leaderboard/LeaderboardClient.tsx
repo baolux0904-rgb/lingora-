@@ -26,7 +26,7 @@ export default function LeaderboardClient() {
         <Link href="/home" className="inline-flex items-center gap-1 text-sm mb-4 transition-colors" style={{ color: "var(--color-text-secondary)" }}>
           <span aria-hidden>←</span> Về trang chính
         </Link>
-        <h1 className="text-xl font-sora font-bold tracking-tight">Bảng xếp hạng</h1>
+        <h1 className="text-xl font-bold tracking-tight">Bảng xếp hạng</h1>
         <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>Học viên hàng đầu theo XP</p>
       </div>
 
@@ -56,13 +56,13 @@ export default function LeaderboardClient() {
           {data.myEntry && !data.entries.some((e) => e.userId === data.myEntry?.userId) && (
             <div className="mb-4 rounded-md border px-4 py-3 flex items-center gap-4" style={{ borderColor: "color-mix(in srgb, var(--color-success) 30%, transparent)", backgroundColor: "color-mix(in srgb, var(--color-success) 6%, transparent)" }}>
               <span className="w-8 text-right text-sm font-medium" style={{ color: "var(--color-text-secondary)" }}>#{data.myEntry.rank}</span>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs" style={{ color: "var(--color-bg)", background: "linear-gradient(135deg, var(--color-success), var(--color-accent))" }}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-xs" style={{ color: "var(--color-bg)", background: "linear-gradient(135deg, var(--color-success), var(--color-accent))" }}>
                 {data.myEntry.name.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{data.myEntry.name} <span className="text-xs" style={{ color: "var(--color-success)" }}>You</span></p>
               </div>
-              <span className="font-bold text-sm" style={{ color: "var(--color-success)" }}>{data.myEntry.xp.toLocaleString()} XP</span>
+              <span className="font-semibold text-sm" style={{ color: "var(--color-success)" }}>{data.myEntry.xp.toLocaleString()} XP</span>
             </div>
           )}
 
@@ -78,7 +78,7 @@ export default function LeaderboardClient() {
                     className={cn("flex items-center gap-4 px-4 py-3 rounded-md border transition duration-normal")}
                     style={isMe ? { borderColor: "color-mix(in srgb, var(--color-success) 30%, transparent)", backgroundColor: "color-mix(in srgb, var(--color-success) 6%, transparent)" } : { borderColor: "var(--color-border)", backgroundColor: "var(--color-primary-soft)" }}>
                     <span className="w-8 text-right text-sm font-medium flex-shrink-0" style={{ color: "var(--color-text-secondary)" }}>{medal ?? `#${entry.rank}`}</span>
-                    <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0"
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center font-semibold text-xs flex-shrink-0"
                       style={{ background: isMe ? "linear-gradient(135deg, var(--color-success), var(--color-accent))" : "var(--color-border)", color: isMe ? "var(--color-bg)" : "var(--color-text)" }}>
                       {entry.name.slice(0, 2).toUpperCase()}
                     </div>
@@ -88,7 +88,7 @@ export default function LeaderboardClient() {
                         {isMe && <span className="ml-1.5 text-xs font-semibold" style={{ color: "var(--color-success)" }}>You</span>}
                       </p>
                     </div>
-                    <span className="font-bold text-sm flex-shrink-0" style={{ color: isMe ? "var(--color-success)" : "var(--color-text)" }}>
+                    <span className="font-semibold text-sm flex-shrink-0" style={{ color: isMe ? "var(--color-success)" : "var(--color-text)" }}>
                       {entry.xp.toLocaleString()} XP
                     </span>
                   </div>

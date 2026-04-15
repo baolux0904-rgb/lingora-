@@ -63,7 +63,7 @@ export default React.memo(function LessonCard({ lesson, delay = 0, onClick }: Le
       {/* Recommended pill */}
       {isRecommended && (
         <span
-          className="absolute top-3 right-3.5 text-xs font-bold uppercase tracking-[0.8px] px-2 py-0.5 rounded-sm"
+          className="absolute top-3 right-3.5 text-xs font-semibold uppercase tracking-[0.8px] px-2 py-0.5 rounded-sm"
           style={{ color: "var(--color-accent)", backgroundColor: "rgba(45,168,255,0.12)" }}
         >
           Recommended
@@ -109,7 +109,7 @@ export default React.memo(function LessonCard({ lesson, delay = 0, onClick }: Le
       </div>
 
       {/* Title */}
-      <div className="font-sora font-semibold text-sm mb-1 leading-[1.3] pr-8">
+      <div className="font-semibold text-sm mb-1 leading-[1.3] pr-8">
         {lesson.title}
       </div>
 

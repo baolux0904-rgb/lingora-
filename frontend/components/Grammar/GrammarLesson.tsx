@@ -225,7 +225,7 @@ export default function GrammarLessonView({
             {score >= 90 ? "\u{1F31F}" : score >= 70 ? "\u{1F3C6}" : "\u{1F4AA}"}
           </div>
           <div className="text-center">
-            <p className="text-lg font-sora font-bold" style={{ color: "var(--color-text)" }}>
+            <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
               {score >= 90 ? "Excellent!" : score >= 70 ? "Well done!" : "Keep practicing!"}
             </p>
             <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
@@ -236,7 +236,7 @@ export default function GrammarLessonView({
             className="px-6 py-3 rounded-full"
             style={{ border: "1px solid rgba(46,211,198,0.25)", background: "rgba(46,211,198,0.08)" }}
           >
-            <span className="text-xl font-sora font-bold" style={{ color: "var(--color-success)" }}>{score}%</span>
+            <span className="text-xl font-bold" style={{ color: "var(--color-success)" }}>{score}%</span>
             <span className="text-sm ml-2" style={{ color: "var(--color-text-secondary)" }}>({correctCount}/{lesson.questions.length} correct)</span>
           </div>
           <Button variant="primary" size="lg" fullWidth onClick={onClose}>
@@ -316,7 +316,7 @@ export default function GrammarLessonView({
                         ) : blankAnswers[i] ? (
                           <button
                             onClick={() => handleClearSlot(i)}
-                            className="inline-flex px-2 py-0.5 rounded-lg font-bold text-sm border cursor-pointer hover:opacity-80"
+                            className="inline-flex px-2 py-0.5 rounded-lg font-semibold text-sm border cursor-pointer hover:opacity-80"
                             style={{
                               borderColor: "rgba(46,211,198,0.4)",
                               background: "rgba(46,211,198,0.1)",
@@ -347,7 +347,7 @@ export default function GrammarLessonView({
                           ) : (
                             <button
                               onClick={() => setDroppedOption(null)}
-                              className="inline-flex px-2 py-0.5 rounded-lg font-bold text-sm border cursor-pointer hover:opacity-80"
+                              className="inline-flex px-2 py-0.5 rounded-lg font-semibold text-sm border cursor-pointer hover:opacity-80"
                               style={{
                                 borderColor: "rgba(46,211,198,0.4)",
                                 background: "rgba(46,211,198,0.1)",

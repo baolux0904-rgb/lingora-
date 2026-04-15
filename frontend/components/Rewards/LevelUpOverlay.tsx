@@ -136,7 +136,7 @@ export default function LevelUpOverlay({ event, onDone }: LevelUpOverlayProps) {
               className="relative z-10 mb-6"
             >
               <p
-                className="text-xs font-bold uppercase tracking-[3px] mb-2"
+                className="text-xs font-semibold uppercase tracking-[3px] mb-2"
                 style={{ color: "rgba(139,92,246,0.8)" }}
               >
                 Lên level!
@@ -182,7 +182,7 @@ export default function LevelUpOverlay({ event, onDone }: LevelUpOverlayProps) {
               <button
                 onClick={handleDismiss}
                 disabled={!canDismiss}
-                className="px-6 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.97] cursor-pointer disabled:cursor-default"
+                className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] cursor-pointer disabled:cursor-default"
                 style={{
                   background: "linear-gradient(135deg, rgba(139,92,246,0.2), rgba(0,168,150,0.15))",
                   border: "1px solid rgba(139,92,246,0.3)",

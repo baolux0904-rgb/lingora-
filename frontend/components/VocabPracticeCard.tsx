@@ -117,7 +117,7 @@ export default function VocabPracticeCard() {
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="text-base font-bold" style={{ color: "var(--color-text)" }}>
+            <h3 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
               Quick Vocab Practice
             </h3>
             <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>

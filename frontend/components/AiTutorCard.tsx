@@ -27,12 +27,12 @@ export default function AiTutorCard() {
       />
 
       {/* AI chip */}
-      <div className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.8px] px-2 py-1 rounded-lg mb-3" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)", color: "var(--color-accent)" }}>
+      <div className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.8px] px-2 py-1 rounded-lg mb-3" style={{ background: "color-mix(in srgb, var(--color-accent) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--color-accent) 25%, transparent)", color: "var(--color-accent)" }}>
         <IconAI />
         AI-Powered
       </div>
 
-      <h4 className="font-sora font-bold text-base leading-[1.3] mb-1.5">
+      <h4 className="font-semibold text-base leading-[1.3] mb-1.5">
         Chat with Your<br />AI Language Tutor
       </h4>
 

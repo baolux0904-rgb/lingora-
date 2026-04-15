@@ -86,7 +86,7 @@ function ExerciseHeader({
     <div className="flex flex-col items-center gap-3 mb-5">
       <div className="flex items-center gap-2">
         <span
-          className="text-xs font-bold uppercase tracking-[1px] px-2.5 py-1 rounded-full"
+          className="text-xs font-semibold uppercase tracking-[1px] px-2.5 py-1 rounded-full"
           style={{ backgroundColor: `${labelColor}18`, color: labelColor }}
         >
           {label}
@@ -142,7 +142,7 @@ function LearnPhase({
           minHeight: 200,
         }}
       >
-        <p className="text-xl font-sora font-bold text-center" style={{ color: "var(--color-text)" }}>
+        <p className="text-xl font-bold text-center" style={{ color: "var(--color-text)" }}>
           {current.word}
         </p>
         {current.pronunciation && (
@@ -682,7 +682,7 @@ function ResultsPhase({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-sora font-bold" style={{ color: "var(--color-text)" }}>{pct}%</span>
+          <span className="text-xl font-bold" style={{ color: "var(--color-text)" }}>{pct}%</span>
           <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>accuracy</span>
         </div>
       </div>

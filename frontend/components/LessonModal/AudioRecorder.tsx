@@ -164,7 +164,7 @@ export default function AudioRecorder({
         )}
         {state === "recording" && (
           <div className="flex flex-col items-center gap-1">
-            <p className="text-base font-bold text-red-400 tabular-nums">
+            <p className="text-base font-semibold text-red-400 tabular-nums">
               {formatTime(elapsed)}
             </p>
             <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Tap to Stop</p>

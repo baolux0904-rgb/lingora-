@@ -43,7 +43,7 @@ type SubTab = "chat" | "friends" | "requests" | "add" | "rooms";
 function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <div className="rounded-full flex items-center justify-center font-bold text-xs shrink-0"
+    <div className="rounded-full flex items-center justify-center font-semibold text-xs shrink-0"
       style={{ width: size, height: size, background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)", color: "#fff" }}>
       {initials}
     </div>
@@ -61,7 +61,7 @@ function ActivityFeed({ friends }: { friends: Friend[] }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--color-border)" }}>
-        <h3 className="text-sm font-bold" style={{ color: "var(--color-text)" }}>Friend Activity</h3>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Friend Activity</h3>
         <p className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>See who&apos;s learning today</p>
       </div>
 
@@ -77,7 +77,7 @@ function ActivityFeed({ friends }: { friends: Friend[] }) {
             {/* Active today */}
             {activeFriends.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5"
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5"
                   style={{ color: "var(--color-text-tertiary)" }}>
                   <span className="w-2 h-2 rounded-full bg-green-400" />
                   Active Today ({activeFriends.length})
@@ -104,7 +104,7 @@ function ActivityFeed({ friends }: { friends: Friend[] }) {
             {/* Inactive — nudge */}
             {inactiveFriends.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5"
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5"
                   style={{ color: "var(--color-text-tertiary)" }}>
                   <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-text-tertiary)" }} />
                   Not Yet Today ({inactiveFriends.length})
@@ -202,14 +202,14 @@ function ConversationSidebar({ conversations, activeId, onSelect, loading, subTa
               <div className="relative">
                 <Avatar name={c.friend_name} size={40} />
                 {c.unread_count > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold"
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold"
                     style={{ background: "#00A896", color: "#fff" }}>{c.unread_count > 9 ? "9+" : c.unread_count}</span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{c.friend_name}</span>
-                  <span className="text-[10px] shrink-0 ml-2" style={{ color: "var(--color-text-tertiary)" }}>
+                  <span className="text-xs shrink-0 ml-2" style={{ color: "var(--color-text-tertiary)" }}>
                     {c.last_message_at ? timeAgo(c.last_message_at) : ""}
                   </span>
                 </div>
@@ -352,7 +352,7 @@ function RequestsList() {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
           Incoming ({incoming.length})
         </div>
         {incoming.length === 0 ? (
@@ -376,7 +376,7 @@ function RequestsList() {
         )}
       </div>
       <div>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
           Sent ({outgoing.length})
         </div>
         {outgoing.length === 0 ? (
@@ -456,7 +456,7 @@ function AddFriend() {
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-lg p-4" style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Your Username</div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Your Username</div>
         {editingUsername ? (
           <div className="flex gap-2">
             <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="3-20 chars, letters/numbers/_"
@@ -475,7 +475,7 @@ function AddFriend() {
       </div>
 
       <div className="rounded-lg p-4" style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Search by Username</div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Search by Username</div>
         <div className="flex gap-2">
           <input value={searchUsername} onChange={(e) => setSearchUsername(e.target.value)} placeholder="Enter username..."
             className="flex-1 rounded-lg px-3 py-2 text-sm"
@@ -487,7 +487,7 @@ function AddFriend() {
       </div>
 
       <div className="rounded-lg p-4" style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
-        <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>Your QR Code</div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>Your QR Code</div>
         {qrDataUrl ? (
           <div className="flex justify-center mb-3">
             <img src={qrDataUrl} alt="Your QR Code" className="w-40 h-40 rounded-lg" style={{ background: "#fff" }} />
@@ -498,7 +498,7 @@ function AddFriend() {
           </div>
         )}
         <p className="text-xs text-center mb-3" style={{ color: "var(--color-text-secondary)" }}>Share this QR code with friends</p>
-        <div className="text-xs font-bold uppercase tracking-wider mb-2 mt-4" style={{ color: "var(--color-text-tertiary)" }}>Enter Friend&apos;s QR Token</div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2 mt-4" style={{ color: "var(--color-text-tertiary)" }}>Enter Friend&apos;s QR Token</div>
         <div className="flex gap-2">
           <input value={qrInput} onChange={(e) => setQrInput(e.target.value)} placeholder="Paste QR token..."
             className="flex-1 rounded-lg px-3 py-2 text-sm"

@@ -49,7 +49,7 @@ export default function SettingsScreen() {
 
       {/* ── Account ── */}
       <section>
-        <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
           Account
         </div>
         <div
@@ -70,7 +70,7 @@ export default function SettingsScreen() {
               <div className="text-sm font-medium" style={{ color: "var(--color-text)" }}>Email</div>
               <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>{user?.email || "—"}</div>
             </div>
-            <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ background: "var(--surface-subtle)", color: "var(--color-text-tertiary)" }}>
+            <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--surface-subtle)", color: "var(--color-text-tertiary)" }}>
               Read-only
             </span>
           </div>
@@ -127,7 +127,7 @@ export default function SettingsScreen() {
 
       {/* ── Preferences ── */}
       <section>
-        <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
           Preferences
         </div>
         <div
@@ -192,7 +192,7 @@ export default function SettingsScreen() {
 
       {/* ── Danger Zone ── */}
       <section>
-        <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
           Session
         </div>
         <button
@@ -211,7 +211,7 @@ export default function SettingsScreen() {
       </section>
 
       {/* Version info */}
-      <p className="text-[10px] text-center" style={{ color: "var(--color-text-tertiary)" }}>
+      <p className="text-xs text-center" style={{ color: "var(--color-text-tertiary)" }}>
         Lingona v0.1.0
       </p>
     </div>

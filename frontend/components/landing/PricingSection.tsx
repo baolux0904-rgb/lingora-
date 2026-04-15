@@ -90,7 +90,7 @@ export default function PricingSection() {
                 >
                   {p.label}
                   {p.savings > 0 && (
-                    <span className="ml-1.5 text-[10px] font-bold text-teal">-{p.savings}%</span>
+                    <span className="ml-1.5 text-xs font-semibold text-teal">-{p.savings}%</span>
                   )}
                 </button>
               );

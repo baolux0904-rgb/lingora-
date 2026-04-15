@@ -31,12 +31,12 @@ export default function WeeklyChallenge() {
       }}
     >
       {/* Chip */}
-      <div className="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-[0.8px] px-2 py-1 rounded-lg mb-3">
+      <div className="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold uppercase tracking-[0.8px] px-2 py-1 rounded-lg mb-3">
         <IconTrophy />
         Weekly Challenge
       </div>
 
-      <h4 className="font-sora font-bold text-base mb-1.5">7-Day Speaking Sprint</h4>
+      <h4 className="font-semibold text-base mb-1.5">7-Day Speaking Sprint</h4>
 
       <p className="text-xs leading-[1.5] mb-3.5" style={{ color: "var(--color-text-muted)" }}>
         Complete one speaking exercise each day this week and earn 500 bonus XP + a certificate.

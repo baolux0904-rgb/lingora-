@@ -145,7 +145,7 @@ export default function SpeakingSection({
           }}
         >
           <p
-            className="text-xs font-bold uppercase tracking-[0.8px] mb-2"
+            className="text-xs font-semibold uppercase tracking-[0.8px] mb-2"
             style={{ color: "var(--color-primary)" }}
           >
             Speaking Prompt

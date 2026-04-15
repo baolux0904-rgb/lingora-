@@ -148,7 +148,7 @@ export default function GrammarFillBlank({
                 {selected && (
                   <button
                     onClick={handleClear}
-                    className="px-2 py-0.5 rounded-lg font-bold text-sm cursor-pointer hover:opacity-80"
+                    className="px-2 py-0.5 rounded-lg font-semibold text-sm cursor-pointer hover:opacity-80"
                     style={{
                       background: "rgba(46,211,198,0.1)",
                       border: "1px solid rgba(46,211,198,0.3)",
@@ -216,7 +216,7 @@ export default function GrammarFillBlank({
               background: "var(--color-bg-card)",
             }}
           >
-            <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
               {isCorrect ? "✓ Correct!" : "✗ Not quite"} — Rule
             </p>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>

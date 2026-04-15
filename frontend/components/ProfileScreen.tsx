@@ -35,7 +35,7 @@ function StatCard({ icon, value, label }: { icon: string; value: string | number
       style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
       <span className="text-base">{icon}</span>
       <span className="text-xl font-display font-bold" style={{ color: "var(--color-text)" }}>{value}</span>
-      <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>{label}</span>
+      <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>{label}</span>
     </div>
   );
 }
@@ -74,7 +74,7 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
       <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 flex flex-col gap-4 max-h-[85vh] overflow-y-auto"
         style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold" style={{ color: "var(--color-text)" }}>Edit Profile</h3>
+          <h3 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>Edit Profile</h3>
           <button onClick={onClose} className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>✕</button>
         </div>
 
@@ -98,7 +98,7 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
         <div className="relative">
           <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Bio (optional)" maxLength={100} rows={2}
             className="w-full rounded-lg px-3 py-2.5 text-sm resize-none" style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }} />
-          <span className="absolute bottom-2 right-3 text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>{bio.length}/100</span>
+          <span className="absolute bottom-2 right-3 text-xs" style={{ color: "var(--color-text-tertiary)" }}>{bio.length}/100</span>
         </div>
 
         <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Location (optional)"
@@ -111,7 +111,7 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
 
         <div className="flex gap-2 mt-1">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-lg text-sm font-medium" style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}>Hủy</button>
-          <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50" style={{ background: "#00A896", color: "#fff" }}>
+          <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ background: "#00A896", color: "#fff" }}>
             {saving ? "Đang lưu..." : "Lưu"}
           </button>
         </div>
@@ -194,7 +194,7 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
     return (
       <div className="flex flex-col items-center gap-4 py-16">
         <div className="text-4xl">😕</div>
-        <h3 className="text-base font-display font-bold" style={{ color: "var(--color-text)" }}>
+        <h3 className="text-base font-display font-semibold" style={{ color: "var(--color-text)" }}>
           Không tải được hồ sơ
         </h3>
         <p className="text-sm text-center max-w-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -259,7 +259,7 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
             {copied ? "Copied! 🔥" : "🔗 Copy Link"}
           </button>
         )}
-        <button onClick={() => setShowShareCard(true)} className="flex-1 py-2.5 rounded-lg text-xs font-bold"
+        <button onClick={() => setShowShareCard(true)} className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
           style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)", color: "#fff" }}>
           Share 🎯
         </button>
@@ -280,7 +280,7 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
       {/* SECTION 3: Band Progression */}
       {u.estimated_band && u.target_band && (
         <Card padding="md">
-          <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-secondary)" }}>Band Journey</div>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-secondary)" }}>Band Journey</div>
           <div className="flex items-center gap-3 mb-3">
             <span className="text-lg font-bold" style={{ color: "#8B71EA" }}>{u.estimated_band.toFixed(1)}</span>
             <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>

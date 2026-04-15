@@ -37,7 +37,7 @@ function StatCard({
       }}
     >
       <span
-        className="text-xl font-bold font-sora"
+        className="text-xl font-bold"
         style={{ color: color || "var(--color-primary)" }}
       >
         {value}
@@ -237,7 +237,7 @@ export default function SpeakingMetrics({ data, loading }: SpeakingMetricsProps)
       {/* Header */}
       <div>
         <h2
-          className="text-base font-semibold font-sora"
+          className="text-base font-semibold"
           style={{ color: "var(--color-text)" }}
         >
           Speaking Progress

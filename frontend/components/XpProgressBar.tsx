@@ -43,7 +43,7 @@ export default function XpProgressBar({
     <div className={`flex items-center gap-2 ${className}`}>
       {/* Level badge */}
       <div
-        className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-sora"
+        className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
         style={{ background: "linear-gradient(135deg, var(--color-success), var(--color-accent))", color: "var(--color-bg)" }}
         title={`Level ${level}`}
       >

@@ -98,7 +98,7 @@ function XpGainPopup({ xp, onDone }: { xp: number; onDone: () => void }) {
         }
       `}</style>
       <div
-        className="px-5 py-2.5 rounded-full font-bold text-base"
+        className="px-5 py-2.5 rounded-full font-semibold text-base"
         style={{
           background: "linear-gradient(135deg, var(--color-success), var(--color-accent))",
           color: "white",
@@ -145,7 +145,7 @@ function LevelUpToast({ level, onDone }: { level: number; onDone: () => void }) 
         }}
       >
         <div className="text-4xl">🎉</div>
-        <p className="text-lg font-sora font-bold" style={{ color: "var(--color-text)" }}>
+        <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
           Level {level}!
         </p>
         <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -188,7 +188,7 @@ function ProgressHero({
         <div className="flex items-center gap-3">
           {/* Level badge */}
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-bold"
+            className="w-11 h-11 rounded-xl flex items-center justify-center text-sm font-semibold"
             style={{
               background: "linear-gradient(135deg, #00A896, #007A6E)",
               color: "white",
@@ -198,7 +198,7 @@ function ProgressHero({
             {level}
           </div>
           <div>
-            <p className="text-sm font-sora font-bold" style={{ color: "var(--color-text)" }}>
+            <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
               Grammar Journey
             </p>
             <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -207,7 +207,7 @@ function ProgressHero({
           </div>
         </div>
         <div className="text-right">
-          <p className="text-sm font-bold" style={{ color: "var(--color-success)" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--color-success)" }}>
             {pct}%
           </p>
           <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -218,7 +218,7 @@ function ProgressHero({
 
       {/* Level progress bar */}
       <div className="flex items-center gap-2">
-        <span className="text-xs font-bold" style={{ color: "rgba(0,168,150,0.6)" }}>
+        <span className="text-xs font-semibold" style={{ color: "rgba(0,168,150,0.6)" }}>
           LV{level}
         </span>
         <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>
@@ -231,7 +231,7 @@ function ProgressHero({
             }}
           />
         </div>
-        <span className="text-xs font-bold" style={{ color: "rgba(0,168,150,0.6)" }}>
+        <span className="text-xs font-semibold" style={{ color: "rgba(0,168,150,0.6)" }}>
           LV{level + 1}
         </span>
       </div>
@@ -282,7 +282,7 @@ function LessonNode({
     >
       <div className="flex items-center gap-3">
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold"
           style={{
             background: isCompleted
               ? "linear-gradient(135deg, var(--color-success), var(--color-accent))"
@@ -310,7 +310,7 @@ function LessonNode({
         </div>
         {isCompleted && score !== null && (
           <span
-            className="text-xs font-bold px-2 py-0.5 rounded-full"
+            className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{
               background: score >= 80 ? "color-mix(in srgb, var(--color-success) 15%, transparent)" : "color-mix(in srgb, var(--color-warning) 15%, transparent)",
               color: score >= 80 ? "var(--color-success)" : "var(--color-warning)",
@@ -381,7 +381,7 @@ function ExamCard({
           </p>
         </div>
         {isPassed && score !== null && (
-          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--color-success) 15%, transparent)", color: "var(--color-success)", border: "1px solid color-mix(in srgb, var(--color-success) 25%, transparent)" }}>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "color-mix(in srgb, var(--color-success) 15%, transparent)", color: "var(--color-success)", border: "1px solid color-mix(in srgb, var(--color-success) 25%, transparent)" }}>
             {score}%
           </span>
         )}
@@ -429,7 +429,7 @@ function UnitCard({
       >
         <span className="text-xl">{unit.emoji}</span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-sora font-bold" style={{ color: "var(--color-text)" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
             {unit.title}
           </p>
           <p className="text-xs mt-0.5 truncate" style={{ color: "var(--color-text-secondary)" }}>
@@ -438,12 +438,12 @@ function UnitCard({
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {examPassed && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
               ✓
             </span>
           )}
           {!examPassed && (
-            <span className="text-xs font-bold" style={{ color: colors.text }}>
+            <span className="text-xs font-semibold" style={{ color: colors.text }}>
               {completedInUnit}/{unit.lessons.length}
             </span>
           )}
@@ -670,7 +670,7 @@ export default function GrammarTab({ onOverlayChange }: GrammarTabProps) {
         >
           <span className="text-xl">📖</span>
           <div className="flex-1">
-            <p className="text-base font-sora font-bold" style={{ color: "var(--color-text)" }}>
+            <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
               English Tense
             </p>
             <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
@@ -679,7 +679,7 @@ export default function GrammarTab({ onOverlayChange }: GrammarTabProps) {
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {progress.allTensesComplete && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
                 ✓ Complete
               </span>
             )}
@@ -775,7 +775,7 @@ export default function GrammarTab({ onOverlayChange }: GrammarTabProps) {
         <div className="flex items-center gap-3 mb-3">
           <span className="text-2xl">🏆</span>
           <div className="flex-1">
-            <p className="text-base font-sora font-bold" style={{ color: "var(--color-text)" }}>
+            <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
               Final Exam
             </p>
             <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
@@ -785,7 +785,7 @@ export default function GrammarTab({ onOverlayChange }: GrammarTabProps) {
             </p>
           </div>
           {finalExamResult?.passed && (
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/25">
               ✓ {finalExamResult.score}%
             </span>
           )}

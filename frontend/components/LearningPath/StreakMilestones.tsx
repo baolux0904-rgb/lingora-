@@ -8,8 +8,8 @@ export function StreakMilestones({ streak }: { streak: number }) {
     <div className="rounded-lg border p-5" style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-primary-soft)" }}>
       <div className="flex items-center gap-2.5 mb-4">
         <IconFire size={16} className="text-amber-400" />
-        <h3 className="text-sm font-bold" style={{ color: "var(--color-text)" }}>Streak Milestones</h3>
-        <span className="ml-auto text-xs font-bold text-amber-400">{streak} days</span>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Streak Milestones</h3>
+        <span className="ml-auto text-xs font-semibold text-amber-400">{streak} days</span>
       </div>
       <div className="flex items-center gap-2">
         {STREAK_MILESTONES.map((m) => {

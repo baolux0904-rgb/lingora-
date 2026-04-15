@@ -63,7 +63,7 @@ export default function SplashScreen() {
         {BRAND_NAME.split("").map((letter, i) => (
           <span
             key={i}
-            className="font-sora font-black text-xl tracking-[4px]"
+            className="font-display font-black text-xl tracking-[4px]"
             style={{
               opacity: 0,
               display: "inline-block",

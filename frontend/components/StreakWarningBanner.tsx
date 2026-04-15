@@ -116,7 +116,7 @@ export default function StreakWarningBanner({ streak, onNavigate }: StreakWarnin
 
             {/* Text */}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold" style={{ color: "#F59E0B" }}>
+              <p className="text-sm font-semibold" style={{ color: "#F59E0B" }}>
                 Streak at risk!
               </p>
               <p className="text-xs mt-0.5" style={{ color: "rgba(245,158,11,0.7)" }}>
@@ -130,7 +130,7 @@ export default function StreakWarningBanner({ streak, onNavigate }: StreakWarnin
             {/* Practice CTA */}
             <button
               onClick={() => onNavigate("learn-speaking")}
-              className="px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all active:scale-[0.97] cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-all active:scale-[0.97] cursor-pointer"
               style={{
                 background: "rgba(245,158,11,0.15)",
                 color: "#F59E0B",

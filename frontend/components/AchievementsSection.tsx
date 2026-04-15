@@ -51,10 +51,10 @@ export default function AchievementsSection() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
             Achievements
           </span>
-          <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(139,113,234,0.12)", color: "#A5B4FC" }}>
+          <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(139,113,234,0.12)", color: "#A5B4FC" }}>
             {data.achievement_score} pts
           </span>
         </div>
@@ -67,7 +67,7 @@ export default function AchievementsSection() {
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
         {CATEGORIES.map((cat) => (
           <button key={cat} onClick={() => setFilter(cat)}
-            className="px-2.5 py-1 rounded-full text-[10px] font-medium capitalize shrink-0 transition-all"
+            className="px-2.5 py-1 rounded-full text-xs font-medium capitalize shrink-0 transition-all"
             style={{
               background: filter === cat ? "rgba(0,168,150,0.15)" : "rgba(255,255,255,0.03)",
               color: filter === cat ? "#00A896" : "var(--color-text-tertiary)",
@@ -92,10 +92,10 @@ export default function AchievementsSection() {
                 <div key={b.slug} className="rounded-xl p-3 flex flex-col items-center gap-1.5 text-center transition-all hover:scale-[1.03]"
                   style={{ background: r.bg, border: `1px solid ${r.border}`, boxShadow: r.glow }}>
                   <span className="text-2xl">{b.emoji}</span>
-                  <span className="text-[11px] font-semibold leading-tight" style={{ color: "var(--color-text)" }}>{b.name}</span>
-                  <span className="text-[10px] font-medium uppercase" style={{ color: r.border }}>{r.label}</span>
+                  <span className="text-xs font-semibold leading-tight" style={{ color: "var(--color-text)" }}>{b.name}</span>
+                  <span className="text-xs font-medium uppercase" style={{ color: r.border }}>{r.label}</span>
                   {earnedBadge?.awarded_at && (
-                    <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>
+                    <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
                       {new Date(earnedBadge.awarded_at).toLocaleDateString("vi-VN", { day: "numeric", month: "short" })}
                     </span>
                   )}
@@ -123,21 +123,21 @@ export default function AchievementsSection() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>{b.name}</span>
-                      <span className="text-[10px] font-medium uppercase" style={{ color: r.border }}>{r.label}</span>
+                      <span className="text-xs font-medium uppercase" style={{ color: r.border }}>{r.label}</span>
                     </div>
-                    <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>{b.description}</span>
+                    <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>{b.description}</span>
                     {prog && (
                       <div className="mt-1.5">
                         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.06)" }}>
                           <div className="h-full rounded-full" style={{ width: `${prog.percent}%`, background: r.border, transition: "width 400ms ease-out" }} />
                         </div>
-                        <span className="text-[10px] mt-0.5 block" style={{ color: "var(--color-text-tertiary)" }}>
+                        <span className="text-xs mt-0.5 block" style={{ color: "var(--color-text-tertiary)" }}>
                           {prog.current}/{prog.target}
                         </span>
                       </div>
                     )}
                   </div>
-                  <span className="text-xs font-bold" style={{ color: "var(--color-text-tertiary)" }}>+{b.achievement_points}</span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--color-text-tertiary)" }}>+{b.achievement_points}</span>
                 </div>
               );
             })}

@@ -204,7 +204,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
               <path d="M12 2c0 0-7 7-7 13a7 7 0 0 0 14 0c0-6-7-13-7-13z" />
             </svg>
           </span>
-          <span className="text-sm font-bold" style={{ color: "#F59E0B" }}>
+          <span className="text-sm font-semibold" style={{ color: "#F59E0B" }}>
             {streak?.currentStreak ?? displayStreak ?? 0}
           </span>
           <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
@@ -212,7 +212,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
           </span>
           {shields > 0 && (
             <span
-              className="text-[11px] font-bold flex items-center gap-0.5 ml-auto"
+              className="text-xs font-semibold flex items-center gap-0.5 ml-auto"
               style={{ color: "#60A5FA" }}
               title={`${shields} streak shield${shields > 1 ? "s" : ""}`}
             >
@@ -224,7 +224,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
         {/* Rank */}
         <div className="flex items-center gap-2.5">
           <span
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black"
+            className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black"
             style={{
               backgroundColor: `${rank.color}20`,
               color: rank.color,
@@ -233,7 +233,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
           >
             {rank.label[0]}
           </span>
-          <span className="text-sm font-bold" style={{ color: rank.color }}>
+          <span className="text-sm font-semibold" style={{ color: rank.color }}>
             {rank.label}
           </span>
         </div>
@@ -241,7 +241,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
         {/* XP bar — easeOutCubic animated fill */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-bold" style={{ color: "var(--color-text-secondary)" }}>
+            <span className="text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>
               Lv {xp?.level ?? 1}
             </span>
             <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
@@ -284,7 +284,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
           </button>
           {/* Avatar */}
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center font-sans font-bold text-[11px] text-white cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center font-sans font-semibold text-xs text-white cursor-pointer"
             style={{
               background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)",
               border: "2px solid rgba(0,168,150,0.3)",

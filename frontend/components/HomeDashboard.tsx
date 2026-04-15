@@ -137,7 +137,7 @@ export default function HomeDashboard({
             ) : primaryRec ? (
               <button
                 onClick={() => onFocusAction(primaryRec)}
-                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.97] cursor-pointer"
+                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] cursor-pointer"
                 style={{
                   background: "linear-gradient(135deg, #00A896, #00C4B0)",
                   color: "#fff",
@@ -152,7 +152,7 @@ export default function HomeDashboard({
             ) : (
               <button
                 onClick={() => onNavigate("exam")}
-                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.97] cursor-pointer"
+                className="inline-flex items-center gap-2.5 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] cursor-pointer"
                 style={{
                   background: "linear-gradient(135deg, #00A896, #00C4B0)",
                   color: "#fff",
@@ -195,13 +195,13 @@ export default function HomeDashboard({
               <div className="text-lg font-bold text-amber-400 leading-none">
                 {streak?.currentStreak ?? 0}
               </div>
-              <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
+              <div className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
                 {streakUrgent ? "Streak at risk!" : "day streak"}
               </div>
             </div>
             {shields > 0 && (
               <span
-                className="text-[11px] font-bold shrink-0"
+                className="text-xs font-semibold shrink-0"
                 style={{ color: "#60A5FA" }}
                 title={`${shields} streak shield${shields > 1 ? "s" : ""}`}
               >
@@ -226,10 +226,10 @@ export default function HomeDashboard({
               {rank.label[0]}
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-bold leading-none" style={{ color: rank.color }}>
+              <div className="text-sm font-semibold leading-none" style={{ color: rank.color }}>
                 {rank.label}
               </div>
-              <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
+              <div className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
                 {battleData?.profile?.current_rank_points ?? 0} pts
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function HomeDashboard({
               <div className="text-lg font-bold leading-none" style={{ color: "#00A896" }}>
                 {xp?.totalXp?.toLocaleString() ?? 0}
               </div>
-              <div className="text-[11px] mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
+              <div className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
                 total XP · Lv {xp?.level ?? 1}
               </div>
             </div>
@@ -319,7 +319,7 @@ function QuickActions({ onNavigate }: { onNavigate: (tab: string) => void }) {
         boxShadow: "var(--dash-card-shadow)",
       }}
     >
-      <div className="text-[10px] font-bold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
+      <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
         Quick Practice
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -379,13 +379,13 @@ function BattleCard({
       />
 
       <div className="relative z-10 flex flex-col items-center gap-3 flex-1">
-        <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
           Battle Arena
         </div>
 
         {/* Rank + stats */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold" style={{ color: rank.color }}>{rank.label}</span>
+          <span className="text-sm font-semibold" style={{ color: rank.color }}>{rank.label}</span>
           {profile && (
             <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
               {wins}W {losses}L
@@ -396,7 +396,7 @@ function BattleCard({
         {/* CTA */}
         <button
           onClick={() => onNavigate("battle")}
-          className="mt-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all active:scale-[0.97] cursor-pointer"
+          className="mt-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] cursor-pointer"
           style={{
             background: "linear-gradient(135deg, #6366F1, #00A896)",
             color: "#fff",
@@ -407,7 +407,7 @@ function BattleCard({
           Jump into Battle
         </button>
 
-        <p className="text-[11px]" style={{ color: "var(--color-text-tertiary)" }}>
+        <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
           ~12s average queue
         </p>
       </div>
@@ -439,12 +439,12 @@ function FriendsActivity({
       }}
     >
       <div className="flex items-center justify-between mb-4">
-        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+        <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
           Friends
         </span>
         <button
           onClick={() => onNavigate("social")}
-          className="text-[11px] font-medium cursor-pointer"
+          className="text-xs font-medium cursor-pointer"
           style={{ color: "#00A896" }}
         >
           See all
@@ -480,7 +480,7 @@ function FriendsActivity({
             <div key={f.id} className="flex items-center gap-2.5">
               <div className="relative">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
                   style={{ background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)", color: "#fff" }}
                 >
                   {f.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}
@@ -498,7 +498,7 @@ function FriendsActivity({
                   {f.name.split(" ")[0]}
                 </span>
               </div>
-              <span className="text-[10px]" style={{ color: f.practiced_today ? "#22C55E" : "var(--color-text-tertiary)" }}>
+              <span className="text-xs" style={{ color: f.practiced_today ? "#22C55E" : "var(--color-text-tertiary)" }}>
                 {f.practiced_today ? "Active" : "Idle"}
               </span>
             </div>
@@ -535,7 +535,7 @@ function WeeklyXpChart({ xp }: { xp: GamificationData["xp"] | undefined }) {
         boxShadow: "var(--dash-card-shadow)",
       }}
     >
-      <div className="text-[10px] font-bold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
+      <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
         This Week
       </div>
 
@@ -555,7 +555,7 @@ function WeeklyXpChart({ xp }: { xp: GamificationData["xp"] | undefined }) {
               />
             </div>
             <span
-              className="text-[10px] font-medium"
+              className="text-xs font-medium"
               style={{ color: isToday ? "#00A896" : "var(--color-text-tertiary)" }}
             >
               {label}
@@ -609,7 +609,7 @@ function RecentBadges({ badges }: { badges: Badge[] }) {
         boxShadow: "var(--dash-card-shadow)",
       }}
     >
-      <div className="text-[10px] font-bold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
+      <div className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "var(--color-text-tertiary)" }}>
         Achievements
       </div>
 
@@ -635,7 +635,7 @@ function RecentBadges({ badges }: { badges: Badge[] }) {
                   {b.name}
                 </div>
                 {b.description && (
-                  <div className="text-[11px] truncate" style={{ color: "var(--color-text-tertiary)" }}>
+                  <div className="text-xs truncate" style={{ color: "var(--color-text-tertiary)" }}>
                     {b.description}
                   </div>
                 )}

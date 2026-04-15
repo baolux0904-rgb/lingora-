@@ -200,7 +200,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           </svg>
         </button>
         <div className="flex-1">
-          <div className="font-display font-bold text-base" style={{ color: "var(--color-text)" }}>
+          <div className="font-display font-semibold text-base" style={{ color: "var(--color-text)" }}>
             IELTS Writing
           </div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -217,7 +217,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           <div className="flex items-center gap-2">
             {timerStarted && timeLeft !== null && (
               <span
-                className={`text-sm font-mono ${timerBold ? "font-bold" : ""}`}
+                className={`text-sm font-mono ${timerBold ? "font-semibold" : ""}`}
                 style={{ color: timerColor }}
               >
                 {formatTime(timeLeft)}
@@ -303,7 +303,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
                   <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: timerColor }}>
                     <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                   </svg>
-                  <span className={`text-sm font-mono ${timerBold ? "font-bold" : "font-medium"}`} style={{ color: timerColor }}>
+                  <span className={`text-sm font-mono ${timerBold ? "font-semibold" : "font-medium"}`} style={{ color: timerColor }}>
                     {formatTime(timeLeft)}
                   </span>
                 </div>
@@ -315,7 +315,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
               className="rounded-xl p-5"
               style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
             >
-              <label className="block text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-tertiary)" }}>
+              <label className="block text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-tertiary)" }}>
                 Question / Prompt
               </label>
               <textarea
@@ -344,12 +344,12 @@ export default function WritingTab({ onClose }: WritingTabProps) {
               style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
             >
               <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
+                <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
                   Your Essay
                 </label>
                 {/* Live word count badge */}
                 <span
-                  className="text-xs font-bold px-2.5 py-0.5 rounded-full"
+                  className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
                   style={{
                     background: wordCount >= minRequired
                       ? "rgba(22,163,74,0.08)"
@@ -419,7 +419,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
             <button
               onClick={handleSubmit}
               disabled={!isValid || submitting}
-              className="w-full py-3.5 rounded-xl text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
+              className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
               style={{
                 background: isValid ? "linear-gradient(135deg, #00A896, #00C4B0)" : "var(--surface-primary)",
                 color: isValid ? "#fff" : "var(--color-text-tertiary)",

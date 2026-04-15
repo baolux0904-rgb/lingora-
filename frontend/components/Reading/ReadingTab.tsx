@@ -179,7 +179,7 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
         <button onClick={onClose} className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "var(--color-bg-secondary)" }}>
           <span style={{ color: "var(--color-text)" }}>←</span>
         </button>
-        <div className="font-display font-bold text-base" style={{ color: "var(--color-text)" }}>IELTS Reading</div>
+        <div className="font-display font-semibold text-base" style={{ color: "var(--color-text)" }}>IELTS Reading</div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -200,7 +200,7 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
                     📖
                   </div>
                   <div>
-                    <div className="font-display font-bold text-base mb-0.5" style={{ color: "var(--color-text)" }}>Practice Mode</div>
+                    <div className="font-display font-semibold text-base mb-0.5" style={{ color: "var(--color-text)" }}>Practice Mode</div>
                     <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Choose your topic and band level. Practice at your own pace.</p>
                   </div>
                 </div>
@@ -216,7 +216,7 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
                     📝
                   </div>
                   <div>
-                    <div className="font-display font-bold text-base mb-0.5" style={{ color: "var(--color-text)" }}>Full Test Mode</div>
+                    <div className="font-display font-semibold text-base mb-0.5" style={{ color: "var(--color-text)" }}>Full Test Mode</div>
                     <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>3 passages, 60 minutes. Simulates real exam conditions.</p>
                     <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B" }}>Coming Soon</span>
                   </div>

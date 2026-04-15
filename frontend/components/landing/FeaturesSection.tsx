@@ -76,7 +76,7 @@ export default function FeaturesSection() {
               className="group relative rounded-xl border border-white/[0.06] bg-[#0F1429]/60 p-6 hover:border-white/[0.1] hover:bg-[#0F1429]/80 transition-all duration-300 cursor-pointer"
             >
               {feature.comingSoon && (
-                <span className="absolute top-4 right-4 text-[10px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.06]">
+                <span className="absolute top-4 right-4 text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.06]">
                   Sắp ra mắt
                 </span>
               )}

@@ -9,15 +9,20 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      /* ── Typography Scale ───────────────────────────────────────── */
+      /* ── Typography Scale ─────────────────────────────────────────
+         Body sizes use leading-relaxed (1.625) for Vietnamese diacritics.
+         Headings use leading-tight (1.1–1.25) + tight tracking.
+         Small caps / labels use slightly open tracking.                */
       fontSize: {
-        xs:      ["0.75rem",  { lineHeight: "1rem" }],       // 12px — caption
-        sm:      ["0.875rem", { lineHeight: "1.25rem" }],     // 14px — small
-        base:    ["1rem",     { lineHeight: "1.6" }],         // 16px — body
-        lg:      ["1.25rem",  { lineHeight: "1.75rem" }],     // 20px — H3
-        xl:      ["1.5rem",   { lineHeight: "1.3" }],         // 24px — H2
-        "2xl":   ["2rem",     { lineHeight: "1.2" }],         // 32px — H1
-        "3xl":   ["2.5rem",   { lineHeight: "1.2" }],         // 40px — Display
+        xs:      ["0.75rem",  { lineHeight: "1.5",   letterSpacing: "0.01em" }], // 12px — caption
+        sm:      ["0.875rem", { lineHeight: "1.55",  letterSpacing: "0"      }], // 14px — small
+        base:    ["1rem",     { lineHeight: "1.65",  letterSpacing: "0"      }], // 16px — body
+        lg:      ["1.25rem",  { lineHeight: "1.4",   letterSpacing: "-0.005em" }], // 20px — H3 / card title
+        xl:      ["1.5rem",   { lineHeight: "1.25",  letterSpacing: "-0.01em"  }], // 24px — H2
+        "2xl":   ["2rem",     { lineHeight: "1.15",  letterSpacing: "-0.015em" }], // 32px — H1
+        "3xl":   ["2.5rem",   { lineHeight: "1.1",   letterSpacing: "-0.02em"  }], // 40px — Display
+        "4xl":   ["2.25rem",  { lineHeight: "1.1",   letterSpacing: "-0.02em"  }], // 36px — Display (legacy)
+        "5xl":   ["3rem",     { lineHeight: "1.05",  letterSpacing: "-0.025em" }], // 48px — Hero
       },
 
       /* ── Spacing — 4px grid ─────────────────────────────────────── */
@@ -74,10 +79,11 @@ const config: Config = {
       },
 
       fontFamily: {
+        // DM Sans (body / UI) — loaded via next/font/google in app/layout.tsx
+        sans:     ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+        // Playfair Display (hero / large display headings only)
         display:  ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
         playfair: ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
-        sora:     ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
-        sans:     ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
       },
 
       borderColor: {

@@ -92,7 +92,7 @@ export default function ContinueLearningCard({
             <IconCheck size={22} className="text-white" />
           </div>
           <div>
-            <p className="text-base font-sora font-bold" style={{ color: "var(--color-text)" }}>
+            <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
               All lessons complete!
             </p>
             <p className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -155,12 +155,12 @@ export default function ContinueLearningCard({
         {/* Unit + progress context */}
         <div className="flex items-center gap-2 mb-3">
           <span
-            className="text-xs font-bold uppercase tracking-[1px] px-2.5 py-1 rounded-full"
+            className="text-xs font-semibold uppercase tracking-[1px] px-2.5 py-1 rounded-full"
             style={{ backgroundColor: "rgba(46,211,198,0.12)", color: "var(--color-success)" }}
           >
             Unit {unitNumber}
           </span>
-          <span className="text-xs font-bold uppercase tracking-[1px] px-2.5 py-1 rounded-full"
+          <span className="text-xs font-semibold uppercase tracking-[1px] px-2.5 py-1 rounded-full"
             style={{ backgroundColor: "rgba(45,168,255,0.1)", color: "var(--color-accent)" }}
           >
             {unit.level}
@@ -174,7 +174,7 @@ export default function ContinueLearningCard({
         <p className="text-xs font-semibold mb-1" style={{ color: "var(--color-text-secondary)" }}>
           Lesson {lessonNumber} of {unit.nodes.length} · {unit.title}
         </p>
-        <h3 className="text-lg font-sora font-bold mb-1" style={{ color: "var(--color-text)" }}>
+        <h3 className="text-lg font-bold mb-1" style={{ color: "var(--color-text)" }}>
           {node.title}
         </h3>
         {node.xp && (

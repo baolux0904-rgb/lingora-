@@ -33,7 +33,7 @@ function McqQuestion({ q, answer, onAnswer }: { q: ReadingPassageFull["questions
             border: `1px solid ${answer === key ? "rgba(0,168,150,0.4)" : "var(--color-border)"}`,
             color: "var(--color-text)",
           }}>
-          <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+          <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
             style={{ background: answer === key ? "#00A896" : "var(--color-border)", color: answer === key ? "#fff" : "var(--color-text-secondary)" }}>
             {key}
           </span>
@@ -159,7 +159,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
         return (
           <button key={q.order_index}
             onClick={() => document.getElementById(`q-${q.order_index}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold transition-all"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all"
             style={{
               background: answered ? "rgba(0,168,150,0.15)" : "var(--color-bg-secondary)",
               color: answered ? "#00A896" : "var(--color-text-tertiary)",
@@ -187,7 +187,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
       {questions.map((q) => (
         <div key={q.order_index} id={`q-${q.order_index}`} className="rounded-lg p-4" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
           <div className="flex items-start gap-2 mb-3">
-            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0" style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>
               {q.order_index}
             </span>
             <span className="text-xs font-medium uppercase px-1.5 py-0.5 rounded" style={{ background: "rgba(0,168,150,0.08)", color: "#00A896" }}>
@@ -233,7 +233,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
           <button onClick={() => setShowConfirm(false)} className="flex-1 py-2.5 rounded-lg text-sm font-medium" style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}>
             Xem lại
           </button>
-          <button onClick={() => { setShowConfirm(false); handleSubmit(); }} disabled={submitting} className="flex-1 py-2.5 rounded-lg text-sm font-bold disabled:opacity-50" style={{ background: "#00A896", color: "#fff" }}>
+          <button onClick={() => { setShowConfirm(false); handleSubmit(); }} disabled={submitting} className="flex-1 py-2.5 rounded-lg text-sm font-semibold disabled:opacity-50" style={{ background: "#00A896", color: "#fff" }}>
             {submitting ? "Đang nộp..." : "Nộp bài"}
           </button>
         </div>
@@ -290,7 +290,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
       {/* Submit bar */}
       <div className="px-4 py-3 shrink-0" style={{ background: "var(--color-bg-card)", borderTop: "1px solid var(--color-border)" }}>
         <button onClick={() => setShowConfirm(true)} disabled={submitting}
-          className="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+          className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
           style={{ background: allAnswered ? "#00A896" : "var(--color-bg-secondary)", color: allAnswered ? "#fff" : "var(--color-text-tertiary)" }}>
           {submitting ? "Đang nộp..." : allAnswered ? "Nộp bài" : `Trả lời tất cả (${answeredCount}/${questions.length})`}
         </button>

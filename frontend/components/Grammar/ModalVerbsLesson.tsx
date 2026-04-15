@@ -104,18 +104,18 @@ function ExplanationPanel({
       >
         <div className="flex items-center gap-2 mb-3">
           <span className="text-lg">📖</span>
-          <p className="text-base font-sora font-bold" style={{ color: "var(--color-text)" }}>
+          <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
             {explanation.title}
           </p>
         </div>
 
         <div className="flex flex-col gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-success)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--color-success)" }}>
               Modal
             </p>
             <p
-              className="text-base font-bold px-3 py-1.5 rounded-lg inline-block"
+              className="text-base font-semibold px-3 py-1.5 rounded-lg inline-block"
               style={{
                 background: "rgba(46,211,198,0.1)",
                 border: "1px solid rgba(46,211,198,0.25)",
@@ -127,7 +127,7 @@ function ExplanationPanel({
           </div>
 
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-accent)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--color-accent)" }}>
               Meaning
             </p>
             <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
@@ -136,7 +136,7 @@ function ExplanationPanel({
           </div>
 
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-secondary)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-secondary)" }}>
               When to use
             </p>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -151,7 +151,7 @@ function ExplanationPanel({
               border: "1px solid var(--color-border)",
             }}
           >
-            <p className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-secondary)" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-secondary)" }}>
               Example
             </p>
             <p className="text-sm italic" style={{ color: "var(--color-text)" }}>
@@ -267,7 +267,7 @@ export default function ModalVerbsLesson({
           </div>
 
           <div className="text-center">
-            <p className="text-lg font-sora font-bold" style={{ color: "var(--color-text)" }}>
+            <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
               {score >= 90 ? "Excellent!" : score >= 70 ? "Well done!" : "Keep practicing!"}
             </p>
             <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
@@ -282,7 +282,7 @@ export default function ModalVerbsLesson({
               background: "rgba(46,211,198,0.08)",
             }}
           >
-            <span className="text-xl font-sora font-bold" style={{ color: "var(--color-success)" }}>
+            <span className="text-xl font-bold" style={{ color: "var(--color-success)" }}>
               {score}%
             </span>
             <span className="text-sm ml-2" style={{ color: "var(--color-text-secondary)" }}>

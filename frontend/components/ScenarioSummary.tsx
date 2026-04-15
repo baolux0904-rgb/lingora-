@@ -77,7 +77,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
       <div className="max-w-xl mx-auto w-full px-5 py-8 flex flex-col gap-7">
         {/* Title */}
         <h2
-          className="text-xl font-sora font-bold text-center"
+          className="text-xl font-bold text-center"
           style={{ color: "var(--color-text)" }}
         >
           {hasBandScore ? "IELTS Speaking — Results" : "Session Complete!"}
@@ -93,7 +93,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
                 border: `2px solid ${scoreColor(result.overallScore)}40`,
               }}
             >
-              <div className="text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-secondary)" }}>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--color-text-secondary)" }}>
                 Estimated Band Score
               </div>
               <div className="text-3xl font-bold" style={{ color: scoreColor(result.overallScore) }}>
@@ -164,7 +164,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
               <div key={s.label}>
                 <div className="flex justify-between mb-1.5">
                   <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{s.label}</span>
-                  <span className="text-sm font-bold" style={{ color: scoreColor(s.value) }}>{s.value}</span>
+                  <span className="text-sm font-semibold" style={{ color: scoreColor(s.value) }}>{s.value}</span>
                 </div>
                 <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>
                   <div
@@ -188,7 +188,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-bold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
               Speaking Flow
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -255,7 +255,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-bold mb-2.5" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-semibold mb-2.5" style={{ color: "var(--color-primary)" }}>
               Coach Feedback
             </div>
             <p className="text-base leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -270,7 +270,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-bold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
               Vocabulary Analysis
             </div>
 
@@ -322,14 +322,14 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-bold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
               Turn Tips
             </div>
             <div className="flex flex-col gap-3">
               {result.turnFeedback.map((tf, i) => (
                 <div key={i} className="flex gap-2.5 items-start">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5"
                     style={{ background: "var(--color-primary-soft)", color: "var(--color-primary)" }}
                   >
                     {tf.turnIndex}
@@ -346,7 +346,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
         {/* Feedback Cards — evidence-based issue/strength cards */}
         {result.feedbackCards && result.feedbackCards.length > 0 && (
           <div className="flex flex-col gap-3">
-            <div className="text-xs font-bold" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-semibold" style={{ color: "var(--color-primary)" }}>
               Key Feedback
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 md:grid md:grid-cols-2 md:overflow-visible">
@@ -363,7 +363,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
                   <div key={i} className="rounded-lg p-4 min-w-[280px] md:min-w-0 shrink-0"
                     style={{ background: c.bg, borderLeft: `4px solid ${c.border}` }}>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold"
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold"
                         style={{ background: `${c.border}20`, color: c.border }}>{c.icon}</span>
                       <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{card.title}</span>
                     </div>
@@ -389,13 +389,13 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
         {/* Top 3 Priorities */}
         {result.top3Priorities && result.top3Priorities.length > 0 && (
           <div className="rounded-lg p-5" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-            <div className="text-xs font-bold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
               Top Priorities to Improve
             </div>
             <div className="flex flex-col gap-2.5">
               {result.top3Priorities.map((p, i) => (
                 <div key={i} className="flex gap-2.5 items-start">
-                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                     style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>{i + 1}</span>
                   <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>{p}</p>
                 </div>

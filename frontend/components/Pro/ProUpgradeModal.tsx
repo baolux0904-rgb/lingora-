@@ -140,12 +140,12 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgraded }: ProUpgr
                 >
                   <div className="font-bold">{p.label}</div>
                   {p.savings > 0 && (
-                    <div className="text-[10px] mt-0.5 font-semibold" style={{ color: isActive ? "#2DD4BF" : "rgba(45,212,191,0.7)" }}>
+                    <div className="text-xs mt-0.5 font-semibold" style={{ color: isActive ? "#2DD4BF" : "rgba(45,212,191,0.7)" }}>
                       -{p.savings}%
                     </div>
                   )}
                   {p.tag && (
-                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[9px] px-1.5 py-0.5 rounded-full font-bold whitespace-nowrap" style={{ background: "#8B71EA", color: "#fff" }}>
+                    <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs px-1.5 py-0.5 rounded-full font-semibold whitespace-nowrap" style={{ background: "#8B71EA", color: "#fff" }}>
                       {p.tag}
                     </span>
                   )}
@@ -194,7 +194,7 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgraded }: ProUpgr
 
           {/* CTA */}
           <button onClick={handleUpgrade} disabled={loading}
-            className="w-full py-3.5 rounded-xl text-base font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+            className="w-full py-3.5 rounded-xl text-base font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
             style={{
               background: "linear-gradient(135deg, #8B71EA, #2DD4BF)",
               color: "#fff",

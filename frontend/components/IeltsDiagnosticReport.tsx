@@ -122,7 +122,7 @@ export default function IeltsDiagnosticReport({
 
         {/* ═══ Title ═══ */}
         <h2
-          className="text-xl font-sora font-bold text-center"
+          className="text-xl font-bold text-center"
           style={{ color: "var(--color-text)" }}
         >
           IELTS Speaking — Diagnostic Report
@@ -138,18 +138,18 @@ export default function IeltsDiagnosticReport({
             }}
           >
             <div
-              className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1.5"
+              className="text-xs font-semibold uppercase tracking-[0.15em] mb-1.5"
               style={{ color: "var(--color-text-secondary)" }}
             >
               Estimated Band Range
             </div>
             <div
-              className="text-3xl font-bold font-sora"
+              className="text-3xl font-bold font-display"
               style={{ color: bandColor(diagnostic.overallScore100) }}
             >
               {formatBand(diagnostic.overallBandRange)}
             </div>
-            <div className="text-[11px] mt-1" style={{ color: "var(--color-text-secondary)" }}>
+            <div className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
               out of 9.0
             </div>
           </div>
@@ -164,19 +164,19 @@ export default function IeltsDiagnosticReport({
             <div className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
               {diagnostic.turnCount}
             </div>
-            <div className="text-[11px]">turns</div>
+            <div className="text-xs">turns</div>
           </div>
           <div>
             <div className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
               {diagnostic.wordCount}
             </div>
-            <div className="text-[11px]">words</div>
+            <div className="text-xs">words</div>
           </div>
           <div>
             <div className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
               {formatDuration(diagnostic.durationMs)}
             </div>
-            <div className="text-[11px]">duration</div>
+            <div className="text-xs">duration</div>
           </div>
         </div>
 
@@ -186,7 +186,7 @@ export default function IeltsDiagnosticReport({
           style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
         >
           <div
-            className="text-[11px] font-bold uppercase tracking-[0.12em]"
+            className="text-xs font-semibold uppercase tracking-[0.12em]"
             style={{ color: "var(--color-text-secondary)" }}
           >
             Criterion Analysis
@@ -216,13 +216,13 @@ export default function IeltsDiagnosticReport({
           >
             <div className="flex items-center gap-2 mb-3">
               <div
-                className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                className="text-xs font-semibold uppercase tracking-[0.12em]"
                 style={{ color: "#f59e0b" }}
               >
                 Vietnamese Speaker Patterns Detected
               </div>
             </div>
-            <p className="text-[12px] mb-4 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+            <p className="text-xs mb-4 leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
               These patterns are common for Vietnamese speakers and directly affect your IELTS scores.
               Targeted practice on these specific sounds produces the fastest improvement.
             </p>
@@ -242,7 +242,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-[11px] font-bold uppercase tracking-[0.12em] mb-3"
+              className="text-xs font-semibold uppercase tracking-[0.12em] mb-3"
               style={{ color: "var(--color-primary)" }}
             >
               Speaking Flow Analysis
@@ -288,13 +288,13 @@ export default function IeltsDiagnosticReport({
           }}
         >
           <div
-            className="text-[11px] font-bold uppercase tracking-[0.12em] mb-2"
+            className="text-xs font-semibold uppercase tracking-[0.12em] mb-2"
             style={{ color: bandColor(diagnostic.overallScore100) }}
           >
             #1 Priority for Next Session
           </div>
           <p
-            className="text-[14px] leading-relaxed"
+            className="text-sm leading-relaxed"
             style={{ color: "var(--color-text)" }}
           >
             {diagnostic.topPriority}
@@ -308,7 +308,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-[11px] font-bold uppercase tracking-[0.12em] mb-3"
+              className="text-xs font-semibold uppercase tracking-[0.12em] mb-3"
               style={{ color: "var(--color-primary)" }}
             >
               Vocabulary Analysis
@@ -316,14 +316,14 @@ export default function IeltsDiagnosticReport({
 
             {diagnostic.notableVocabulary.length > 0 && (
               <div className="mb-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#34D399" }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#34D399" }}>
                   Strong Usage
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {diagnostic.notableVocabulary.map((word, i) => (
                     <span
                       key={i}
-                      className="px-3 py-1.5 rounded-full text-[12px] font-medium"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium"
                       style={{ background: "rgba(52, 211, 153, 0.1)", color: "#34D399", border: "1px solid rgba(52, 211, 153, 0.2)" }}
                     >
                       {word}
@@ -335,14 +335,14 @@ export default function IeltsDiagnosticReport({
 
             {diagnostic.improvementVocabulary.length > 0 && (
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: "#fbbf24" }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#fbbf24" }}>
                   Overused / Weak
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {diagnostic.improvementVocabulary.map((word, i) => (
                     <span
                       key={i}
-                      className="px-3 py-1.5 rounded-full text-[12px] font-medium"
+                      className="px-3 py-1.5 rounded-full text-xs font-medium"
                       style={{ background: "rgba(251, 191, 36, 0.1)", color: "#fbbf24", border: "1px solid rgba(251, 191, 36, 0.2)" }}
                     >
                       {word}
@@ -361,7 +361,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-[11px] font-bold uppercase tracking-[0.12em] mb-4"
+              className="text-xs font-semibold uppercase tracking-[0.12em] mb-4"
               style={{ color: "#00A896" }}
             >
               Attempt Comparison
@@ -408,7 +408,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-[11px] font-bold uppercase tracking-[0.12em] mb-3"
+              className="text-xs font-semibold uppercase tracking-[0.12em] mb-3"
               style={{ color: "var(--color-text-secondary)" }}
             >
               Turn-by-Turn Notes
@@ -417,12 +417,12 @@ export default function IeltsDiagnosticReport({
               {diagnostic.turnFeedback.slice(0, 3).map((tf, i) => (
                 <div key={i} className="flex gap-2.5 items-start">
                   <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5"
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5"
                     style={{ background: "var(--color-primary-soft)", color: "var(--color-primary)" }}
                   >
                     {tf.turnIndex}
                   </div>
-                  <p className="text-[12px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                  <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
                     {tf.tip}
                   </p>
                 </div>
@@ -437,7 +437,7 @@ export default function IeltsDiagnosticReport({
           style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
         >
           <div
-            className="text-[12px] font-medium text-center mb-3"
+            className="text-xs font-medium text-center mb-3"
             style={{ color: "var(--color-text)" }}
           >
             How accurate does this feedback feel?
@@ -453,7 +453,7 @@ export default function IeltsDiagnosticReport({
                 <button
                   key={opt.value}
                   onClick={() => handleAccuracy(opt.value)}
-                  className="px-4 py-2 rounded-xl text-[12px] font-medium transition duration-200 hover:scale-[1.02]"
+                  className="px-4 py-2 rounded-xl text-xs font-medium transition duration-200 hover:scale-[1.02]"
                   style={{
                     background: "var(--color-primary-soft)",
                     color: "var(--color-text)",
@@ -466,7 +466,7 @@ export default function IeltsDiagnosticReport({
             </div>
           ) : (
             <div className="text-center">
-              <span className="text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
+              <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
                 Recorded: {selectedAccuracy === "too_generous" ? "Too generous" : selectedAccuracy === "about_right" ? "About right" : "Too harsh"}
                 {" "}&mdash; thank you
               </span>
@@ -479,7 +479,7 @@ export default function IeltsDiagnosticReport({
           <button
             onClick={onRetrySameTopic}
             style={{ background: "var(--color-primary)", color: "#fff" }}
-            className="w-full py-3.5 rounded-xl font-semibold text-[14px] hover:opacity-90 transition-opacity"
+            className="w-full py-3.5 rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity"
           >
             Retry Same Topic &mdash; Compare Attempts
           </button>
@@ -487,7 +487,7 @@ export default function IeltsDiagnosticReport({
           <div className="flex gap-3">
             <button
               onClick={onNewTopic}
-              className="flex-1 py-3 rounded-xl font-medium text-[13px] transition duration-200 hover:scale-[1.01]"
+              className="flex-1 py-3 rounded-xl font-medium text-sm transition duration-200 hover:scale-[1.01]"
               style={{
                 background: "var(--color-bg-card)",
                 color: "var(--color-text)",
@@ -498,7 +498,7 @@ export default function IeltsDiagnosticReport({
             </button>
             <button
               onClick={onClose}
-              className="flex-1 py-3 rounded-xl font-medium text-[13px] transition duration-200 hover:scale-[1.01]"
+              className="flex-1 py-3 rounded-xl font-medium text-sm transition duration-200 hover:scale-[1.01]"
               style={{
                 background: "var(--color-bg-card)",
                 color: "var(--color-text-secondary)",
@@ -540,16 +540,16 @@ function CriterionCard({
     <div>
       {/* Header: label + band range */}
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-[13px] font-semibold" style={{ color: "var(--color-text)" }}>
+        <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
           {criterion.label}
         </span>
         <div className="flex items-center gap-2">
           {delta && (
-            <span className="text-[11px] font-medium" style={{ color: delta.color }}>
+            <span className="text-xs font-medium" style={{ color: delta.color }}>
               {delta.symbol}
             </span>
           )}
-          <span className="text-[13px] font-bold" style={{ color }}>
+          <span className="text-sm font-semibold" style={{ color }}>
             Band {formatBand(criterion.bandRange)}
           </span>
         </div>
@@ -565,26 +565,26 @@ function CriterionCard({
         </div>
         {/* Scale markers: bands 3, 5, 7 */}
         <div className="flex justify-between mt-0.5 px-0.5">
-          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>1</span>
-          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>5</span>
-          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>9</span>
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>1</span>
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>5</span>
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>9</span>
         </div>
       </div>
 
       {/* Justification */}
-      <p className="text-[12px] leading-relaxed mb-1" style={{ color: "var(--color-text-secondary)" }}>
+      <p className="text-xs leading-relaxed mb-1" style={{ color: "var(--color-text-secondary)" }}>
         {criterion.justification}
       </p>
 
       {/* Action */}
-      <p className="text-[11px] leading-relaxed" style={{ color }}>
+      <p className="text-xs leading-relaxed" style={{ color }}>
         {criterion.action}
       </p>
 
       {/* Vietnamese L1 tag */}
       {criterion.l1Tag && (
         <span
-          className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] font-medium"
+          className="inline-block mt-1.5 px-2 py-0.5 rounded text-xs font-medium"
           style={{ background: "rgba(245, 158, 11, 0.1)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.2)" }}
         >
           Vietnamese speaker pattern
@@ -600,21 +600,21 @@ function VietnamesePatternCard({ pattern }: { pattern: VietnameseL1Pattern }) {
       className="rounded-xl p-3"
       style={{ background: "rgba(245, 158, 11, 0.05)", border: "1px solid rgba(245, 158, 11, 0.15)" }}
     >
-      <div className="text-[12px] font-semibold mb-1" style={{ color: "#f59e0b" }}>
+      <div className="text-xs font-semibold mb-1" style={{ color: "#f59e0b" }}>
         {pattern.label}
       </div>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {pattern.words.map((w, i) => (
           <span
             key={i}
-            className="px-2 py-0.5 rounded text-[11px] font-medium"
+            className="px-2 py-0.5 rounded text-xs font-medium"
             style={{ background: "rgba(245, 158, 11, 0.1)", color: "#f59e0b" }}
           >
             {w}
           </span>
         ))}
       </div>
-      <p className="text-[11px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+      <p className="text-xs leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
         {pattern.suggestion}
       </p>
     </div>
@@ -632,10 +632,10 @@ function FlowMetric({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
+      <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
         {label}
       </span>
-      <span className="text-[13px] font-semibold" style={{ color: color || "var(--color-text)" }}>
+      <span className="text-sm font-semibold" style={{ color: color || "var(--color-text)" }}>
         {value}
       </span>
     </div>
@@ -658,19 +658,19 @@ function ComparisonRow({
   const delta = deltaArrow(currentScore, previousScore);
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[11px] w-28 truncate" style={{ color: "var(--color-text-secondary)" }}>
+      <span className="text-xs w-28 truncate" style={{ color: "var(--color-text-secondary)" }}>
         {label}
       </span>
-      <span className="text-[11px] w-16 text-right" style={{ color: "var(--color-text-muted)" }}>
+      <span className="text-xs w-16 text-right" style={{ color: "var(--color-text-muted)" }}>
         {formatBand(previous)}
       </span>
-      <span className="text-[13px] font-bold" style={{ color: delta.color }}>
+      <span className="text-sm font-semibold" style={{ color: delta.color }}>
         {delta.symbol}
       </span>
-      <span className="text-[11px] w-16 font-semibold" style={{ color: bandColor(currentScore) }}>
+      <span className="text-xs w-16 font-semibold" style={{ color: bandColor(currentScore) }}>
         {formatBand(current)}
       </span>
-      <span className="text-[10px] flex-1" style={{ color: delta.color }}>
+      <span className="text-xs flex-1" style={{ color: delta.color }}>
         {delta.text}
       </span>
     </div>

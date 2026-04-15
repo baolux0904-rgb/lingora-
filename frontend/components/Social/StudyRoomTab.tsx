@@ -22,7 +22,7 @@ function Avatar({ name, size = 10 }: { name: string; size?: number }) {
   const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   return (
     <div
-      className={`w-${size} h-${size} rounded-full flex items-center justify-center font-bold text-xs shrink-0`}
+      className={`w-${size} h-${size} rounded-full flex items-center justify-center font-semibold text-xs shrink-0`}
       style={{ background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)", color: "#fff", width: size * 4, height: size * 4 }}
     >
       {initials}
@@ -110,7 +110,7 @@ function RoomDashboard({ roomId, onClose }: { roomId: string; onClose: () => voi
           <span style={{ color: "var(--color-text)" }}>←</span>
         </button>
         <div className="flex-1">
-          <div className="font-display font-bold text-base" style={{ color: "var(--color-text)" }}>{room.name}</div>
+          <div className="font-display font-semibold text-base" style={{ color: "var(--color-text)" }}>{room.name}</div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>🔥 {room.room_streak} day streak · {members.length} members</div>
         </div>
       </div>
@@ -134,7 +134,7 @@ function RoomDashboard({ roomId, onClose }: { roomId: string; onClose: () => voi
 
           {/* Squad Status */}
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Squad Status</div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Squad Status</div>
             <div className="flex flex-col gap-2">
               {members.map((m: StudyRoomMember) => (
                 <div key={m.user_id} className="flex items-center gap-3 p-3 rounded-lg" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
@@ -161,7 +161,7 @@ function RoomDashboard({ roomId, onClose }: { roomId: string; onClose: () => voi
           {/* Notes */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Notes</span>
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Notes</span>
               <button onClick={() => setShowNoteInput(!showNoteInput)} className="text-xs font-medium" style={{ color: "#00A896" }}>
                 {showNoteInput ? "Cancel" : "+ Add"}
               </button>
@@ -200,7 +200,7 @@ function RoomDashboard({ roomId, onClose }: { roomId: string; onClose: () => voi
 
           {/* Activity Feed */}
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Recent Activity</div>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Recent Activity</div>
             {recentFeed.length === 0 ? (
               <p className="text-sm py-2" style={{ color: "var(--color-text-secondary)" }}>Chưa có hoạt động nào</p>
             ) : (
@@ -248,7 +248,7 @@ function CreateRoomModal({ onClose, onCreated }: { onClose: () => void; onCreate
   return (
     <div className="fixed inset-0 z-sheet flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full max-w-md rounded-xl p-5 flex flex-col gap-4" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-        <h3 className="text-base font-bold" style={{ color: "var(--color-text)" }}>Create Study Room</h3>
+        <h3 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>Create Study Room</h3>
 
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Room name" className="rounded-lg px-3 py-2.5 text-sm"
           style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }} />

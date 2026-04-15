@@ -75,7 +75,7 @@ const Toast: React.FC<ToastProps> = ({ variant = "success", message, duration = 
       aria-live="polite"
     >
       <span
-        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold"
         style={{ background: config.border, color: config.color }}
       >
         {config.icon}

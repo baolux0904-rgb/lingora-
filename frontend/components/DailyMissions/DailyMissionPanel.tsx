@@ -142,11 +142,11 @@ export default function DailyMissionPanel({ gamification }: DailyMissionPanelPro
         className="w-full flex items-center justify-between px-5 py-4 lg:cursor-default"
       >
         <div className="flex items-center gap-2.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
             Daily Missions
           </span>
           <span
-            className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+            className="text-xs font-semibold px-2 py-0.5 rounded-full"
             style={{
               background: allComplete ? "rgba(0,168,150,0.15)" : "var(--surface-skeleton)",
               color: allComplete ? "#00A896" : "var(--color-text-tertiary)",
@@ -245,7 +245,7 @@ export default function DailyMissionPanel({ gamification }: DailyMissionPanelPro
 
               {/* XP reward badge */}
               <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0"
+                className="text-xs font-semibold px-2 py-0.5 rounded-full shrink-0"
                 style={{
                   background: done ? `${color}15` : "var(--surface-subtle)",
                   color: done ? color : "var(--color-text-tertiary)",
@@ -263,7 +263,7 @@ export default function DailyMissionPanel({ gamification }: DailyMissionPanelPro
             className="px-5 py-3 flex items-center justify-center gap-2"
             style={{ background: "rgba(0,168,150,0.08)" }}
           >
-            <span className="text-xs font-bold" style={{ color: "#00A896" }}>
+            <span className="text-xs font-semibold" style={{ color: "#00A896" }}>
               🎯 Daily Complete! +50 Bonus XP
             </span>
           </div>

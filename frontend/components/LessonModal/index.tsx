@@ -203,7 +203,7 @@ export default function LessonModal({
                 {/* Section label */}
                 {step !== "complete" && (
                   <div className="mb-5">
-                    <h2 className="text-lg font-sora font-bold" style={{ color: "var(--color-text)" }}>
+                    <h2 className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
                       {detail.lesson.title}
                     </h2>
                     <p className="text-xs font-semibold mt-0.5" style={{ color: "var(--color-success)" }}>

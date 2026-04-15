@@ -80,7 +80,7 @@ export default function Sidebar({ collapsed, onToggle, activeNav, onNavChange }:
           )}
         >
           <div
-            className="font-sora font-black text-lg tracking-[-0.3px] whitespace-nowrap"
+            className="font-display font-black text-lg tracking-[-0.3px] whitespace-nowrap"
             style={{
               background: "linear-gradient(135deg, #fff 40%, #2ED3C6)",
               WebkitBackgroundClip: "text",
@@ -157,7 +157,7 @@ export default function Sidebar({ collapsed, onToggle, activeNav, onNavChange }:
                 </span>
 
                 {item.badge && !collapsed && (
-                  <span className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-md flex-shrink-0" style={{ background: "var(--color-teal)", color: "var(--color-text)" }}>
+                  <span className="ml-auto text-xs font-semibold px-1.5 py-0.5 rounded-md flex-shrink-0" style={{ background: "var(--color-teal)", color: "var(--color-text)" }}>
                     {item.badge}
                   </span>
                 )}
@@ -180,7 +180,7 @@ export default function Sidebar({ collapsed, onToggle, activeNav, onNavChange }:
 
         <button className="w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-md hover:bg-white/5 transition duration-normal overflow-hidden whitespace-nowrap">
           <div
-            className="w-[34px] h-[34px] rounded-full flex items-center justify-center flex-shrink-0 font-sora font-bold text-xs"
+            className="w-[34px] h-[34px] rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-xs"
             style={{ color: "var(--color-text)", background: "linear-gradient(135deg, var(--color-teal), var(--color-accent))", boxShadow: "0 0 0 2px rgba(46,211,198,0.3)" }}
           >
             {mockUser.initials}

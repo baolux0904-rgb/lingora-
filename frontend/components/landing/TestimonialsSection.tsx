@@ -68,7 +68,7 @@ export default function TestimonialsSection() {
               {/* Author */}
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 rounded-full ${t.avatarBg} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}
+                  className={`w-10 h-10 rounded-full ${t.avatarBg} flex items-center justify-center text-xs font-semibold text-white flex-shrink-0`}
                 >
                   {t.avatar}
                 </div>
@@ -77,7 +77,7 @@ export default function TestimonialsSection() {
                   <p className="text-xs text-gray-400 truncate">{t.role}</p>
                 </div>
                 <div className="flex-shrink-0 px-2.5 py-1 rounded-md bg-[#00A896]/10 border border-[#00A896]/20">
-                  <span className="text-xs font-bold text-[#00A896]">Band {t.band}</span>
+                  <span className="text-xs font-semibold text-[#00A896]">Band {t.band}</span>
                 </div>
               </div>
             </motion.div>

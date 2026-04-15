@@ -143,7 +143,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <div className="grid grid-cols-3 gap-3 w-full max-w-xs mb-6">
               {BAND_OPTIONS.map((b) => (
                 <button key={b} onClick={() => setTargetBand(b)}
-                  className="py-3 rounded-xl text-base font-bold transition-all"
+                  className="py-3 rounded-xl text-base font-semibold transition-all"
                   style={{
                     background: targetBand === b ? "linear-gradient(135deg, #8B71EA, #2DD4BF)" : "transparent",
                     color: targetBand === b ? "#fff" : "#94A3B8",
@@ -156,7 +156,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               ))}
             </div>
             <button onClick={() => goTo(2)} disabled={!targetBand}
-              className="w-full max-w-xs py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-30"
+              className="w-full max-w-xs py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-30"
               style={{ background: "linear-gradient(135deg, #8B71EA, #2DD4BF)", color: "#fff" }}>
               Tiếp tục
             </button>
@@ -174,7 +174,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               Chỉ cần nói tự nhiên trong 30 giây — không có áp lực.
             </p>
             <button onClick={() => goTo(3)}
-              className="w-full max-w-xs py-4 rounded-xl text-base font-bold transition-all active:scale-95"
+              className="w-full max-w-xs py-4 rounded-xl text-base font-semibold transition-all active:scale-95"
               style={{ background: "linear-gradient(135deg, #8B71EA, #2DD4BF)", color: "#fff", boxShadow: "0 0 30px rgba(139,113,234,0.25)" }}>
               Bắt đầu bài test nói 🎤
             </button>
@@ -277,7 +277,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <span style={{ color: "#F59E0B" }}>Cần cải thiện: Từ vựng</span>
             </div>
             <button onClick={handleComplete}
-              className="w-full max-w-xs py-3 rounded-xl text-sm font-bold transition-all active:scale-95"
+              className="w-full max-w-xs py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
               style={{ background: "linear-gradient(135deg, #8B71EA, #2DD4BF)", color: "#fff", boxShadow: "0 0 20px rgba(139,113,234,0.3)" }}>
               Bắt đầu cải thiện →
             </button>
@@ -294,7 +294,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               Lộ trình của bạn đã sẵn sàng.
             </p>
             <button onClick={onComplete}
-              className="px-6 py-3 rounded-xl text-sm font-bold"
+              className="px-6 py-3 rounded-xl text-sm font-semibold"
               style={{ background: "linear-gradient(135deg, #8B71EA, #2DD4BF)", color: "#fff" }}>
               Vào Lingona →
             </button>

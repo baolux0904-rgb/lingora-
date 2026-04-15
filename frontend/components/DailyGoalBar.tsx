@@ -62,7 +62,7 @@ export default function DailyGoalBar({ goal, streak }: DailyGoalBarProps) {
         {/* Streak badge */}
         {streak > 0 && (
           <div
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold"
             style={{
               backgroundColor: "var(--color-warning-soft)",
               border: "1px solid color-mix(in srgb, var(--color-warning) 18%, transparent)",

@@ -71,7 +71,7 @@ export default function PublicProfileClient({ username }: Props) {
             <span>Since {joinDate}</span>
           </div>
           {profile.is_pro && (
-            <span className="inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-bold" style={{ background: "rgba(139,113,234,0.15)", color: "#A5B4FC" }}>PRO</span>
+            <span className="inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: "rgba(139,113,234,0.15)", color: "#A5B4FC" }}>PRO</span>
           )}
         </div>
       </div>
@@ -87,7 +87,7 @@ export default function PublicProfileClient({ username }: Props) {
           <div key={i} className="rounded-2xl p-3 flex flex-col items-center gap-1" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
             <span className="text-base">{s.icon}</span>
             <span className="text-lg font-display font-bold">{s.value}</span>
-            <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>{s.label}</span>
+            <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>{s.label}</span>
           </div>
         ))}
       </div>
@@ -95,7 +95,7 @@ export default function PublicProfileClient({ username }: Props) {
       {/* Badges */}
       {profile.badges.length > 0 && (
         <div className="rounded-lg p-4 mb-6" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-          <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-secondary)" }}>Achievements</div>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-secondary)" }}>Achievements</div>
           <div className="flex flex-wrap gap-2">
             {profile.badges.map((b) => (
               <span key={b.slug} className="px-3 py-1.5 rounded-full text-xs font-medium" style={{ background: "rgba(0,168,150,0.10)", color: "#00A896" }}>
@@ -109,7 +109,7 @@ export default function PublicProfileClient({ username }: Props) {
       {/* Band progression */}
       {profile.estimated_band && profile.target_band && (
         <div className="rounded-lg p-4 mb-6" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-          <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-secondary)" }}>Band Journey</div>
+          <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-secondary)" }}>Band Journey</div>
           <div className="flex items-center gap-3">
             <span className="text-lg font-bold" style={{ color: "#8B71EA" }}>{profile.estimated_band.toFixed(1)}</span>
             <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: "var(--color-border)" }}>
@@ -126,7 +126,7 @@ export default function PublicProfileClient({ username }: Props) {
       {/* CTA */}
       <div className="text-center mt-8">
         <p className="text-sm mb-3" style={{ color: "var(--color-text-secondary)" }}>Start your IELTS journey 🚀</p>
-        <Link href="/register" className="inline-flex px-6 py-3 rounded-xl text-sm font-bold" style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)", color: "#fff" }}>
+        <Link href="/register" className="inline-flex px-6 py-3 rounded-xl text-sm font-semibold" style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)", color: "#fff" }}>
           Join Lingona Free
         </Link>
       </div>

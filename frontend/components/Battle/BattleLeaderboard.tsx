@@ -50,7 +50,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
           <span style={{ color: "var(--color-text)" }}>←</span>
         </button>
         <div className="flex-1">
-          <div className="font-display font-bold text-base" style={{ color: "var(--color-text)" }}>
+          <div className="font-display font-semibold text-base" style={{ color: "var(--color-text)" }}>
             Battle Leaderboard
           </div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
@@ -74,7 +74,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
               <div className="mb-3 rounded-lg p-3 flex items-center gap-3"
                 style={{ background: "rgba(0,168,150,0.06)", border: "1px solid rgba(0,168,150,0.2)" }}>
                 <span className="w-8 text-right text-sm font-medium" style={{ color: "var(--color-text-secondary)" }}>#{myEntry.rank}</span>
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
                   style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)", color: "#fff" }}>
                   {myEntry.name.slice(0, 2).toUpperCase()}
                 </div>
@@ -83,7 +83,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
                     {myEntry.name} <span className="text-xs" style={{ color: "#00A896" }}>You</span>
                   </span>
                 </div>
-                <span className="text-sm font-bold" style={{ color: RANK_CONFIG[myEntry.current_rank_tier]?.color || "#9CA3AF" }}>
+                <span className="text-sm font-semibold" style={{ color: RANK_CONFIG[myEntry.current_rank_tier]?.color || "#9CA3AF" }}>
                   {myEntry.current_rank_points} pts
                 </span>
               </div>
@@ -106,7 +106,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
                   <span className="w-8 text-right text-sm font-medium shrink-0" style={{ color: "var(--color-text-secondary)" }}>
                     {medal || `#${e.rank}`}
                   </span>
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                     style={{ background: isMe ? "linear-gradient(135deg, #00A896, #00C4B0)" : "var(--color-border)", color: isMe ? "#fff" : "var(--color-text)" }}>
                     {e.name.slice(0, 2).toUpperCase()}
                   </div>
@@ -119,7 +119,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
                       {rc.emoji} {rc.label} • {e.wins}W {e.losses}L
                     </div>
                   </div>
-                  <span className="text-sm font-bold shrink-0" style={{ color: rc.color }}>
+                  <span className="text-sm font-semibold shrink-0" style={{ color: rc.color }}>
                     {e.current_rank_points}
                   </span>
                 </div>

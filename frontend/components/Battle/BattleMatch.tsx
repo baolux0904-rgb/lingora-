@@ -124,7 +124,7 @@ export default function BattleMatch({ matchId, onComplete, onClose }: BattleMatc
             {answeredCount}/{questions.length} answered
           </div>
         </div>
-        <div className="text-sm font-mono font-bold" style={{ color: elapsed > 300 ? "#F59E0B" : "var(--color-accent)" }}>
+        <div className="text-sm font-mono font-semibold" style={{ color: elapsed > 300 ? "#F59E0B" : "var(--color-accent)" }}>
           {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}
         </div>
       </div>
@@ -134,7 +134,7 @@ export default function BattleMatch({ matchId, onComplete, onClose }: BattleMatc
         {/* Passage */}
         {passage && (
           <div className="px-4 py-4" style={{ borderBottom: "1px solid var(--color-border)" }}>
-            <h3 className="text-base font-display font-bold mb-3" style={{ color: "var(--color-text)" }}>
+            <h3 className="text-base font-display font-semibold mb-3" style={{ color: "var(--color-text)" }}>
               {passage.passage_title}
             </h3>
             <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--color-text-secondary)" }}>
@@ -161,7 +161,7 @@ export default function BattleMatch({ matchId, onComplete, onClose }: BattleMatc
         <button
           onClick={handleSubmit}
           disabled={!allAnswered || submitting}
-          className="w-full py-3 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+          className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
           style={{ background: allAnswered ? "#00A896" : "var(--color-bg-secondary)", color: allAnswered ? "#fff" : "var(--color-text-tertiary)" }}
         >
           {submitting ? "Đang nộp..." : allAnswered ? "Nộp bài ⚔️" : `Trả lời tất cả câu hỏi (${answeredCount}/${questions.length})`}
@@ -189,7 +189,7 @@ function QuestionCard({
   return (
     <div className="rounded-lg p-4" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
       <div className="flex items-start gap-2 mb-3">
-        <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+        <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
           style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>
           {order_index}
         </span>
@@ -219,7 +219,7 @@ function QuestionCard({
                 color: "var(--color-text)",
               }}
             >
-              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+              <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                 style={{
                   background: answer === key ? "#00A896" : "var(--color-border)",
                   color: answer === key ? "#fff" : "var(--color-text-secondary)",

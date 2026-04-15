@@ -202,7 +202,7 @@ export default function GrammarExam({
         <div className="w-full max-w-[420px] rounded-lg p-6 flex flex-col items-center gap-5" style={{ border: "1px solid var(--color-border)", background: "var(--color-bg)", boxShadow: "0 25px 60px rgba(0,0,0,0.5)" }}>
           <div className="text-4xl">📝</div>
           <div className="text-center">
-            <p className="text-lg font-sora font-bold" style={{ color: "var(--color-text)" }}>{title}</p>
+            <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>{title}</p>
             <p className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>
               {questions.length} questions &middot; {Math.floor(timeLimitSeconds / 60)} minute{timeLimitSeconds >= 120 ? "s" : ""} &middot; Pass: {passingScore}%
             </p>
@@ -230,11 +230,11 @@ export default function GrammarExam({
             {passed ? "🏆" : "💪"}
           </div>
           <div className="text-center">
-            <p className="text-xl font-sora font-bold" style={{ color: "var(--color-text)" }}>{passed ? "Exam Passed!" : "Not Quite Yet"}</p>
+            <p className="text-xl font-bold" style={{ color: "var(--color-text)" }}>{passed ? "Exam Passed!" : "Not Quite Yet"}</p>
             <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>{passed ? "Great work!" : `Need ${passingScore}% to pass.`}</p>
           </div>
           <div className="px-6 py-3 rounded-full" style={{ border: passed ? "1px solid rgba(46,211,198,0.25)" : "1px solid rgba(239,68,68,0.25)", background: passed ? "rgba(46,211,198,0.08)" : "rgba(239,68,68,0.08)" }}>
-            <span className="text-xl font-sora font-bold" style={{ color: passed ? "var(--color-success)" : "var(--color-error)" }}>{finalScore}%</span>
+            <span className="text-xl font-bold" style={{ color: passed ? "var(--color-success)" : "var(--color-error)" }}>{finalScore}%</span>
             <span className="text-sm ml-2" style={{ color: "var(--color-text-secondary)" }}>({correctCount}/{questions.length})</span>
           </div>
           {timeLeft === 0 && <p className="text-xs" style={{ color: "var(--color-warning)" }}>⏰ Time ran out!</p>}
@@ -267,7 +267,7 @@ export default function GrammarExam({
       <div className={GRAMMAR_CONTENT_CONTAINER}>
         <DragDropProvider onDragEnd={handleDragEnd} renderOverlay={renderOverlay}>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-xs font-bold" style={{ color: "var(--color-text-secondary)" }}>Question {index + 1} of {questions.length}</span>
+            <span className="text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>Question {index + 1} of {questions.length}</span>
           </div>
 
           {phase === "question" && !isAnswered && hasBlank && (
@@ -294,7 +294,7 @@ export default function GrammarExam({
                             {blankAnswers[i] ?? "—"}
                           </span>
                         ) : blankAnswers[i] ? (
-                          <button onClick={() => handleClearSlot(i)} className="inline-flex px-2 py-0.5 rounded-lg font-bold text-sm border cursor-pointer hover:opacity-80" style={{ borderColor: "rgba(46,211,198,0.4)", background: "rgba(46,211,198,0.1)", color: "var(--color-success)" }}>
+                          <button onClick={() => handleClearSlot(i)} className="inline-flex px-2 py-0.5 rounded-lg font-semibold text-sm border cursor-pointer hover:opacity-80" style={{ borderColor: "rgba(46,211,198,0.4)", background: "rgba(46,211,198,0.1)", color: "var(--color-success)" }}>
                             {blankAnswers[i]} ×
                           </button>
                         ) : (
@@ -309,7 +309,7 @@ export default function GrammarExam({
                               {droppedOption}
                             </span>
                           ) : (
-                            <button onClick={() => setDroppedOption(null)} className="inline-flex px-2 py-0.5 rounded-lg font-bold text-sm border cursor-pointer hover:opacity-80" style={{ borderColor: "rgba(46,211,198,0.4)", background: "rgba(46,211,198,0.1)", color: "var(--color-success)" }}>
+                            <button onClick={() => setDroppedOption(null)} className="inline-flex px-2 py-0.5 rounded-lg font-semibold text-sm border cursor-pointer hover:opacity-80" style={{ borderColor: "rgba(46,211,198,0.4)", background: "rgba(46,211,198,0.1)", color: "var(--color-success)" }}>
                               {droppedOption} ×
                             </button>
                           )

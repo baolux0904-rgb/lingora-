@@ -56,7 +56,7 @@ export default function BadgeToast({ badges, duration = 4000 }: BadgeToastProps)
             <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">
               Badge Unlocked!
             </p>
-            <p className="text-sm font-semibold font-sora truncate" style={{ color: "var(--color-text)" }}>
+            <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text)" }}>
               {badge.name}
             </p>
             {badge.xp_reward > 0 && (

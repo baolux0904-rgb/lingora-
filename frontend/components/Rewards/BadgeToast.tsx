@@ -86,13 +86,13 @@ export default function BadgeToast({ event, onDone }: BadgeToastProps) {
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: style.labelColor }}>
+              <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: style.labelColor }}>
                 {style.label}
               </p>
-              <p className="text-sm font-bold truncate mt-0.5" style={{ color: "var(--color-text)" }}>
+              <p className="text-sm font-semibold truncate mt-0.5" style={{ color: "var(--color-text)" }}>
                 {event.badgeName}
               </p>
-              <p className="text-[11px] mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
+              <p className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
                 {event.category}
                 {event.xpReward ? ` · +${event.xpReward} XP` : ""}
               </p>

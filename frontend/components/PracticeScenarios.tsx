@@ -27,7 +27,7 @@ export default function PracticeScenarios({ onSelect }: PracticeScenariosProps) 
     >
       <div className="flex-1 min-w-0">
         <p
-          className="font-sora font-semibold text-base mb-1.5"
+          className="font-semibold text-base mb-1.5"
           style={{ color: "var(--color-text)" }}
         >
           Practice a scenario

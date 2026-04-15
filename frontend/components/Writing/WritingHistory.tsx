@@ -92,7 +92,7 @@ export default function WritingHistory({ onSelect }: WritingHistoryProps) {
         >
           {/* Task type badge */}
           <div
-            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold"
+            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 text-xs font-semibold"
             style={{
               background: sub.task_type === "task1" ? "rgba(0,168,150,0.10)" : "rgba(245,158,11,0.10)",
               color: sub.task_type === "task1" ? "#00A896" : "#F59E0B",

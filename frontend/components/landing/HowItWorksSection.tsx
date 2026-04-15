@@ -64,7 +64,7 @@ export default function HowItWorksSection() {
               {/* Step number circle */}
               <div className="relative inline-flex items-center justify-center w-[72px] h-[72px] rounded-full border border-[#00A896]/20 bg-[#00A896]/[0.06] mb-6">
                 <step.icon className="w-7 h-7 text-[#00A896]" />
-                <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#0A0F1E] border border-[#00A896]/30 flex items-center justify-center text-[11px] font-bold text-[#00A896]">
+                <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#0A0F1E] border border-[#00A896]/30 flex items-center justify-center text-xs font-semibold text-[#00A896]">
                   {step.number}
                 </span>
               </div>

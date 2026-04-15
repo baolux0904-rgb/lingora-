@@ -28,7 +28,7 @@ export default function Topbar({ streak = 0 }: TopbarProps) {
     >
       {/* Left — Streak badge */}
       <div
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
         style={{
           background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))",
           border: "1px solid rgba(245,158,11,0.2)",
@@ -42,7 +42,7 @@ export default function Topbar({ streak = 0 }: TopbarProps) {
         >
           <IconFire className="text-amber-500" />
         </span>
-        <span className="text-base font-bold">{streak}</span>
+        <span className="text-base font-semibold">{streak}</span>
         <span className="text-xs font-medium opacity-80">Day{streak !== 1 ? "s" : ""}</span>
       </div>
 
@@ -75,7 +75,7 @@ export default function Topbar({ streak = 0 }: TopbarProps) {
         <NotificationBell />
         <ThemeToggle />
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center font-sans font-bold text-xs text-white"
+          className="w-9 h-9 rounded-full flex items-center justify-center font-sans font-semibold text-xs text-white"
           style={{
             background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)",
             border: "2px solid rgba(0, 168, 150, 0.3)",

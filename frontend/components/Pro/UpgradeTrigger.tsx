@@ -57,7 +57,7 @@ export default function UpgradeTrigger({ type, used, limit, onUpgrade }: Upgrade
         Nếu bạn thấy app thật sự giúp ích, cùng mình đi tới Pro nhé! Mách nhỏ: rẻ hơn trung tâm ngoài kia nhiều lắm 😉 • Reset sau {timeUntilReset}
       </div>
       <button onClick={() => { analytics.proUpgradeClick("limit_trigger"); onUpgrade(); }}
-        className="px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
+        className="px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
         style={{ background: "linear-gradient(135deg, #8B71EA, #2DD4BF)", color: "#fff" }}>
         Cùng mình đi Pro
       </button>

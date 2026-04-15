@@ -116,7 +116,7 @@ export default function Hero() {
             </div>
           </div>
           <div className="text-center">
-            <div className="font-display font-bold text-sm text-white">
+            <div className="font-display font-semibold text-sm text-white">
               Lesson {mockCourse.currentLesson} of {mockCourse.totalLessons}
             </div>
             <div className="text-xs mt-0.5 text-white/40">Next: Present Perfect in Context</div>

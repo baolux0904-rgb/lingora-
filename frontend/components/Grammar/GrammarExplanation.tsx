@@ -50,7 +50,7 @@ export default function GrammarExplanation({
       >
         <span className="text-lg">{isCorrect ? "\u2705" : "\u274C"}</span>
         <span
-          className="text-sm font-bold"
+          className="text-sm font-semibold"
           style={{ color: isCorrect ? "var(--color-success)" : "var(--color-error)" }}
         >
           {isCorrect ? "Correct!" : "Incorrect"}
@@ -66,7 +66,7 @@ export default function GrammarExplanation({
       <div className="px-4 py-2.5 lg:py-2 flex flex-col gap-2 lg:gap-1.5">
         {/* Why */}
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
             Why
           </span>
           <p className="text-sm mt-0.5 leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -82,7 +82,7 @@ export default function GrammarExplanation({
             border: "1px solid rgba(0,168,150,0.15)",
           }}
         >
-          <span className="text-xs font-bold uppercase tracking-wider text-violet-400">
+          <span className="text-xs font-semibold uppercase tracking-wider text-violet-400">
             Rule
           </span>
           <p className="text-xs mt-0.5 leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -92,7 +92,7 @@ export default function GrammarExplanation({
 
         {/* Example */}
         <div>
-          <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+          <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
             Example
           </span>
           <p

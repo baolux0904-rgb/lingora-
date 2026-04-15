@@ -55,7 +55,7 @@ export default function OnboardingNudge({ onStart }: OnboardingNudgeProps) {
           </div>
         </div>
       </div>
-      <button onClick={onStart} className="mt-3 px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95"
+      <button onClick={onStart} className="mt-3 px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"
         style={{ background: "linear-gradient(135deg, #8B71EA, #2DD4BF)", color: "#fff" }}>
         Bắt đầu ngay
       </button>

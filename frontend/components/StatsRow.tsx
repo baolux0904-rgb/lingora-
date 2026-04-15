@@ -68,7 +68,7 @@ function StatCardItem({ stat, delay }: { stat: StatCard; delay: number }) {
         </span>
       </div>
 
-      <div className="font-sora font-black text-xl tracking-[-0.5px] leading-none mb-1">
+      <div className="font-black text-xl tracking-[-0.5px] leading-none mb-1">
         {displayValue}
         <span className="text-sm font-medium ml-0.5" style={{ color: "var(--color-text-muted)" }}>{stat.unit}</span>
       </div>

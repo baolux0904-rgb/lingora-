@@ -34,7 +34,7 @@ function timeAgo(dateStr: string | null): string {
 function Avatar({ name, avatar, size = 40 }: { name: string; avatar?: string | null; size?: number }) {
   const initials = name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   return (
-    <div className="rounded-full flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden"
+    <div className="rounded-full flex items-center justify-center font-semibold text-xs shrink-0 overflow-hidden"
       style={{ width: size, height: size, background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)", color: "#fff" }}>
       {avatar ? <img src={avatar} alt={name} className="w-full h-full object-cover" /> : initials}
     </div>
@@ -89,14 +89,14 @@ function ConversationList({ conversations, activeId, onSelect, loading }: {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{c.friend_name}</span>
-                  <span className="text-[10px] shrink-0 ml-2" style={{ color: "var(--color-text-tertiary)" }}>{timeAgo(c.last_message_at)}</span>
+                  <span className="text-xs shrink-0 ml-2" style={{ color: "var(--color-text-tertiary)" }}>{timeAgo(c.last_message_at)}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs truncate" style={{ color: "var(--color-text-tertiary)" }}>
                     {c.last_type === "voice" ? "🎤 Voice note" : c.last_content?.slice(0, 35) || "Start chatting"}
                   </span>
                   {c.unread_count > 0 && (
-                    <span className="ml-2 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                    <span className="ml-2 w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
                       style={{ background: "#00A896", color: "#fff" }}>{c.unread_count > 9 ? "9+" : c.unread_count}</span>
                   )}
                 </div>
@@ -248,7 +248,7 @@ function ChatWindow({ conversation, onBack }: { conversation: Conversation; onBa
         <div className="flex-1 min-w-0">
           <div className="text-sm font-semibold truncate" style={{ color: "var(--color-text)" }}>{conversation.friend_name}</div>
           {conversation.friend_username && (
-            <div className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>@{conversation.friend_username}</div>
+            <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>@{conversation.friend_username}</div>
           )}
         </div>
       </div>
@@ -291,7 +291,7 @@ function ChatWindow({ conversation, onBack }: { conversation: Conversation; onBa
                             <div key={i} className="w-1 rounded-full" style={{ height: `${8 + Math.random() * 12}px`, background: isMine ? "rgba(255,255,255,0.5)" : "var(--color-accent)" }} />
                           ))}
                         </div>
-                        <span className="text-[10px] font-mono" style={{ color: isMine ? "rgba(255,255,255,0.7)" : "var(--color-text-tertiary)" }}>
+                        <span className="text-xs font-mono" style={{ color: isMine ? "rgba(255,255,255,0.7)" : "var(--color-text-tertiary)" }}>
                           0:{String(msg.audio_duration_seconds || 0).padStart(2, "0")}
                         </span>
                       </div>
@@ -300,9 +300,9 @@ function ChatWindow({ conversation, onBack }: { conversation: Conversation; onBa
                     )}
                   </div>
                   <div className={`flex items-center gap-1 mt-0.5 px-1 ${isMine ? "justify-end" : "justify-start"}`}>
-                    <span className="text-[9px]" style={{ color: "var(--color-text-tertiary)" }}>{timeAgo(msg.created_at)}</span>
+                    <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>{timeAgo(msg.created_at)}</span>
                     {isMine && (
-                      <span className="text-[9px]" style={{ color: msg.seen_at ? "#00A896" : "var(--color-text-tertiary)" }}>
+                      <span className="text-xs" style={{ color: msg.seen_at ? "#00A896" : "var(--color-text-tertiary)" }}>
                         {msg.seen_at ? "✓✓" : "✓"}
                       </span>
                     )}

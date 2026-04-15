@@ -185,16 +185,16 @@ export default function BattleTab() {
                 {/* W/L stats */}
                 <div className="grid grid-cols-3 gap-2">
                   <div className="text-center p-2 rounded-lg" style={{ backgroundColor: "rgba(34,197,94,0.08)" }}>
-                    <div className="text-sm font-bold text-green-400">{profile.wins}</div>
-                    <div className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Wins</div>
+                    <div className="text-sm font-semibold text-green-400">{profile.wins}</div>
+                    <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Wins</div>
                   </div>
                   <div className="text-center p-2 rounded-lg" style={{ backgroundColor: "rgba(239,68,68,0.08)" }}>
-                    <div className="text-sm font-bold text-red-400">{profile.losses}</div>
-                    <div className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Losses</div>
+                    <div className="text-sm font-semibold text-red-400">{profile.losses}</div>
+                    <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Losses</div>
                   </div>
                   <div className="text-center p-2 rounded-lg" style={{ backgroundColor: "var(--surface-subtle)" }}>
-                    <div className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{winRate}%</div>
-                    <div className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>WR</div>
+                    <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{winRate}%</div>
+                    <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>WR</div>
                   </div>
                 </div>
               </div>
@@ -219,7 +219,7 @@ export default function BattleTab() {
                 }}
               >
                 <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold shrink-0"
                   style={{
                     background: lastMatchWin ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
                     color: lastMatchWin ? "#22C55E" : "#EF4444",
@@ -288,13 +288,13 @@ export default function BattleTab() {
           {/* Queue info */}
           <div className="flex items-center gap-6 text-center">
             <div>
-              <div className="text-sm font-bold" style={{ color: "var(--color-text)" }}>1,234</div>
-              <div className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Online</div>
+              <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>1,234</div>
+              <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Online</div>
             </div>
             <div className="w-px h-6" style={{ backgroundColor: "var(--color-border)" }} />
             <div>
-              <div className="text-sm font-bold" style={{ color: "var(--color-text)" }}>~12s</div>
-              <div className="text-[10px] uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Avg Queue</div>
+              <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>~12s</div>
+              <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Avg Queue</div>
             </div>
           </div>
 
@@ -322,7 +322,7 @@ export default function BattleTab() {
           <div className="lg:hidden w-full">
             {data && data.recentMatches.length > 0 && (
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
                   Recent Battles
                 </div>
                 <div className="flex flex-col gap-2">
@@ -337,7 +337,7 @@ export default function BattleTab() {
                         style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}
                       >
                         <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold shrink-0"
+                          className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-semibold shrink-0"
                           style={{
                             background: isWin ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
                             color: isWin ? "#22C55E" : "#EF4444",
@@ -383,7 +383,7 @@ export default function BattleTab() {
               }}
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+                <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
                   Top Players
                 </span>
                 <button
@@ -407,7 +407,7 @@ export default function BattleTab() {
                       }}
                     >
                       <span
-                        className="w-6 text-center text-xs font-bold"
+                        className="w-6 text-center text-xs font-semibold"
                         style={{ color: i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "var(--color-text-tertiary)" }}
                       >
                         #{e.rank}
@@ -415,7 +415,7 @@ export default function BattleTab() {
                       <span className="text-sm font-medium flex-1 truncate" style={{ color: "var(--color-text)" }}>
                         {e.name}
                       </span>
-                      <span className="text-xs font-bold" style={{ color: entryRank.color }}>
+                      <span className="text-xs font-semibold" style={{ color: entryRank.color }}>
                         {e.current_rank_points}
                       </span>
                     </div>
@@ -440,7 +440,7 @@ export default function BattleTab() {
               boxShadow: "var(--surface-shadow)",
             }}
           >
-            <div className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
+            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
               Season 1
             </div>
             <div className="text-lg font-display font-bold" style={{ color: "var(--color-text)" }}>
@@ -455,7 +455,7 @@ export default function BattleTab() {
           <div className="hidden lg:block">
             {data && data.recentMatches.length > 1 && (
               <div>
-                <div className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>
                   Recent Battles
                 </div>
                 <div className="flex flex-col gap-2">
@@ -470,7 +470,7 @@ export default function BattleTab() {
                         style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}
                       >
                         <div
-                          className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold shrink-0"
+                          className="w-8 h-8 rounded-md flex items-center justify-center text-xs font-semibold shrink-0"
                           style={{
                             background: isWin ? "rgba(34,197,94,0.12)" : "rgba(239,68,68,0.12)",
                             color: isWin ? "#22C55E" : "#EF4444",
@@ -483,7 +483,7 @@ export default function BattleTab() {
                             {m.passage_title || "Battle"}
                           </div>
                         </div>
-                        <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>
+                        <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
                           +{m.xp_reward} XP
                         </span>
                       </button>

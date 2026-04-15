@@ -180,7 +180,7 @@ export default function GrammarScenario({
             background: "var(--color-bg-card)",
           }}
         >
-          <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
+          <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-accent)" }}>
             {isCorrect ? "✓ Correct!" : "✗ Not quite"} — Why?
           </p>
           <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>

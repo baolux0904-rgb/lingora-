@@ -219,10 +219,12 @@
 body {
   background-color: var(--color-bg);
   color: var(--color-text);
-  font-family: "DM Sans", sans-serif;
+  font-family: var(--font-dm-sans), "DM Sans", system-ui, sans-serif;
+  font-feature-settings: "kern", "liga", "calt";
   transition: background-color 0.3s ease, color 0.3s ease;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* ── Scrollbar ── */

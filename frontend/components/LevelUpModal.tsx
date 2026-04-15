@@ -99,7 +99,7 @@ export default function LevelUpModal({ level, onClose }: LevelUpModalProps) {
           <p className="text-sm font-semibold uppercase tracking-widest" style={{ color: "var(--color-success)" }}>
             Level Up!
           </p>
-          <p className="text-4xl font-bold font-sora leading-none" style={{ color: "var(--color-text)" }}>
+          <p className="text-4xl font-bold font-display leading-none" style={{ color: "var(--color-text)" }}>
             Level {level}
           </p>
           <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>

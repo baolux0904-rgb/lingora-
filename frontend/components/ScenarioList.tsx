@@ -91,7 +91,7 @@ export default function ScenarioList({ onSelect, excludeExam }: ScenarioListProp
   return (
     <div className="flex flex-col gap-5">
       <h2
-        className="text-xl font-sora font-bold"
+        className="text-xl font-bold"
         style={{ color: "var(--color-text)" }}
       >
         Speak Scenarios
