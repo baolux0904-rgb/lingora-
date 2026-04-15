@@ -30,8 +30,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim())  { setError("Email is required.");    return; }
-    if (!password)      { setError("Password is required."); return; }
+    if (!email.trim())  { setError("Vui lòng nhập email.");    return; }
+    if (!password)      { setError("Vui lòng nhập mật khẩu."); return; }
 
     setSubmitting(true);
     try {
@@ -60,9 +60,9 @@ export default function LoginPage() {
           <Mascot size={64} />
         </div>
         <h1 className="font-display font-bold text-2xl tracking-[-0.5px]" style={{ color: "var(--color-text)" }}>
-          Welcome back
+          Chào mừng trở lại
         </h1>
-        <p className="text-sm mt-1.5" style={{ color: "var(--color-text-secondary)" }}>Sign in to continue your learning</p>
+        <p className="text-sm mt-1.5" style={{ color: "var(--color-text-secondary)" }}>Đăng nhập để tiếp tục luyện IELTS 🐙</p>
       </div>
 
       {/* Card — clean white, shadow-lg */}
@@ -79,7 +79,7 @@ export default function LoginPage() {
           {/* Email */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium tracking-[0.2px]" style={{ color: "var(--color-text-secondary)" }}>
-              Email address
+              Email
             </label>
             <Input
               type="email"
@@ -94,7 +94,7 @@ export default function LoginPage() {
           {/* Password */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium tracking-[0.2px]" style={{ color: "var(--color-text-secondary)" }}>
-              Password
+              Mật khẩu
             </label>
             <div className="relative">
               <Input
@@ -103,7 +103,7 @@ export default function LoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                placeholder="Nhập mật khẩu"
                 className="pr-11"
               />
               <button
@@ -111,7 +111,7 @@ export default function LoginPage() {
                 onClick={() => setShowPassword((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
                 style={{ color: "var(--color-text-secondary)" }}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
               >
                 {showPassword ? <IconEyeOff /> : <IconEye />}
               </button>
@@ -148,14 +148,14 @@ export default function LoginPage() {
               boxShadow: "0 4px 16px rgba(0,168,150,0.25)",
             }}
           >
-            {submitting ? "Signing in..." : "Sign In"}
+            {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
         </form>
 
         {/* Divider */}
         <div className="flex items-center gap-3 my-5">
           <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
-          <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>or</span>
+          <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>hoặc</span>
           <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
         </div>
 
@@ -175,7 +175,7 @@ export default function LoginPage() {
             <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
             <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
           </svg>
-          Continue with Google
+          Đăng nhập bằng Google
         </a>
 
         {/* Guest access */}
@@ -188,19 +188,19 @@ export default function LoginPage() {
           )}
           style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}
         >
-          Continue as guest
+          Tiếp tục không đăng nhập
         </Link>
       </div>
 
       {/* Sign-up link */}
       <p className="text-center text-sm mt-5" style={{ color: "var(--color-text-secondary)" }}>
-        Don&apos;t have an account?{" "}
+        Chưa có tài khoản?{" "}
         <Link
           href="/register"
           className="font-semibold transition-colors"
           style={{ color: "#00A896" }}
         >
-          Sign up free
+          Đăng ký miễn phí
         </Link>
       </p>
     </div>
