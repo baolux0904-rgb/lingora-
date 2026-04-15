@@ -73,9 +73,14 @@ function AppHomeContent() {
   const { user, isLoading: authLoading } = useAuthStore();
   const searchParams = useSearchParams();
 
+  // ── Auth guard ─────────────────────────────────────────────────────────
+  // Unauthenticated users are redirected to /login (not the landing page
+  // at "/", which just re-exposes the marketing site and confuses returning
+  // users). `isLoading` gates this until AuthProvider finishes its refresh
+  // attempt — see providers/AuthProvider.tsx for the refresh lifecycle.
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/");
+      router.replace("/login");
     }
   }, [authLoading, user, router]);
 
