@@ -37,13 +37,13 @@ export const metadata: Metadata = {
     siteName: "Lingona",
     title: "Lingona — Luyện IELTS Speaking & Writing AI",
     description: "Luyện thi IELTS online với AI. Chấm Speaking, Writing theo chuẩn IELTS. Mục tiêu band 6.5+.",
-    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Lingona — Luyện IELTS AI" }],
+    // Image auto-injected by frontend/app/opengraph-image.tsx (Next 14 file convention).
   },
   twitter: {
     card: "summary_large_image",
     title: "Lingona — Luyện IELTS Speaking & Writing AI",
     description: "Luyện thi IELTS online với AI. Mục tiêu band 6.5+.",
-    images: ["/og-image.png"],
+    // Image auto-injected by frontend/app/opengraph-image.tsx (Next 14 file convention).
   },
   alternates: {
     canonical: "https://lingona.app",
