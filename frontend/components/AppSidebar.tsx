@@ -102,7 +102,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
       >
         <Mascot size={28} />
         <span
-          className="font-display font-bold text-lg tracking-[-0.3px]"
+          className="font-display font-bold text-lg tracking-tighter"
           style={{ color: "var(--color-text)" }}
         >
           Lingona

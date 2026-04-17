@@ -50,7 +50,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
           <span style={{ color: "var(--color-text)" }}>←</span>
         </button>
         <div className="flex-1">
-          <div className="font-display font-semibold text-base" style={{ color: "var(--color-text)" }}>
+          <div className="font-semibold text-base" style={{ color: "var(--color-text)" }}>
             Battle Leaderboard
           </div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>

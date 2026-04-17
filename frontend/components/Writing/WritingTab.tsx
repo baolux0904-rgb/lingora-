@@ -222,7 +222,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           </svg>
         </button>
         <div className="flex-1">
-          <div className="font-display font-semibold text-base" style={{ color: "var(--color-text)" }}>
+          <div className="font-semibold text-base" style={{ color: "var(--color-text)" }}>
             IELTS Writing
           </div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>

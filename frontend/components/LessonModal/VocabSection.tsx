@@ -86,7 +86,7 @@ function ExerciseHeader({
     <div className="flex flex-col items-center gap-3 mb-5">
       <div className="flex items-center gap-2">
         <span
-          className="text-xs font-semibold uppercase tracking-[1px] px-2.5 py-1 rounded-full"
+          className="text-xs font-semibold uppercase tracking-upper px-2.5 py-1 rounded-full"
           style={{ backgroundColor: `${labelColor}18`, color: labelColor }}
         >
           {label}
@@ -436,7 +436,7 @@ function ContextPhase({
         className="w-full max-w-[360px] rounded-lg p-5"
         style={{ border: "1px solid var(--color-border)", background: "var(--color-bg-card)" }}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.5px] mb-2" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-xs font-semibold uppercase tracking-label mb-2" style={{ color: "var(--color-text-secondary)" }}>
           Complete the sentence
         </p>
         <p className="text-base font-medium leading-relaxed" style={{ color: "var(--color-text)" }}>
@@ -577,7 +577,7 @@ function RecallPhase({
         className="w-full max-w-[360px] rounded-lg p-6 flex flex-col items-center gap-4"
         style={{ border: "1px solid var(--color-border)", background: "var(--color-bg-card)", minHeight: 140 }}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.5px]" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-xs font-semibold uppercase tracking-label" style={{ color: "var(--color-text-secondary)" }}>
           Type the word
         </p>
         <p className="text-lg font-semibold text-center" style={{ color: "var(--color-accent)" }}>

@@ -136,7 +136,7 @@ export default function LevelUpOverlay({ event, onDone }: LevelUpOverlayProps) {
               className="relative z-10 mb-6"
             >
               <p
-                className="text-xs font-semibold uppercase tracking-[3px] mb-2"
+                className="text-xs font-semibold uppercase tracking-widest mb-2"
                 style={{ color: "rgba(139,92,246,0.8)" }}
               >
                 Lên level!

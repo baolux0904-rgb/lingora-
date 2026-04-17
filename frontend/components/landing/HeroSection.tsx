@@ -30,7 +30,7 @@ export default function HeroSection() {
           >
             <motion.h1
               variants={fadeUp}
-              className="font-playfair text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.1] tracking-tight"
+              className="font-playfair text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.1] tracking-tighter"
               style={{ color: "var(--color-text)" }}
             >
               Luyện IELTS{" "}

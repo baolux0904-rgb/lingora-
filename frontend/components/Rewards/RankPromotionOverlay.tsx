@@ -179,7 +179,7 @@ export default function RankPromotionOverlay({ event, onDone }: RankPromotionOve
                       className="flex flex-col items-center"
                     >
                       <p
-                        className="text-xs font-semibold uppercase tracking-[3px] mb-1.5"
+                        className="text-xs font-semibold uppercase tracking-widest mb-1.5"
                         style={{ color: `${newStyle.color}CC` }}
                       >
                         Lên hạng!

@@ -180,7 +180,7 @@ export default function ExamScreen({ onStartIelts, onStartWriting, onStartReadin
                 <mod.Icon size={26} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-display font-semibold text-base mb-0.5" style={{ color: "var(--color-text)" }}>
+                <div className="font-semibold text-base mb-0.5" style={{ color: "var(--color-text)" }}>
                   {mod.title}
                 </div>
                 <p className="text-sm leading-relaxed mb-2.5" style={{ color: "var(--color-text-secondary)" }}>
@@ -207,8 +207,8 @@ export default function ExamScreen({ onStartIelts, onStartWriting, onStartReadin
       {/* Conversation Scenarios */}
       {onScenarioSelect && (
         <div>
-          <div className="text-xs font-semibold uppercase tracking-[1.5px] mb-3"
-            style={{ color: "var(--color-text-tertiary)", letterSpacing: "1.5px" }}>
+          <div className="text-xs font-semibold uppercase tracking-upper mb-3"
+            style={{ color: "var(--color-text-tertiary)" }}>
             Conversation Practice
           </div>
           <ScenarioList onSelect={onScenarioSelect} excludeExam />
@@ -218,8 +218,8 @@ export default function ExamScreen({ onStartIelts, onStartWriting, onStartReadin
       {/* Coming soon modules */}
       <div>
         <div
-          className="text-xs font-semibold uppercase tracking-[1.5px] mb-3"
-          style={{ color: "var(--color-text-tertiary)", letterSpacing: "1.5px" }}
+          className="text-xs font-semibold uppercase tracking-upper mb-3"
+          style={{ color: "var(--color-text-tertiary)" }}
         >
           Coming Soon
         </div>

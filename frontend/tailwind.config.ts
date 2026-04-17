@@ -19,10 +19,10 @@ const config: Config = {
         base:    ["1rem",     { lineHeight: "1.65",  letterSpacing: "0"      }], // 16px — body
         lg:      ["1.25rem",  { lineHeight: "1.4",   letterSpacing: "-0.005em" }], // 20px — H3 / card title
         xl:      ["1.5rem",   { lineHeight: "1.25",  letterSpacing: "-0.01em"  }], // 24px — H2
-        "2xl":   ["2rem",     { lineHeight: "1.15",  letterSpacing: "-0.015em" }], // 32px — H1
-        "3xl":   ["2.5rem",   { lineHeight: "1.1",   letterSpacing: "-0.02em"  }], // 40px — Display
-        "4xl":   ["2.25rem",  { lineHeight: "1.1",   letterSpacing: "-0.02em"  }], // 36px — Display (legacy)
-        "5xl":   ["3rem",     { lineHeight: "1.05",  letterSpacing: "-0.025em" }], // 48px — Hero
+        "2xl":   ["2rem",     { lineHeight: "1.15",  letterSpacing: "-0.015em" }], // 32px — H1 (app)
+        "3xl":   ["2.5rem",   { lineHeight: "1.1",   letterSpacing: "-0.02em"  }], // 40px — Display sm
+        "4xl":   ["3rem",     { lineHeight: "1.1",   letterSpacing: "-0.02em"  }], // 48px — Display
+        "5xl":   ["3.5rem",   { lineHeight: "1.05",  letterSpacing: "-0.025em" }], // 56px — Hero
       },
 
       /* ── Spacing — 4px grid ─────────────────────────────────────── */
@@ -76,6 +76,19 @@ const config: Config = {
         },
         primary: "#E6EDF3",
         secondary: "#8B92AB",
+      },
+
+      letterSpacing: {
+        tighter:  "-0.03em",  // display serif headings
+        tight:    "-0.01em",  // sans headings (xl+)
+        normal:   "0",        // body text
+        label:    "0.04em",   // badges, small labels
+        upper:    "0.08em",   // uppercase text, section headers
+        widest:   "0.12em",   // all-caps decorative (splash, ranks)
+      },
+
+      maxWidth: {
+        prose: "65ch",        // readable text measure
       },
 
       fontFamily: {

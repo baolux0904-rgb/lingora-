@@ -110,7 +110,7 @@ function RoomDashboard({ roomId, onClose }: { roomId: string; onClose: () => voi
           <span style={{ color: "var(--color-text)" }}>←</span>
         </button>
         <div className="flex-1">
-          <div className="font-display font-semibold text-base" style={{ color: "var(--color-text)" }}>{room.name}</div>
+          <div className="font-semibold text-base" style={{ color: "var(--color-text)" }}>{room.name}</div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>🔥 {room.room_streak} day streak · {members.length} members</div>
         </div>
       </div>

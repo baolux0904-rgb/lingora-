@@ -31,7 +31,7 @@ export default function Footer() {
               </defs>
             </svg>
             <div>
-              <span className="font-playfair text-base font-semibold text-white">
+              <span className="font-semibold text-base text-white">
                 Lingona
               </span>
               <p className="text-xs text-gray-500">AI-powered IELTS coach</p>

@@ -138,7 +138,7 @@ export default function IeltsDiagnosticReport({
             }}
           >
             <div
-              className="text-xs font-semibold uppercase tracking-[0.15em] mb-1.5"
+              className="text-xs font-semibold uppercase tracking-widest mb-1.5"
               style={{ color: "var(--color-text-secondary)" }}
             >
               Estimated Band Range
@@ -186,7 +186,7 @@ export default function IeltsDiagnosticReport({
           style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
         >
           <div
-            className="text-xs font-semibold uppercase tracking-[0.12em]"
+            className="text-xs font-semibold uppercase tracking-widest"
             style={{ color: "var(--color-text-secondary)" }}
           >
             Criterion Analysis
@@ -216,7 +216,7 @@ export default function IeltsDiagnosticReport({
           >
             <div className="flex items-center gap-2 mb-3">
               <div
-                className="text-xs font-semibold uppercase tracking-[0.12em]"
+                className="text-xs font-semibold uppercase tracking-widest"
                 style={{ color: "#f59e0b" }}
               >
                 Vietnamese Speaker Patterns Detected
@@ -242,7 +242,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-xs font-semibold uppercase tracking-[0.12em] mb-3"
+              className="text-xs font-semibold uppercase tracking-widest mb-3"
               style={{ color: "var(--color-primary)" }}
             >
               Speaking Flow Analysis
@@ -288,7 +288,7 @@ export default function IeltsDiagnosticReport({
           }}
         >
           <div
-            className="text-xs font-semibold uppercase tracking-[0.12em] mb-2"
+            className="text-xs font-semibold uppercase tracking-widest mb-2"
             style={{ color: bandColor(diagnostic.overallScore100) }}
           >
             #1 Priority for Next Session
@@ -308,7 +308,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-xs font-semibold uppercase tracking-[0.12em] mb-3"
+              className="text-xs font-semibold uppercase tracking-widest mb-3"
               style={{ color: "var(--color-primary)" }}
             >
               Vocabulary Analysis
@@ -361,7 +361,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-xs font-semibold uppercase tracking-[0.12em] mb-4"
+              className="text-xs font-semibold uppercase tracking-widest mb-4"
               style={{ color: "#00A896" }}
             >
               Attempt Comparison
@@ -408,7 +408,7 @@ export default function IeltsDiagnosticReport({
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             <div
-              className="text-xs font-semibold uppercase tracking-[0.12em] mb-3"
+              className="text-xs font-semibold uppercase tracking-widest mb-3"
               style={{ color: "var(--color-text-secondary)" }}
             >
               Turn-by-Turn Notes

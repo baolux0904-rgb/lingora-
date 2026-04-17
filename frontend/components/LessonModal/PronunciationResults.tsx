@@ -170,7 +170,7 @@ export default function PronunciationResults({
       {/* Word breakdown */}
       {result.words.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.8px] mb-2" style={{ color: "var(--color-text-secondary)", opacity: 0.6 }}>
+          <p className="text-xs font-semibold uppercase tracking-label mb-2" style={{ color: "var(--color-text-secondary)", opacity: 0.6 }}>
             Word Breakdown
           </p>
           <div className="flex flex-wrap gap-2">

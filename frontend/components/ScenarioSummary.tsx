@@ -188,7 +188,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-medium tracking-upper uppercase mb-3" style={{ color: "var(--color-primary)" }}>
               Speaking Flow
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -255,10 +255,10 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-semibold mb-2.5" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-medium tracking-upper uppercase mb-2.5" style={{ color: "var(--color-primary)" }}>
               Coach Feedback
             </div>
-            <p className="text-base leading-relaxed" style={{ color: "var(--color-text)" }}>
+            <p className="text-base leading-relaxed max-w-prose" style={{ color: "var(--color-text)" }}>
               {result.coachFeedback}
             </p>
           </div>
@@ -270,14 +270,14 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-medium tracking-upper uppercase mb-3" style={{ color: "var(--color-primary)" }}>
               Vocabulary Analysis
             </div>
 
             {/* Strengths */}
             {hasVocabulary && (
               <div className="mb-4">
-                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-success)" }}>
+                <div className="text-xs font-medium uppercase tracking-upper mb-2" style={{ color: "var(--color-success)" }}>
                   Strong Usage
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -297,7 +297,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             {/* Areas for improvement */}
             {hasImprovementVocab && (
               <div>
-                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-warning)" }}>
+                <div className="text-xs font-medium uppercase tracking-upper mb-2" style={{ color: "var(--color-warning)" }}>
                   Needs Improvement
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -322,7 +322,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
             className="rounded-lg p-5"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
-            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-medium tracking-upper uppercase mb-3" style={{ color: "var(--color-primary)" }}>
               Turn Tips
             </div>
             <div className="flex flex-col gap-3">
@@ -346,7 +346,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
         {/* Feedback Cards — evidence-based issue/strength cards */}
         {result.feedbackCards && result.feedbackCards.length > 0 && (
           <div className="flex flex-col gap-3">
-            <div className="text-xs font-semibold" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-medium tracking-upper uppercase" style={{ color: "var(--color-primary)" }}>
               Key Feedback
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 md:grid md:grid-cols-2 md:overflow-visible">
@@ -389,7 +389,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
         {/* Top 3 Priorities */}
         {result.top3Priorities && result.top3Priorities.length > 0 && (
           <div className="rounded-lg p-5" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-            <div className="text-xs font-semibold mb-3" style={{ color: "var(--color-primary)" }}>
+            <div className="text-xs font-medium tracking-upper uppercase mb-3" style={{ color: "var(--color-primary)" }}>
               Top Priorities to Improve
             </div>
             <div className="flex flex-col gap-2.5">
@@ -413,7 +413,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                 style={{ color: "var(--color-text-tertiary)" }}><polyline points="6 9 12 15 18 9" /></svg>
             </summary>
-            <div className="px-5 pb-4 text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)", borderTop: "1px solid var(--color-border)" }}>
+            <div className="px-5 pb-4 text-sm leading-relaxed max-w-prose" style={{ color: "var(--color-text-secondary)", borderTop: "1px solid var(--color-border)" }}>
               <p className="pt-3">{result.sampleBand8Answer}</p>
             </div>
           </details>

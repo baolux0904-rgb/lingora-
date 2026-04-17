@@ -1286,7 +1286,7 @@ export default function IeltsConversationV2({
     if (partGroups.length === 0) return null;
     return (
       <div className="ielts-history-sidebar">
-        <div className="text-xs font-semibold uppercase tracking-[0.12em] mb-4" style={{ color: 'var(--ielts-text-faint)' }}>
+        <div className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: 'var(--ielts-text-faint)' }}>
           Session Transcript
         </div>
         {partGroups.map((group) => (
@@ -1472,7 +1472,7 @@ export default function IeltsConversationV2({
               <div className="ielts-cue-card">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-2 h-2 rounded-full bg-indigo-400" />
-                  <span className="text-xs font-semibold uppercase tracking-[0.15em] text-indigo-300">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-indigo-300">
                     Task Card
                   </span>
                 </div>
@@ -1590,7 +1590,7 @@ export default function IeltsConversationV2({
                 <div className="ielts-transcript lg:hidden">
                   {partGroups.map((group) => (
                     <div key={group.part} className="mb-4 last:mb-0">
-                      <div className="text-xs font-semibold uppercase tracking-[0.12em] mb-2" style={{ color: 'var(--ielts-text-faint)' }}>
+                      <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--ielts-text-faint)' }}>
                         {group.label}
                       </div>
                       {group.pairs.map((pair) => (
@@ -1615,7 +1615,7 @@ export default function IeltsConversationV2({
                       </svg>
                     </div>
                     <div>
-                      <span className="text-xs font-semibold uppercase tracking-[0.15em] text-indigo-300">Examiner</span>
+                      <span className="text-xs font-semibold uppercase tracking-widest text-indigo-300">Examiner</span>
                       {examinerSpeaking && (
                         <span className="ml-2 text-xs text-indigo-400 animate-pulse">Speaking...</span>
                       )}
