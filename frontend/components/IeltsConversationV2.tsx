@@ -326,9 +326,15 @@ export default function IeltsConversationV2({
   const [savedCueCardIndex, setSavedCueCardIndex] = useState<number | undefined>(undefined);
 
   // V2: Part 1 interruption timer
+  // Threshold is populated per question from the backend response
+  // (result.part1AnswerTimeoutMs). A random fallback covers sessions talking
+  // to an older backend that doesn't send the field yet.
+  const PART1_TIMEOUT_FALLBACK_MS = () => 25000 + Math.floor(Math.random() * 10001);
   const part1SpeechStartRef = useRef<number | null>(null);
   const part1InterruptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const part1InterruptThreshold = useRef(25 + Math.random() * 10); // 25-35s, randomized per session
+  const part1ThresholdMsRef = useRef<number>(PART1_TIMEOUT_FALLBACK_MS());
+  // Tick state for the visible countdown. null when the timer is not active.
+  const [part1RemainingSec, setPart1RemainingSec] = useState<number | null>(null);
 
   // Part 2 timer
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -417,37 +423,47 @@ export default function IeltsConversationV2({
   }, [phase, voice.isRecording, timerActive, isProcessing, voice.isSupported, startMicWithTiming]);
 
   // ── V2: Part 1 interruption timer — auto-submit after 25-35s of speaking ──
+  // Also drives the visible countdown the candidate sees while answering.
   useEffect(() => {
     if (phase !== "part1" || !voice.isRecording || isProcessing || examinerSpeaking) {
-      // Clear interruption timer if conditions change
       if (part1InterruptTimerRef.current) {
         clearTimeout(part1InterruptTimerRef.current);
         part1InterruptTimerRef.current = null;
       }
       part1SpeechStartRef.current = null;
+      setPart1RemainingSec(null);
       return;
     }
 
-    // User started recording in Part 1 — set interruption timer
+    // User started recording in Part 1 — arm the interrupt.
     if (part1SpeechStartRef.current === null) {
       part1SpeechStartRef.current = Date.now();
     }
 
-    const thresholdMs = part1InterruptThreshold.current * 1000;
-    const elapsed = Date.now() - part1SpeechStartRef.current;
-    const remaining = Math.max(0, thresholdMs - elapsed);
+    const thresholdMs = part1ThresholdMsRef.current;
+    const startedAt = part1SpeechStartRef.current;
 
+    const computeRemaining = () =>
+      Math.max(0, Math.ceil((thresholdMs - (Date.now() - startedAt)) / 1000));
+
+    setPart1RemainingSec(computeRemaining());
+
+    // 1Hz display tick — updates the visible countdown without restarting
+    // the interrupt setTimeout.
+    const tickId = setInterval(() => {
+      setPart1RemainingSec(computeRemaining());
+    }, 1000);
+
+    // Hard deadline — fires the auto-submit when time runs out.
     part1InterruptTimerRef.current = setTimeout(() => {
-      // Time's up — auto-submit the current input as if examiner interrupted
       if (inputText.trim()) {
         handleSend();
       }
       part1SpeechStartRef.current = null;
-      // Randomize next threshold for variety
-      part1InterruptThreshold.current = 25 + Math.random() * 10;
-    }, remaining);
+    }, Math.max(0, thresholdMs - (Date.now() - startedAt)));
 
     return () => {
+      clearInterval(tickId);
       if (part1InterruptTimerRef.current) {
         clearTimeout(part1InterruptTimerRef.current);
         part1InterruptTimerRef.current = null;
@@ -709,6 +725,11 @@ export default function IeltsConversationV2({
           };
           setTurns((prev) => [...prev, q1Turn]);
           setPhase("part1");
+          if (q1Result.part1AnswerTimeoutMs) {
+            part1ThresholdMsRef.current = q1Result.part1AnswerTimeoutMs;
+          } else {
+            part1ThresholdMsRef.current = PART1_TIMEOUT_FALLBACK_MS();
+          }
           await new Promise((r) => setTimeout(r, 500));
           playTTS(q1Result.aiTurn.content, true);
         }
@@ -799,6 +820,13 @@ export default function IeltsConversationV2({
       const newUserCount = userTurnCount + 1;
       setUserTurnCount(newUserCount);
 
+      // Arm the next Part 1 answer-timeout from the backend response. Only
+      // populated when the examiner's reply IS a Part 1 question — so this
+      // naturally no-ops on Part 2/3 and on transitions.
+      if (result.part1AnswerTimeoutMs) {
+        part1ThresholdMsRef.current = result.part1AnswerTimeoutMs;
+      }
+
       // ── State machine transitions (driven by backend ieltsState) ──
       const state = result.ieltsState;
 
@@ -824,6 +852,9 @@ export default function IeltsConversationV2({
             };
             setTurns((prev) => [...prev, q1Turn]);
             setPhase("part1");
+            if (q1Result.part1AnswerTimeoutMs) {
+              part1ThresholdMsRef.current = q1Result.part1AnswerTimeoutMs;
+            }
             await new Promise((r) => setTimeout(r, 500));
             playTTS(q1Result.aiTurn.content, true);
           }
@@ -1705,6 +1736,21 @@ export default function IeltsConversationV2({
                         <span key={d} className="ielts-dot" style={{ animationDelay: `${d}ms` }} />
                       ))}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Part 1 answer countdown — visible only while the candidate
+                  is actively answering. Same visual as Part 2 timers. */}
+              {phase === "part1" && part1RemainingSec !== null && (
+                <div className="flex justify-center">
+                  <div className={`ielts-timer ${part1RemainingSec <= 5 ? "ielts-timer-urgent" : ""}`}>
+                    <span className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--ielts-text-muted)' }}>
+                      Answer time
+                    </span>
+                    <span className="font-mono text-3xl font-bold tabular-nums" style={{ color: 'var(--ielts-text)' }}>
+                      {`0:${String(part1RemainingSec).padStart(2, "0")}`}
+                    </span>
                   </div>
                 </div>
               )}

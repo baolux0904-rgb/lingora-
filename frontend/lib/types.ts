@@ -218,6 +218,9 @@ export interface SubmitTurnResult {
   userTurn: ConversationTurn;
   aiTurn: ConversationTurn;
   ieltsState?: IeltsState;
+  /** Part 1 only: ms the candidate has to answer before the examiner cuts in.
+   *  Populated only when the returned aiTurn IS a Part 1 question. */
+  part1AnswerTimeoutMs?: number;
 }
 
 export interface TurnFeedback {

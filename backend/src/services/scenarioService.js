@@ -1039,6 +1039,14 @@ async function submitTurn(sessionId, userId, content, speechMetrics = null, opti
   // Save AI turn
   const aiTurn = await scenarioRepository.insertTurn(sessionId, nextIndex + 1, "assistant", aiContent);
 
+  // Part 1 answer-timeout budget: backend is source of truth for how long the
+  // candidate has before the examiner cuts them off. 25–35s random, per question.
+  // Only populated when this response IS a Part 1 question — other phases ignore.
+  let part1AnswerTimeoutMs;
+  if (ieltsState && ieltsState.part === 1 && ieltsState.phase === "question") {
+    part1AnswerTimeoutMs = 25000 + Math.floor(Math.random() * 10001);
+  }
+
   return {
     userTurn: {
       turnIndex: userTurn.turn_index,
@@ -1053,6 +1061,7 @@ async function submitTurn(sessionId, userId, content, speechMetrics = null, opti
       createdAt: aiTurn.created_at,
     },
     ieltsState,
+    part1AnswerTimeoutMs,
   };
 }
 
