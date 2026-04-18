@@ -14,13 +14,18 @@ const writingRepository = require("../repositories/writingRepository");
 const writingAnalyzer = require("../providers/ai/writingAnalyzer");
 const { updateStreak } = require("./streakService");
 const { awardXp } = require("./xpService");
+const { WRITING } = require("../domain/ielts");
+const config = require("../config");
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const MIN_WORDS = { task1: 150, task2: 250 };
-const FREE_DAILY_LIMIT = 1;
+// Source of truth: domain/ielts/format.js (IELTS spec — not configurable).
+const MIN_WORDS_BY_TASK = {
+  task1: WRITING.TASK_1.MIN_WORDS,
+  task2: WRITING.TASK_2.MIN_WORDS,
+};
 
 // ---------------------------------------------------------------------------
 // XP rewards
@@ -56,7 +61,7 @@ function countWords(text) {
 async function submitEssay(userId, role, isPro, { taskType, questionText, essayText }) {
   // 1. Word count validation
   const wordCount = countWords(essayText);
-  const minRequired = MIN_WORDS[taskType];
+  const minRequired = MIN_WORDS_BY_TASK[taskType];
 
   if (wordCount < minRequired) {
     const err = new Error(
@@ -83,7 +88,7 @@ async function submitEssay(userId, role, isPro, { taskType, questionText, essayT
     const bypassLimit = role === "admin" || isPro === true;
     if (!bypassLimit) {
       const todayCount = await writingRepository.getTodayUsageCount(userId);
-      if (todayCount >= FREE_DAILY_LIMIT) {
+      if (todayCount >= config.writingDailyLimit) {
         const err = new Error("Daily limit reached. Upgrade to Pro for unlimited submissions.");
         err.status = 403;
         throw err;
