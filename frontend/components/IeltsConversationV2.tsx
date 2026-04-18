@@ -347,8 +347,9 @@ export default function IeltsConversationV2({
   // Speech timing tracker
   const speechTiming = useSpeechTiming();
 
-  // Part 2 pause detection
-  const [part2SilenceNudge, setPart2SilenceNudge] = useState<string | null>(null);
+  // Part 2 pause handling: after the SpeechRecognition auto-stops on silence,
+  // we need to restart the mic so the candidate can keep going. No UI nudge —
+  // the silence is part of the exam (real examiners stay quiet).
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const consecutiveShortSegmentsRef = useRef(0);
 
@@ -380,33 +381,18 @@ export default function IeltsConversationV2({
   const startMicWithTiming = useCallback(() => {
     speechTiming.onRecordingStart();
     voice.startRecording();
-
-    // Part 2 silence detection: if mic auto-stops and user doesn't restart within 4s
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
   }, [voice, speechTiming]);
 
-  // ── Part 2 silence detection: when voice auto-stops during speaking phase ──
+  // ── Part 2 mic auto-restart: when SpeechRecognition auto-stops during the
+  // 120s long turn, silently re-arm the mic so the candidate can keep going.
+  // No UI nudge — real IELTS examiners stay silent while the candidate pauses.
   useEffect(() => {
-    // Only active during Part 2 speaking, and only when NOT recording but timer is still going
     if (phase !== "part2_speak" || voice.isRecording || !timerActive || isProcessing) return;
 
-    // V2: Realistic silence protocol — 8 seconds of silence, no nudge.
-    // Real examiners don't prompt you. The silence is yours to fill.
     silenceTimerRef.current = setTimeout(() => {
-      // After 8s silence, if before 1:40, auto-end Part 2 with "Thank you"
-      if (timerSeconds > 20) {
-        // Still have significant time left — just restart mic silently
-        // No nudge text. The user feels the pressure of silence.
-        if (voice.isSupported) {
-          startMicWithTiming();
-        }
-      } else {
-        // Near the end — let timer handle it
-        if (voice.isSupported) {
-          startMicWithTiming();
-        }
-      }
-    }, 8000); // 8 seconds — doubled from V1's 4 seconds
+      if (voice.isSupported) startMicWithTiming();
+    }, 8000);
 
     return () => {
       if (silenceTimerRef.current) {
@@ -973,7 +959,6 @@ export default function IeltsConversationV2({
     consecutiveShortSegmentsRef.current = 0;
 
     setPart2Nudge(null);
-    setPart2SilenceNudge(null);
     setTimerActive(false);
     setInputText("");
     setIsProcessing(true);
@@ -1587,9 +1572,6 @@ export default function IeltsConversationV2({
                     {voice.interimTranscript}
                   </div>
                 )}
-
-                {/* V2: No silence nudge — realistic examiner silence protocol.
-                    The absence of UI feedback IS the feature. */}
 
                 {/* Nudge message when user tries to end too early */}
                 {part2Nudge && (
