@@ -7,6 +7,8 @@
  */
 
 const scenarioService = require("../services/scenarioService");
+const mediaService = require("../services/mediaService");
+const scenarioRepository = require("../repositories/scenarioRepository");
 const { sendSuccess, sendError } = require("../response");
 
 // UUID v4 pattern
@@ -267,6 +269,53 @@ async function synthesizeSpeech(req, res, next) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// POST /api/v1/scenarios/sessions/:sessionId/audio/upload-url
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate a pre-signed R2 upload URL for a scenario/IELTS audio turn.
+ * The browser PUTs the webm blob to the returned URL, then calls
+ * POST /sessions/:sessionId/turns with the storageKey.
+ *
+ * Response: { uploadUrl: string, storageKey: string, expiresIn: number }
+ */
+async function getAudioUploadUrl(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    if (!UUID_RE.test(sessionId)) {
+      return sendError(res, { status: 400, message: "Valid sessionId (UUID) is required" });
+    }
+
+    // Session ownership check — don't let user A mint upload URLs against
+    // user B's session. Mirrors the guard in submitTurn / endSession.
+    const session = await scenarioRepository.findSessionById(sessionId);
+    if (!session) {
+      return sendError(res, { status: 404, message: "Session not found" });
+    }
+    if (session.user_id !== userId) {
+      return sendError(res, { status: 403, message: "Not authorized to access this session" });
+    }
+    if (session.status !== "active") {
+      return sendError(res, { status: 400, message: "Session is no longer active" });
+    }
+
+    const { contentType } = req.body || {};
+    const safeContentType = contentType === "audio/webm" ? contentType : "audio/webm";
+
+    const result = await mediaService.getScenarioAudioUploadUrl(userId, sessionId, safeContentType);
+
+    return sendSuccess(res, {
+      data: result,
+      message: "Upload URL generated",
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   listScenarios,
   getScenario,
@@ -275,5 +324,6 @@ module.exports = {
   endSession,
   getSession,
   getUserSessions,
+  getAudioUploadUrl,
   synthesizeSpeech,
 };
