@@ -17,6 +17,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from "react";
+import { scoreColor as bandColor } from "@/lib/bandColors";
 import type {
   IeltsDiagnosticData,
   CriterionDiagnostic,
@@ -26,13 +27,6 @@ import type {
 } from "@/lib/types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
-
-function bandColor(score100: number): string {
-  if (score100 >= 75) return "#34D399"; // green
-  if (score100 >= 55) return "#00A896"; // purple-blue
-  if (score100 >= 40) return "#fbbf24"; // amber
-  return "#f87171"; // red
-}
 
 function formatBand(range: BandRange): string {
   if (range.low === range.high) return range.low.toFixed(1);
@@ -49,7 +43,7 @@ function formatDuration(ms: number): string {
 function deltaArrow(current: number, previous: number): { symbol: string; color: string; text: string } {
   const diff = current - previous;
   if (diff > 2) return { symbol: "\u2191", color: "#34D399", text: "improved" };
-  if (diff < -2) return { symbol: "\u2193", color: "#f87171", text: "declined" };
+  if (diff < -2) return { symbol: "\u2193", color: "#D97706", text: "declined" };
   return { symbol: "\u2192", color: "var(--color-text-secondary)", text: "stable" };
 }
 
@@ -256,7 +250,7 @@ export default function IeltsDiagnosticReport({
                 }
                 color={
                   diagnostic.speechInsights.hesitationLevel === "low" ? "#34D399" :
-                  diagnostic.speechInsights.hesitationLevel === "medium" ? "#fbbf24" : "#f87171"
+                  diagnostic.speechInsights.hesitationLevel === "medium" ? "#fbbf24" : "#D97706"
                 }
               />
               {diagnostic.speechInsights.avgWordsPerMinute != null && (

@@ -3,17 +3,12 @@
 import React, { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import FeedbackSheet from "@/components/FeedbackSheet";
+import { scoreColor } from "@/lib/bandColors";
 import type { EndSessionResult, CriteriaFeedback, FeedbackCard } from "@/lib/types";
 
 interface ScenarioSummaryProps {
   result: EndSessionResult;
   onClose: () => void;
-}
-
-function scoreColor(score: number): string {
-  if (score >= 80) return "var(--color-success)";
-  if (score >= 60) return "var(--color-warning)";
-  return "#f87171";
 }
 
 function formatDuration(ms: number): string {
@@ -198,7 +193,7 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
                 <span className={`text-sm font-semibold ${
                   result.speechInsights.hesitationLevel === "low" ? "text-emerald-400" :
                   result.speechInsights.hesitationLevel === "medium" ? "text-amber-400" :
-                  "text-red-400"
+                  "text-amber-600"
                 }`}>
                   {result.speechInsights.hesitationLevel === "low" ? "Low" :
                    result.speechInsights.hesitationLevel === "medium" ? "Moderate" : "High"}

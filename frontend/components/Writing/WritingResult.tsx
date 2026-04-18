@@ -9,19 +9,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import FeedbackSheet from "@/components/FeedbackSheet";
+import { bandColor } from "@/lib/bandColors";
 import type { WritingSubmission, WritingFeedback, WritingFeedbackCard, ParagraphAnalysis } from "@/lib/types";
 
 interface WritingResultProps {
   submission: WritingSubmission;
   onBack: () => void;
-}
-
-// Band score color
-function bandColor(band: number): string {
-  if (band >= 7) return "#22C55E";
-  if (band >= 6) return "#00A896";
-  if (band >= 5) return "#F59E0B";
-  return "#EF4444";
 }
 
 function CriteriaCard({

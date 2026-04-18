@@ -5,19 +5,13 @@
  */
 
 import { useState } from "react";
+import { bandColor } from "@/lib/bandColors";
 import type { ReadingPracticeResult } from "@/lib/types";
 
 interface ReadingResultProps {
   result: ReadingPracticeResult;
   onPracticeAgain: () => void;
   onClose: () => void;
-}
-
-function bandColor(band: number): string {
-  if (band >= 7) return "#22C55E";
-  if (band >= 6) return "#00A896";
-  if (band >= 5) return "#F59E0B";
-  return "#EF4444";
 }
 
 export default function ReadingResult({ result, onPracticeAgain, onClose }: ReadingResultProps) {
