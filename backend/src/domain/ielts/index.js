@@ -14,4 +14,5 @@ module.exports = {
   ...require('./rubrics'),
   ...require('./postProcessor'),
   ...require('./examinerPersona'),
+  ...require('./speechMetrics'),
 };
