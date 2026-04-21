@@ -253,6 +253,41 @@ function readingRawToBand(rawScore, testType = 'academic') {
 }
 
 /**
+ * Converts a partial raw Reading score to an IELTS band by prorating to the
+ * 40-question scale and looking up the official table.
+ *
+ * Lingona practice passages have 8 questions; the Full Test has 24. Neither
+ * matches the 40-question official exam. We prorate linearly, then use the
+ * canonical READING_ACADEMIC_TABLE so every surface (practice, full test,
+ * battle) converges on one source of truth.
+ *
+ * NOTE: Proration is an approximation. A user scoring 7/8 maps to 35/40 → 8.0,
+ * which is more generous than what the equivalent 7-question slice of a real
+ * exam would typically award. Acceptable for practice feedback, not for
+ * certificate-grade scoring.
+ *
+ * @param {number} rawScore Correct answers in this session (0–totalQuestions)
+ * @param {number} totalQuestions Number of questions answered (1–40)
+ * @param {'academic' | 'general_training'} [testType='academic']
+ * @returns {number} Band 0.0–9.0
+ */
+function readingScoreToBand(rawScore, totalQuestions = 40, testType = 'academic') {
+  if (!Number.isInteger(rawScore) || rawScore < 0) {
+    throw new RangeError(`readingScoreToBand: rawScore must be non-negative int, got ${rawScore}`);
+  }
+  if (!Number.isInteger(totalQuestions) || totalQuestions <= 0 || totalQuestions > 40) {
+    throw new RangeError(`readingScoreToBand: totalQuestions must be int in (0, 40], got ${totalQuestions}`);
+  }
+  if (rawScore > totalQuestions) {
+    throw new RangeError(`readingScoreToBand: rawScore ${rawScore} > totalQuestions ${totalQuestions}`);
+  }
+  const scaledRaw = totalQuestions === 40
+    ? rawScore
+    : Math.round((rawScore / totalQuestions) * 40);
+  return readingRawToBand(scaledRaw, testType);
+}
+
+/**
  * @param {number} rawScore 0–40
  * @returns {number}
  */
@@ -367,6 +402,7 @@ module.exports = {
   calculateWritingBand,
   calculateSpeakingBand,
   readingRawToBand,
+  readingScoreToBand,
   listeningRawToBand,
   speakingScoreToBand,
   speakingScoreToBandRange,

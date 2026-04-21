@@ -9,6 +9,7 @@
 const readingRepo = require("../repositories/readingRepository");
 const { updateStreak } = require("./streakService");
 const { awardXp } = require("./xpService");
+const { readingScoreToBand } = require("../domain/ielts");
 
 // ---------------------------------------------------------------------------
 // XP rewards
@@ -17,23 +18,6 @@ const { awardXp } = require("./xpService");
 // covers 3 passages and 24+ questions vs single-passage practice.
 const XP_REWARD_READING_PASSAGE   = 10;
 const XP_REWARD_READING_FULL_TEST = 30;
-
-// Band estimation from score
-function estimateBand(correct, total) {
-  if (total <= 8) {
-    if (correct <= 2) return 4.5;
-    if (correct <= 4) return 5.5;
-    if (correct <= 6) return 6.5;
-    if (correct === 7) return 7.0;
-    return 7.5;
-  }
-  // Full test (24 questions)
-  if (correct <= 8) return 4.5 + (correct / 8) * 1.0;
-  if (correct <= 14) return 5.5 + ((correct - 9) / 6) * 0.5;
-  if (correct <= 18) return 6.5 + ((correct - 15) / 4) * 0.5;
-  if (correct <= 22) return 7.0 + ((correct - 19) / 4) * 0.5;
-  return 8.0;
-}
 
 function bandToDifficulty(band) {
   if (band == null || band < 6.0) return "band_50_55";
@@ -65,7 +49,7 @@ async function getPassage(passageId) {
 
 async function submitPractice(userId, passageId, answers, timeSeconds) {
   const { correct, total, results } = await readingRepo.scoreAnswers(passageId, answers);
-  const bandEstimate = Math.round(estimateBand(correct, total) * 2) / 2;
+  const bandEstimate = readingScoreToBand(correct, total);
 
   // Update user band
   try {
@@ -152,7 +136,7 @@ async function submitFullTest(userId, passageResults, timeSeconds) {
     });
   }
 
-  const bandEstimate = Math.round(estimateBand(totalCorrect, totalQuestions) * 2) / 2;
+  const bandEstimate = readingScoreToBand(totalCorrect, totalQuestions);
 
   // Update user band
   try {
