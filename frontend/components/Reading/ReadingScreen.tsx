@@ -138,6 +138,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [toast, setToast] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const warningsFiredRef = useRef<{ five: boolean; one: boolean }>({ five: false, one: false });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -180,6 +181,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
 
   const handleAnswer = useCallback((orderIndex: number, answer: string) => {
     setAnswers((prev) => ({ ...prev, [orderIndex]: answer }));
+    setCurrentIndex(orderIndex);
   }, []);
 
   const handleToggleFlag = useCallback((orderIndex: number) => {
@@ -216,18 +218,33 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
   // ---------------------------------------------------------------------------
 
   const QuestionNav = () => (
-    <div className="flex flex-wrap gap-1.5 mb-4">
+    <div className="flex md:flex-wrap gap-1.5 mb-4 overflow-x-auto md:overflow-x-visible pb-1 md:pb-0 -mx-1 px-1">
       {questions.map((q) => {
         const answered = !!answers[q.order_index];
+        const isFlagged = !!flagged[q.order_index];
+        const isCurrent = currentIndex === q.order_index;
+        const borderColor = isFlagged
+          ? "#F59E0B"
+          : answered
+            ? "rgba(0,168,150,0.3)"
+            : "var(--color-border)";
         return (
-          <button key={q.order_index}
-            onClick={() => document.getElementById(`q-${q.order_index}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all"
+          <button
+            key={q.order_index}
+            onClick={() => {
+              setCurrentIndex(q.order_index);
+              document.getElementById(`q-${q.order_index}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            aria-label={`Câu ${q.order_index}${answered ? " — đã trả lời" : ""}${isFlagged ? " — đã đánh dấu" : ""}`}
+            aria-current={isCurrent ? "true" : undefined}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold transition-all shrink-0 relative"
             style={{
               background: answered ? "rgba(0,168,150,0.15)" : "var(--color-bg-secondary)",
               color: answered ? "#00A896" : "var(--color-text-tertiary)",
-              border: `1px solid ${answered ? "rgba(0,168,150,0.3)" : "var(--color-border)"}`,
-            }}>
+              border: `${isFlagged ? "2px" : "1px"} solid ${borderColor}`,
+              boxShadow: isCurrent ? "0 0 0 2px rgba(0,168,150,0.5)" : "none",
+            }}
+          >
             {q.order_index}
           </button>
         );
