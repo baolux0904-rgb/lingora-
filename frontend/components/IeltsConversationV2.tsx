@@ -213,6 +213,7 @@ type ExamPhase =
   | "part3"        // discussion questions
   | "ending"       // scoring analysis
   | "summary"      // results
+  | "scoring_failed" // /end returned 500 — graceful retry UI
   | "error";
 
 const PART1_QUESTIONS = 6; // 2 topic blocks × 3 questions
@@ -300,6 +301,11 @@ export default function IeltsConversationV2({
   const [scores, setScores] = useState<EndSessionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [part2Nudge, setPart2Nudge] = useState<string | null>(null);
+  // Scoring (/end) retry tracking — used by the "scoring_failed" phase UI.
+  // After MAX_SCORING_RETRIES attempts we surface a permanent-failure message
+  // rather than keep spinning the user in a loop.
+  const [scoringRetryCount, setScoringRetryCount] = useState(0);
+  const MAX_SCORING_RETRIES = 2;
 
   // V2: Diagnostic data + retry state
   const [diagnosticData, setDiagnosticData] = useState<IeltsDiagnosticData | null>(null);
@@ -607,6 +613,7 @@ export default function IeltsConversationV2({
   const handleEndSession = useCallback(async (sid: string) => {
     setPhase("ending");
     setPart2Notes("");
+    setErrorMsg(null);
     try {
       const durationMs = Date.now() - startTimeRef.current;
       const [result] = await Promise.all([
@@ -620,16 +627,24 @@ export default function IeltsConversationV2({
       const diag = buildDiagnosticData(endResult, previousAttempt);
       setDiagnosticData(diag);
 
-      onComplete?.();
-    } catch {
-      setScores({ ...SAFE_SCORES });
-      // V2: Still build diagnostic from safe scores
-      const diag = buildDiagnosticData({ ...SAFE_SCORES }, previousAttempt);
-      setDiagnosticData(diag);
-    } finally {
+      setScoringRetryCount(0);
       setPhase("summary");
+      onComplete?.();
+    } catch (err) {
+      // Do NOT render fake Band 2.0 + 0-turn diagnostic — that misleads the
+      // user into thinking their real performance scored that low. Route to
+      // the dedicated scoring_failed phase with a retry button instead.
+      console.error("[ielts-ui] scoring failed:", err);
+      setErrorMsg(err instanceof Error ? err.message : "Scoring failed.");
+      setPhase("scoring_failed");
     }
   }, [onComplete, previousAttempt]);
+
+  const handleRetryScoring = useCallback(async () => {
+    if (!sessionId) return;
+    setScoringRetryCount((n) => n + 1);
+    await handleEndSession(sessionId);
+  }, [sessionId, handleEndSession]);
 
   // ─── Submit Turn ────────────────────────────────────────────────────────
 
@@ -1608,6 +1623,61 @@ export default function IeltsConversationV2({
           </div>
         )}
 
+        {/* ═══ SCORING FAILED — retry UI (replaces the fake Band 2.0 fallback) ═══ */}
+        {phase === "scoring_failed" && (
+          <div className="min-h-full flex flex-col items-center justify-center gap-6 px-4 animate-fadeIn">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            {scoringRetryCount >= MAX_SCORING_RETRIES ? (
+              <>
+                <div className="text-center max-w-[320px]">
+                  <p className="font-bold text-lg" style={{ color: 'var(--ielts-text)' }}>Something went wrong</p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--ielts-text-muted)' }}>
+                    Your session data is saved. Please contact support so we can generate your score manually.
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="ielts-btn-ghost px-6 py-2 rounded-xl text-sm"
+                >
+                  Close
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-center max-w-[320px]">
+                  <p className="font-bold text-lg" style={{ color: 'var(--ielts-text)' }}>Scoring failed</p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--ielts-text-muted)' }}>
+                    Your answers are safely stored. Please try again — the AI sometimes takes a moment to catch up on long sessions.
+                  </p>
+                  {errorMsg && (
+                    <p className="text-xs mt-3 italic" style={{ color: 'var(--ielts-text-faint)' }}>{errorMsg}</p>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleRetryScoring}
+                    className="ielts-btn-primary px-6 py-2 rounded-xl text-sm font-semibold"
+                  >
+                    Try again{scoringRetryCount > 0 ? ` (${scoringRetryCount}/${MAX_SCORING_RETRIES})` : ""}
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="ielts-btn-ghost px-6 py-2 rounded-xl text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* ── Two-column layout for interactive phases ── */}
         <div className="max-w-[1400px] mx-auto px-4 py-6 flex gap-6 lg:gap-8">
           {/* Desktop sidebar */}
@@ -1842,20 +1912,11 @@ export default function IeltsConversationV2({
                 </div>
               )}
 
-              {/* Part 1 answer countdown — visible only while the candidate
-                  is actively answering. Same visual as Part 2 timers. */}
-              {phase === "part1" && part1RemainingSec !== null && (
-                <div className="flex justify-center">
-                  <div className={`ielts-timer ${part1RemainingSec <= 5 ? "ielts-timer-urgent" : ""}`}>
-                    <span className="text-xs uppercase tracking-wider mb-1" style={{ color: 'var(--ielts-text-muted)' }}>
-                      Answer time
-                    </span>
-                    <span className="font-mono text-3xl font-bold tabular-nums" style={{ color: 'var(--ielts-text)' }}>
-                      {`0:${String(part1RemainingSec).padStart(2, "0")}`}
-                    </span>
-                  </div>
-                </div>
-              )}
+              {/* Part 1 answer countdown is INVISIBLE by design — the
+                  underlying timer (part1ThresholdMsRef + the 1Hz tick and
+                  the auto-advance setTimeout) still runs so the examiner
+                  interrupts at 25-35s, but the real exam doesn't show a
+                  countdown to the candidate, so we don't either. */}
 
               {/* Last user answer */}
               {latestUserMsg && qaPairs.length > 0 && (

@@ -720,16 +720,21 @@ body {
 .ielts-notepad {
   width: 100%;
   min-height: 224px; /* ~8 lines × 28px line-height */
-  padding: 16px 18px;
+  /* Top padding calibrated so the first text baseline lands exactly on the
+     first printed line (baseline ≈ line-height − font-size/2 for monospace). */
+  padding: 6px 18px 16px 18px;
   border-radius: 14px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   background-color: #FFFEF7;
+  /* Line drawn at the bottom of each 28px line-box so text baseline SITS on
+     the line (IELTS answer-sheet look). 21/22 within each 28px period
+     matches the baseline for 14px monospace at line-height 28. */
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
-    transparent 27px,
-    #E5E5E5 27px,
-    #E5E5E5 28px
+    transparent 21px,
+    #D9D9E0 21px,
+    #D9D9E0 22px
   );
   background-attachment: local;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
