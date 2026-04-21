@@ -21,6 +21,11 @@ const mockAi = require("./mockAi");
 // ---------------------------------------------------------------------------
 
 const OPENAI_TIMEOUT_MS = 15_000; // 15-second max — OpenAI can be slow
+// Scoring-specific timeouts. End-of-session scoring sends the full
+// conversation (20-30+ messages) + long rubric prompt, so it routinely
+// takes 20-40s. The retry budget covers tail latency spikes.
+const OPENAI_SCORING_TIMEOUT_MS       = 60_000;
+const OPENAI_SCORING_RETRY_TIMEOUT_MS = 90_000;
 
 const SAFE_SCORE_DEFAULTS = {
   overallScore: 60,
@@ -342,15 +347,29 @@ Scenario context: ${systemPrompt}`;
     console.log(`[ai] model: ${_model}`);
     console.log(`[ai] messages: ${messages.length} total for scoring`);
 
-    const response = await withTimeout(
+    // Scoring can be slow on long sessions. Try once at 60s, retry once at
+    // 90s if the first attempt times out. Any other error falls through to
+    // the outer catch and returns SAFE_SCORE_DEFAULTS as before.
+    const runScoring = (timeoutMs) => withTimeout(
       openai.chat.completions.create({
         model: _model,
         messages,
         max_tokens: 1500,
         temperature: 0.3,
         response_format: { type: "json_object" },
-      })
+      }),
+      timeoutMs,
     );
+
+    let response;
+    try {
+      response = await runScoring(OPENAI_SCORING_TIMEOUT_MS);
+    } catch (err) {
+      const isTimeout = /timed out/i.test(err?.message || "");
+      if (!isTimeout) throw err;
+      console.log(`[ai] scoring retry attempt 1/1 — first call timed out after ${OPENAI_SCORING_TIMEOUT_MS}ms`);
+      response = await runScoring(OPENAI_SCORING_RETRY_TIMEOUT_MS);
+    }
 
     const text = response.choices?.[0]?.message?.content?.trim() || "";
 

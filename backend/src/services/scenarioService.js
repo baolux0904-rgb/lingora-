@@ -16,6 +16,21 @@ const scenarioRepository = require("../repositories/scenarioRepository");
 const { analyzeSpeechFlow, aggregateSpeechFlow } = require("./speechAnalyzer");
 const { updateStreak } = require("./streakService");
 const { awardXp } = require("./xpService");
+const {
+  pickPersona,
+  computeGreeting,
+  buildOpeningMessage,
+  normalizeTimezone,
+} = require("../domain/ielts/examinerPersona");
+const {
+  speakingScoreToBand,
+  speakingScoreToBandRange,
+} = require("../domain/ielts/scoring");
+const { computeSpeechMetricsFromSegments } = require("../domain/ielts/speechMetrics");
+const { createWhisperProvider } = require("../providers/ai/whisperProvider");
+const mediaService = require("./mediaService");
+
+const whisper = createWhisperProvider();
 
 // ---------------------------------------------------------------------------
 // XP rewards
@@ -840,6 +855,7 @@ async function startSession(scenarioId, userId, options = {}) {
   const isIelts = scenario.category === "exam";
   let openingContent;
   let cueCardIndex = -1;
+  let examinerPersonaOut;
 
   if (isIelts) {
     // V2: Allow cueCardIndex override for retry-same-topic
@@ -850,15 +866,25 @@ async function startSession(scenarioId, userId, options = {}) {
     // V2: On retry, align Part 1 topics with the cue card theme
     const initialState = createInitialIeltsState(cueCardIndex, isRetry);
 
+    // Pick examiner persona + compute local greeting. Backend is the single
+    // source of truth for both — frontend only renders.
+    const persona = pickPersona();
+    const timezone = normalizeTimezone(options.timezone);
+    const greeting = computeGreeting(new Date(), timezone);
+
+    initialState.examinerPersona = { name: persona.name, voice: persona.voice };
+    initialState.greeting = greeting;
+    initialState.timezone = timezone;
+    examinerPersonaOut = initialState.examinerPersona;
+
     // Persist state to DB
     await scenarioRepository.updateSessionMeta(session.id, initialState);
 
-    // Generate examiner opening — sanitized
-    const systemPrompt = buildIeltsSystemPrompt(initialState);
-    const rawOpening = await ai.generateResponse(systemPrompt, [], { category: "exam" });
-    openingContent = sanitizeExaminerOutput(rawOpening);
+    // Opening is built from a hardcoded template — no LLM call. Keeps the
+    // examiner's first utterance fully deterministic (Zero Reaction safe).
+    openingContent = buildOpeningMessage(persona, greeting);
 
-    console.log(`[ielts] Session started: ${session.id} | cueCard: ${cueCardIndex} | state: part1:question:0`);
+    console.log(`[ielts] Session started: ${session.id} | cueCard: ${cueCardIndex} | persona: ${persona.name}/${persona.voice} | tz: ${timezone} | greeting: ${greeting}`);
   } else {
     openingContent = scenario.opening_message;
   }
@@ -879,6 +905,7 @@ async function startSession(scenarioId, userId, options = {}) {
     category: session.category,
     cueCard: cueCard || undefined,
     cueCardIndex: isIelts ? cueCardIndex : undefined,
+    examinerPersona: examinerPersonaOut,
     turns: [{
       turnIndex: openingTurn.turn_index,
       role: openingTurn.role,
@@ -906,11 +933,51 @@ async function submitTurn(sessionId, userId, content, speechMetrics = null, opti
     throw err;
   }
 
+  // Whisper path: if the caller uploaded audio to R2 and passed storageKey, we
+  // fetch the bytes, transcribe, and derive speechMetrics server-side. Text
+  // `content` submissions still work (identity check, placeholder turns, older
+  // clients active during deploy) — backward-compat branch.
+  let audioStorageKey = null;
+  if (options.storageKey && typeof options.storageKey === "string") {
+    try {
+      const audioBuffer = await mediaService.getObjectBuffer(options.storageKey);
+      const { transcript, durationSeconds, segments } = await whisper.transcribeAudio(
+        audioBuffer,
+        "en",
+      );
+      content = transcript && transcript.trim().length > 0
+        ? transcript.trim()
+        : "[inaudible]";
+      speechMetrics = computeSpeechMetricsFromSegments(segments, durationSeconds);
+      audioStorageKey = options.storageKey;
+      console.log(JSON.stringify({
+        event: "whisper_transcribe",
+        sessionId,
+        userId,
+        storageKey: options.storageKey,
+        durationSeconds,
+        transcriptLength: content.length,
+        wpm: speechMetrics.wordsPerMinute,
+      }));
+    } catch (err) {
+      console.error(`[whisper] transcribe failed for session=${sessionId}: ${err.message}`);
+      const e = new Error("Audio transcription failed. Please try recording again.");
+      e.status = 503;
+      throw e;
+    }
+  }
+
   const existingTurns = await scenarioRepository.findSessionTurns(sessionId);
   const nextIndex = existingTurns.length;
 
-  // Save user turn
-  const userTurn = await scenarioRepository.insertTurn(sessionId, nextIndex, "user", content);
+  // Save user turn (with audio_storage_key if Whisper path was used)
+  const userTurn = await scenarioRepository.insertTurn(
+    sessionId,
+    nextIndex,
+    "user",
+    content,
+    { audioStorageKey },
+  );
 
   // Build conversation history for AI
   const conversationHistory = existingTurns.map(t => ({ role: t.role, content: t.content }));
@@ -963,6 +1030,16 @@ async function submitTurn(sessionId, userId, content, speechMetrics = null, opti
     nextState.userResponseCount = currentState.userResponseCount;
     nextState.part3PrevWordCount = currentState.part3PrevWordCount || 0;
     nextState.turnSpeechMetrics = currentState.turnSpeechMetrics || [];
+
+    // Part 2 notepad: persist whatever the candidate jotted during the 60s prep.
+    // Only accept notes on the prep→speak transition — any other time it's a
+    // stale client or a bug, and silently ignoring keeps the API forgiving.
+    // Notes never reach the scoring prompt; they are pure UX aid.
+    if (typeof options.part2Notes === "string" && currentState.part === 2 && currentState.phase === "cue_card") {
+      nextState.part2Notes = options.part2Notes;
+    } else if (currentState.part2Notes !== undefined) {
+      nextState.part2Notes = currentState.part2Notes;
+    }
     ieltsState = nextState;
 
     const toState = `part${nextState.part}:${nextState.phase}:${nextState.questionIndex}`;
@@ -1011,6 +1088,14 @@ async function submitTurn(sessionId, userId, content, speechMetrics = null, opti
   // Save AI turn
   const aiTurn = await scenarioRepository.insertTurn(sessionId, nextIndex + 1, "assistant", aiContent);
 
+  // Part 1 answer-timeout budget: backend is source of truth for how long the
+  // candidate has before the examiner cuts them off. 25–35s random, per question.
+  // Only populated when this response IS a Part 1 question — other phases ignore.
+  let part1AnswerTimeoutMs;
+  if (ieltsState && ieltsState.part === 1 && ieltsState.phase === "question") {
+    part1AnswerTimeoutMs = 25000 + Math.floor(Math.random() * 10001);
+  }
+
   return {
     userTurn: {
       turnIndex: userTurn.turn_index,
@@ -1025,6 +1110,7 @@ async function submitTurn(sessionId, userId, content, speechMetrics = null, opti
       createdAt: aiTurn.created_at,
     },
     ieltsState,
+    part1AnswerTimeoutMs,
   };
 }
 
@@ -1099,26 +1185,6 @@ function computeHybridPenalties(turns) {
   }
 
   return { penalty, floorScore, avgWords, totalWords };
-}
-
-/**
- * Convert a 0-100 score to an IELTS band (1.0–9.0 in 0.5 increments).
- */
-function toBandScore(score100) {
-  // Map: 0→1, 20→3, 40→4.5, 60→6, 75→7, 85→7.5, 95→8.5, 100→9
-  if (score100 >= 95) return 9.0;
-  if (score100 >= 90) return 8.5;
-  if (score100 >= 85) return 8.0;
-  if (score100 >= 80) return 7.5;
-  if (score100 >= 75) return 7.0;
-  if (score100 >= 70) return 6.5;
-  if (score100 >= 60) return 6.0;
-  if (score100 >= 50) return 5.5;
-  if (score100 >= 40) return 5.0;
-  if (score100 >= 30) return 4.5;
-  if (score100 >= 20) return 4.0;
-  if (score100 >= 10) return 3.0;
-  return 2.0;
 }
 
 async function endSession(sessionId, userId, durationMs, options = {}) {
@@ -1217,8 +1283,27 @@ async function endSession(sessionId, userId, durationMs, options = {}) {
   const turnCount = realUserTurns.length;
   const wordCount = totalWords;
 
-  // Band score conversion for IELTS
-  const bandScore = isIelts ? toBandScore(adjustedOverall) : null;
+  // Band score conversion for IELTS. Canonical converter lives in
+  // domain/ielts/scoring.js — do not re-implement locally.
+  const bandScore = isIelts ? speakingScoreToBand(adjustedOverall) : null;
+
+  // Per-criterion + overall band ranges for the diagnostic report. Frontend
+  // renders these verbatim; any conversion duplication there is a drift bug.
+  // Overall uses avg-of-4 (not `adjustedOverall`) to match the report's
+  // "average criterion band" framing — keep behaviour identical to the
+  // previous client-side computation.
+  const diagnosticOverall100 = isIelts
+    ? Math.round((adjustedFluency + adjustedVocab + adjustedGrammar + adjustedPronunciation) / 4)
+    : null;
+  const bandRanges = isIelts
+    ? {
+        fluency:       speakingScoreToBandRange(adjustedFluency),
+        vocabulary:    speakingScoreToBandRange(adjustedVocab),
+        grammar:       speakingScoreToBandRange(adjustedGrammar),
+        pronunciation: speakingScoreToBandRange(adjustedPronunciation),
+        overall:       speakingScoreToBandRange(diagnosticOverall100),
+      }
+    : null;
 
   // Notable vocabulary + enhanced feedback from AI scoring
   const notableVocabulary = aiScores.notableVocabulary || [];
@@ -1305,6 +1390,8 @@ async function endSession(sessionId, userId, durationMs, options = {}) {
     grammar: adjustedGrammar,
     pronunciation: adjustedPronunciation,
     bandScore,
+    bandRanges,
+    diagnosticOverall100,
     criteriaFeedback,
     coachFeedback,
     turnFeedback: aiScores.turnFeedback,

@@ -25,6 +25,8 @@ import {
   submitScenarioTurnV2 as submitScenarioTurn,
   endScenarioSessionV2 as endScenarioSession,
   synthesizeSpeech,
+  getScenarioAudioUploadUrl,
+  putAudioToStorage,
 } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type {
@@ -36,41 +38,18 @@ import type {
   CriterionDiagnostic,
   BandRange,
   FeedbackAccuracy,
+  ExaminerPersona,
 } from "@/lib/types";
 import IeltsDiagnosticReport from "./IeltsDiagnosticReport";
-import { useVoiceInput } from "@/hooks/useVoiceInput";
-import { useSpeechTiming } from "@/hooks/useSpeechTiming";
-import type { SpeechMetrics } from "@/hooks/useSpeechTiming";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 
 // ─── V2: Diagnostic data builder ────────────────────────────────────────────
 
-function toBandRange(score100: number): BandRange {
-  // Convert 0-100 to IELTS band, then create a ±0.5 range
-  const band = toBandScore(score100);
-  const low = Math.max(1.0, band - 0.5);
-  const high = Math.min(9.0, band);
-  // Round to nearest 0.5
-  return {
-    low: Math.round(low * 2) / 2,
-    high: Math.round(high * 2) / 2,
-  };
-}
+// Band ranges come from the backend (EndSessionResult.bandRanges). Never
+// convert 0-100 → band on the client — backend is the single source of truth.
+// A defensive fallback kicks in only if an older backend omits the field.
 
-function toBandScore(score100: number): number {
-  if (score100 >= 95) return 9.0;
-  if (score100 >= 90) return 8.5;
-  if (score100 >= 85) return 8.0;
-  if (score100 >= 80) return 7.5;
-  if (score100 >= 75) return 7.0;
-  if (score100 >= 70) return 6.5;
-  if (score100 >= 60) return 6.0;
-  if (score100 >= 50) return 5.5;
-  if (score100 >= 40) return 5.0;
-  if (score100 >= 30) return 4.5;
-  if (score100 >= 20) return 4.0;
-  if (score100 >= 10) return 3.0;
-  return 2.0;
-}
+const FALLBACK_BAND_RANGE: BandRange = { low: 2, high: 2 };
 
 /** Vietnamese L1 patterns: detect from criteria feedback text */
 function detectVietnameseL1Patterns(result: EndSessionResult) {
@@ -143,10 +122,11 @@ function buildDiagnosticData(
   result: EndSessionResult,
   previousAttempt: IeltsDiagnosticData["previousAttempt"] | null
 ): IeltsDiagnosticData {
+  const ranges = result.bandRanges ?? null;
   const criteria: CriterionDiagnostic[] = [
     {
       label: "Fluency & Coherence",
-      bandRange: toBandRange(result.fluency),
+      bandRange: ranges?.fluency ?? FALLBACK_BAND_RANGE,
       score100: result.fluency,
       justification: result.criteriaFeedback?.fluency || "Score based on overall speaking flow and idea development.",
       action: result.fluency < 60
@@ -156,7 +136,7 @@ function buildDiagnosticData(
     },
     {
       label: "Lexical Resource",
-      bandRange: toBandRange(result.vocabulary),
+      bandRange: ranges?.vocabulary ?? FALLBACK_BAND_RANGE,
       score100: result.vocabulary,
       justification: result.criteriaFeedback?.vocabulary || "Score based on vocabulary range and precision.",
       action: result.vocabulary < 60
@@ -165,7 +145,7 @@ function buildDiagnosticData(
     },
     {
       label: "Grammatical Range & Accuracy",
-      bandRange: toBandRange(result.grammar),
+      bandRange: ranges?.grammar ?? FALLBACK_BAND_RANGE,
       score100: result.grammar,
       justification: result.criteriaFeedback?.grammar || "Score based on sentence structure variety and accuracy.",
       action: result.grammar < 60
@@ -174,7 +154,7 @@ function buildDiagnosticData(
     },
     {
       label: "Pronunciation",
-      bandRange: toBandRange(result.pronunciation ?? result.fluency),
+      bandRange: ranges?.pronunciation ?? FALLBACK_BAND_RANGE,
       score100: result.pronunciation ?? result.fluency,
       justification: result.criteriaFeedback?.pronunciation || "Score based on pronunciation clarity and natural rhythm.",
       action: "Focus on word-final consonant sounds — the highest-impact area for Vietnamese speakers.",
@@ -196,12 +176,15 @@ function buildDiagnosticData(
     topPriority = vietnameseL1[0].suggestion;
   }
 
-  const overallScore100 = Math.round(
+  // Both values come from backend (diagnosticOverall100 + bandRanges.overall).
+  // If an older backend omits them, fall back to the same avg-of-4 formula
+  // the backend uses so the two never visibly disagree.
+  const overallScore100 = result.diagnosticOverall100 ?? Math.round(
     criteria.reduce((s, c) => s + c.score100, 0) / criteria.length
   );
 
   return {
-    overallBandRange: toBandRange(overallScore100),
+    overallBandRange: ranges?.overall ?? FALLBACK_BAND_RANGE,
     overallScore100,
     criteria,
     topPriority,
@@ -230,6 +213,7 @@ type ExamPhase =
   | "part3"        // discussion questions
   | "ending"       // scoring analysis
   | "summary"      // results
+  | "scoring_failed" // /end returned 500 — graceful retry UI
   | "error";
 
 const PART1_QUESTIONS = 6; // 2 topic blocks × 3 questions
@@ -237,8 +221,13 @@ const PART3_QUESTIONS = 4;
 const PREP_SECONDS = 60;
 const SPEAK_SECONDS = 120;
 
-// V2: Examiner greeting — warm, professional, IELTS-accurate
-const EXAMINER_GREETING = "Good morning. My name is Sarah, and I'll be your examiner today. This speaking test has three parts. First, could you tell me your full name, please?";
+// V2: Examiner opening is built server-side (persona + time-of-day greeting) and
+// returned as turns[0] from POST /scenarios/:id/start. Do not hardcode it here.
+
+// Fallback persona for sessions started before the multi-persona rollout — their
+// session_meta has no examinerPersona, so TTS would otherwise send no voice.
+// "alloy" is the historical default so audio continuity is preserved.
+const FALLBACK_PERSONA: ExaminerPersona = { name: "Sarah", voice: "alloy" };
 
 // V2: After identity check, transition to Part 1
 const EXAMINER_PART1_START = "Thank you. Now, in the first part, I'd like to ask you some questions about yourself.";
@@ -297,6 +286,14 @@ export default function IeltsConversationV2({
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [turns, setTurns] = useState<TaggedTurn[]>([]);
   const [cueCard, setCueCard] = useState<IeltsCueCard | null>(null);
+  // Examiner persona from backend. Ref mirrors it so playTTS (memoized) picks up
+  // the latest voice without being re-created on every persona change.
+  const [, setExaminerPersona] = useState<ExaminerPersona>(FALLBACK_PERSONA);
+  const personaRef = useRef<ExaminerPersona>(FALLBACK_PERSONA);
+  const setPersona = useCallback((p: ExaminerPersona) => {
+    personaRef.current = p;
+    setExaminerPersona(p);
+  }, []);
   const [userTurnCount, setUserTurnCount] = useState(0);
   const [inputText, setInputText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -304,6 +301,11 @@ export default function IeltsConversationV2({
   const [scores, setScores] = useState<EndSessionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [part2Nudge, setPart2Nudge] = useState<string | null>(null);
+  // Scoring (/end) retry tracking — used by the "scoring_failed" phase UI.
+  // After MAX_SCORING_RETRIES attempts we surface a permanent-failure message
+  // rather than keep spinning the user in a loop.
+  const [scoringRetryCount, setScoringRetryCount] = useState(0);
+  const MAX_SCORING_RETRIES = 2;
 
   // V2: Diagnostic data + retry state
   const [diagnosticData, setDiagnosticData] = useState<IeltsDiagnosticData | null>(null);
@@ -312,9 +314,15 @@ export default function IeltsConversationV2({
   const [savedCueCardIndex, setSavedCueCardIndex] = useState<number | undefined>(undefined);
 
   // V2: Part 1 interruption timer
+  // Threshold is populated per question from the backend response
+  // (result.part1AnswerTimeoutMs). A random fallback covers sessions talking
+  // to an older backend that doesn't send the field yet.
+  const PART1_TIMEOUT_FALLBACK_MS = () => 25000 + Math.floor(Math.random() * 10001);
   const part1SpeechStartRef = useRef<number | null>(null);
   const part1InterruptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const part1InterruptThreshold = useRef(25 + Math.random() * 10); // 25-35s, randomized per session
+  const part1ThresholdMsRef = useRef<number>(PART1_TIMEOUT_FALLBACK_MS());
+  // Tick state for the visible countdown. null when the timer is not active.
+  const [part1RemainingSec, setPart1RemainingSec] = useState<number | null>(null);
 
   // Part 2 timer
   const [timerSeconds, setTimerSeconds] = useState(0);
@@ -330,69 +338,55 @@ export default function IeltsConversationV2({
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const micEnabledRef = useRef(true);
 
-  // Speech timing tracker
-  const speechTiming = useSpeechTiming();
+  // Upload pipeline state — shown while audio is being shipped to R2 and
+  // the server is transcribing via Whisper. Distinct from isProcessing so the
+  // UI can communicate WHICH step is in flight.
+  const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "transcribing">("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const lastPendingBlobRef = useRef<Blob | null>(null);
 
-  // Part 2 pause detection
-  const [part2SilenceNudge, setPart2SilenceNudge] = useState<string | null>(null);
+  // Part 2 pause handling: legacy guard from the Web-Speech era (which
+  // auto-stopped the mic on silence). MediaRecorder doesn't auto-stop, but
+  // we keep the timer as a safety net — if the recorder somehow ends up
+  // idle during part2_speak it silently re-arms itself. No UI nudge —
+  // real examiners stay silent while the candidate pauses.
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const consecutiveShortSegmentsRef = useRef(0);
 
-  // Voice input — with timing hooks
-  const voice = useVoiceInput(
-    useCallback((transcript: string) => {
-      // Track timing when transcript arrives
-      speechTiming.onRecordingEnd(transcript);
+  // Part 2 notepad: free-form jottings the candidate makes during the 60s prep.
+  // Editable during part2_prep, read-only during part2_speak, unmounted elsewhere.
+  // Persisted to session_meta on the prep→speak transition turn.
+  const [part2Notes, setPart2Notes] = useState("");
+  const notepadRef = useRef<HTMLTextAreaElement>(null);
 
-      // Clear silence timer
-      if (silenceTimerRef.current) {
-        clearTimeout(silenceTimerRef.current);
-        silenceTimerRef.current = null;
-      }
-
-      // Track short segments for Part 2 fragmentation detection
-      const words = transcript.trim().split(/\s+/).filter(Boolean).length;
-      if (words < 5) {
-        consecutiveShortSegmentsRef.current += 1;
-      } else {
-        consecutiveShortSegmentsRef.current = 0;
-      }
-
-      setInputText((prev) => (prev ? prev + " " + transcript : transcript));
-    }, [speechTiming])
-  );
-
-  // ── Smart mic start: wraps voice.startRecording with timing tracking ──
-  const startMicWithTiming = useCallback(() => {
-    speechTiming.onRecordingStart();
-    voice.startRecording();
-
-    // Part 2 silence detection: if mic auto-stops and user doesn't restart within 4s
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-  }, [voice, speechTiming]);
-
-  // ── Part 2 silence detection: when voice auto-stops during speaking phase ──
+  // Autofocus the notepad when prep starts — candidate can begin typing
+  // immediately without clicking.
   useEffect(() => {
-    // Only active during Part 2 speaking, and only when NOT recording but timer is still going
-    if (phase !== "part2_speak" || voice.isRecording || !timerActive || isProcessing) return;
+    if (phase === "part2_prep" && notepadRef.current) {
+      notepadRef.current.focus();
+    }
+  }, [phase]);
 
-    // V2: Realistic silence protocol — 8 seconds of silence, no nudge.
-    // Real examiners don't prompt you. The silence is yours to fill.
+  // Cross-browser audio capture — MediaRecorder only. Replaces the old
+  // Web-Speech-API hook; transcription is now the backend's job.
+  const recorder = useAudioRecorder();
+
+  // ── Smart mic start: arms the recorder and clears any stale silence timer ──
+  const startMicWithTiming = useCallback(() => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    void recorder.start();
+  }, [recorder]);
+
+  // ── Part 2 mic auto-restart: safety net if the recorder goes idle during
+  // the 120s long turn — silently re-arms the mic so the candidate can
+  // keep going. No UI nudge — real examiners stay silent while the
+  // candidate pauses.
+  useEffect(() => {
+    if (phase !== "part2_speak" || recorder.isRecording || !timerActive || isProcessing) return;
+
     silenceTimerRef.current = setTimeout(() => {
-      // After 8s silence, if before 1:40, auto-end Part 2 with "Thank you"
-      if (timerSeconds > 20) {
-        // Still have significant time left — just restart mic silently
-        // No nudge text. The user feels the pressure of silence.
-        if (voice.isSupported) {
-          startMicWithTiming();
-        }
-      } else {
-        // Near the end — let timer handle it
-        if (voice.isSupported) {
-          startMicWithTiming();
-        }
-      }
-    }, 8000); // 8 seconds — doubled from V1's 4 seconds
+      if (recorder.isSupported) startMicWithTiming();
+    }, 8000);
 
     return () => {
       if (silenceTimerRef.current) {
@@ -400,46 +394,58 @@ export default function IeltsConversationV2({
         silenceTimerRef.current = null;
       }
     };
-  }, [phase, voice.isRecording, timerActive, isProcessing, voice.isSupported, startMicWithTiming]);
+  }, [phase, recorder.isRecording, timerActive, isProcessing, recorder.isSupported, startMicWithTiming]);
 
   // ── V2: Part 1 interruption timer — auto-submit after 25-35s of speaking ──
+  // Also drives the visible countdown the candidate sees while answering.
   useEffect(() => {
-    if (phase !== "part1" || !voice.isRecording || isProcessing || examinerSpeaking) {
-      // Clear interruption timer if conditions change
+    if (phase !== "part1" || !recorder.isRecording || isProcessing || examinerSpeaking) {
       if (part1InterruptTimerRef.current) {
         clearTimeout(part1InterruptTimerRef.current);
         part1InterruptTimerRef.current = null;
       }
       part1SpeechStartRef.current = null;
+      setPart1RemainingSec(null);
       return;
     }
 
-    // User started recording in Part 1 — set interruption timer
+    // User started recording in Part 1 — arm the interrupt.
     if (part1SpeechStartRef.current === null) {
       part1SpeechStartRef.current = Date.now();
     }
 
-    const thresholdMs = part1InterruptThreshold.current * 1000;
-    const elapsed = Date.now() - part1SpeechStartRef.current;
-    const remaining = Math.max(0, thresholdMs - elapsed);
+    const thresholdMs = part1ThresholdMsRef.current;
+    const startedAt = part1SpeechStartRef.current;
 
+    const computeRemaining = () =>
+      Math.max(0, Math.ceil((thresholdMs - (Date.now() - startedAt)) / 1000));
+
+    setPart1RemainingSec(computeRemaining());
+
+    // 1Hz display tick — updates the visible countdown without restarting
+    // the interrupt setTimeout.
+    const tickId = setInterval(() => {
+      setPart1RemainingSec(computeRemaining());
+    }, 1000);
+
+    // Hard deadline — examiner cuts in. Stops recording + uploads so the
+    // candidate's answer so far still counts. In the Web-Speech days this
+    // read inputText; with Whisper we commit whatever audio was captured.
     part1InterruptTimerRef.current = setTimeout(() => {
-      // Time's up — auto-submit the current input as if examiner interrupted
-      if (inputText.trim()) {
-        handleSend();
+      if (recorder.isRecording) {
+        void handleRecordingComplete();
       }
       part1SpeechStartRef.current = null;
-      // Randomize next threshold for variety
-      part1InterruptThreshold.current = 25 + Math.random() * 10;
-    }, remaining);
+    }, Math.max(0, thresholdMs - (Date.now() - startedAt)));
 
     return () => {
+      clearInterval(tickId);
       if (part1InterruptTimerRef.current) {
         clearTimeout(part1InterruptTimerRef.current);
         part1InterruptTimerRef.current = null;
       }
     };
-  }, [phase, voice.isRecording, isProcessing, examinerSpeaking]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase, recorder.isRecording, isProcessing, examinerSpeaking]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auto-scroll ──
   useEffect(() => {
@@ -497,13 +503,13 @@ export default function IeltsConversationV2({
     const enableMicAfter = () => {
       setExaminerSpeaking(false);
       micEnabledRef.current = true;
-      if (autoMic && voice.isSupported && !voice.isRecording) {
+      if (autoMic && recorder.isSupported && !recorder.isRecording) {
         setTimeout(() => startMicWithTiming(), 300);
       }
     };
 
     try {
-      const blob = await synthesizeSpeech(text);
+      const blob = await synthesizeSpeech(text, personaRef.current.voice);
       if (blob && blob.size > 0) {
         const url = URL.createObjectURL(blob);
         const audio = new Audio(url);
@@ -533,7 +539,7 @@ export default function IeltsConversationV2({
     } catch {
       enableMicAfter();
     }
-  }, [voice, startMicWithTiming, stopCurrentAudio]);
+  }, [recorder, startMicWithTiming, stopCurrentAudio]);
 
   // ─── Session Init ───────────────────────────────────────────────────────
 
@@ -555,12 +561,18 @@ export default function IeltsConversationV2({
         const result = await startScenarioSession(scenario.id);
         if (cancelled) return;
 
+        // Backend is the source of truth for greeting + persona — just render.
+        const persona = result.examinerPersona ?? FALLBACK_PERSONA;
+        setPersona(persona);
+
+        const openingContent = result.turns[0]?.content ?? "";
+
         // V2: Scripted greeting includes identity check — NOT scored
         const greetingTurn: TaggedTurn = {
           id: "greeting-0",
           turnIndex: -1,
           role: "assistant",
-          content: EXAMINER_GREETING,
+          content: openingContent,
           audioStorageKey: null,
           scores: null,
           feedback: null,
@@ -586,7 +598,7 @@ export default function IeltsConversationV2({
 
         // Play the greeting (includes name request)
         if (!cancelled) {
-          await playTTS(EXAMINER_GREETING, true); // auto-mic for name response
+          await playTTS(openingContent, true); // auto-mic for name response
         }
       } catch (err: unknown) {
         if (cancelled) return;
@@ -603,6 +615,8 @@ export default function IeltsConversationV2({
 
   const handleEndSession = useCallback(async (sid: string) => {
     setPhase("ending");
+    setPart2Notes("");
+    setErrorMsg(null);
     try {
       const durationMs = Date.now() - startTimeRef.current;
       const [result] = await Promise.all([
@@ -616,16 +630,24 @@ export default function IeltsConversationV2({
       const diag = buildDiagnosticData(endResult, previousAttempt);
       setDiagnosticData(diag);
 
-      onComplete?.();
-    } catch {
-      setScores({ ...SAFE_SCORES });
-      // V2: Still build diagnostic from safe scores
-      const diag = buildDiagnosticData({ ...SAFE_SCORES }, previousAttempt);
-      setDiagnosticData(diag);
-    } finally {
+      setScoringRetryCount(0);
       setPhase("summary");
+      onComplete?.();
+    } catch (err) {
+      // Do NOT render fake Band 2.0 + 0-turn diagnostic — that misleads the
+      // user into thinking their real performance scored that low. Route to
+      // the dedicated scoring_failed phase with a retry button instead.
+      console.error("[ielts-ui] scoring failed:", err);
+      setErrorMsg(err instanceof Error ? err.message : "Scoring failed.");
+      setPhase("scoring_failed");
     }
   }, [onComplete, previousAttempt]);
+
+  const handleRetryScoring = useCallback(async () => {
+    if (!sessionId) return;
+    setScoringRetryCount((n) => n + 1);
+    await handleEndSession(sessionId);
+  }, [sessionId, handleEndSession]);
 
   // ─── Submit Turn ────────────────────────────────────────────────────────
 
@@ -634,7 +656,7 @@ export default function IeltsConversationV2({
     const name = inputText.trim();
     if (!sessionId || !name || isProcessing) return;
 
-    if (voice.isRecording) voice.stopRecording();
+    if (recorder.isRecording) recorder.cancel();
     stopCurrentAudio();
     setExaminerSpeaking(false);
 
@@ -655,7 +677,7 @@ export default function IeltsConversationV2({
 
     try {
       // Submit to backend to advance: opening → part1_transition
-      const result = await submitScenarioTurn(sessionId, name);
+      const result = await submitScenarioTurn(sessionId, { content: name });
 
       if (result.ieltsState?.phase === "part1_transition") {
         // Play our scripted Part 1 introduction
@@ -675,7 +697,7 @@ export default function IeltsConversationV2({
 
         // Now advance to first real Part 1 question
         setIsProcessing(false);
-        const q1Result = await submitScenarioTurn(sessionId, "[READY FOR PART 1]");
+        const q1Result = await submitScenarioTurn(sessionId, { content: "[READY FOR PART 1]" });
         if (q1Result.ieltsState) {
           const q1Turn: TaggedTurn = {
             id: `ai-${q1Result.aiTurn.turnIndex}`,
@@ -688,6 +710,11 @@ export default function IeltsConversationV2({
           };
           setTurns((prev) => [...prev, q1Turn]);
           setPhase("part1");
+          if (q1Result.part1AnswerTimeoutMs) {
+            part1ThresholdMsRef.current = q1Result.part1AnswerTimeoutMs;
+          } else {
+            part1ThresholdMsRef.current = PART1_TIMEOUT_FALLBACK_MS();
+          }
           await new Promise((r) => setTimeout(r, 500));
           playTTS(q1Result.aiTurn.content, true);
         }
@@ -697,36 +724,39 @@ export default function IeltsConversationV2({
     } finally {
       setIsProcessing(false);
     }
-  }, [sessionId, inputText, isProcessing, voice, playTTS]);
+  }, [sessionId, inputText, isProcessing, recorder, playTTS]);
 
-  const handleSend = useCallback(async () => {
-    const content = inputText.trim();
-    if (!sessionId || !content || isProcessing) return;
+  const handleSend = useCallback(async (audioStorageKey?: string) => {
+    // Either we submit typed text (inputText), or we submit a recorded
+    // audio turn that was already uploaded to R2 (audioStorageKey). The
+    // state-machine logic after the submit is identical either way.
+    const useAudio = typeof audioStorageKey === "string" && audioStorageKey.length > 0;
+    const content = useAudio ? "[Transcribing…]" : inputText.trim();
+    if (!sessionId || isProcessing) return;
+    if (!useAudio && !content) return;
 
-    // Identity phase has its own handler
-    if (phase === "identity") {
+    // Identity phase has its own handler (text-only path)
+    if (phase === "identity" && !useAudio) {
       handleIdentitySubmit();
       return;
     }
 
-    // During Part 2 speaking, redirect to handlePart2End
-    if (phase === "part2_speak") {
+    // During Part 2 speaking, redirect to handlePart2End (which owns the
+    // min-duration check). Audio submissions for Part 2 go through that path.
+    if (phase === "part2_speak" && !useAudio) {
       handlePart2End();
       return;
     }
 
-    // Stop recording + any current TTS
-    if (voice.isRecording) voice.stopRecording();
+    // Stop any non-submitted recording + any current TTS
+    if (!useAudio && recorder.isRecording) recorder.cancel();
     stopCurrentAudio();
     setExaminerSpeaking(false);
 
-    // Finalize speech timing for this turn
-    const metrics = speechTiming.finalizeTurn();
-
-    setInputText("");
+    if (!useAudio) setInputText("");
     setIsProcessing(true);
 
-    // Optimistic user turn
+    // Optimistic user turn — replaced once server responds with the real one.
     const tempId = `temp-${Date.now()}`;
     const turnPart = (currentPart as 1 | 2 | 3);
     const optimistic: TaggedTurn = {
@@ -743,7 +773,10 @@ export default function IeltsConversationV2({
     setTurns((prev) => [...prev, optimistic]);
 
     try {
-      const result = await submitScenarioTurn(sessionId, content, metrics);
+      const submission = useAudio
+        ? { storageKey: audioStorageKey as string }
+        : { content };
+      const result = await submitScenarioTurn(sessionId, submission);
 
       const userTurn: TaggedTurn = {
         id: `user-${result.userTurn.turnIndex}`,
@@ -778,6 +811,13 @@ export default function IeltsConversationV2({
       const newUserCount = userTurnCount + 1;
       setUserTurnCount(newUserCount);
 
+      // Arm the next Part 1 answer-timeout from the backend response. Only
+      // populated when the examiner's reply IS a Part 1 question — so this
+      // naturally no-ops on Part 2/3 and on transitions.
+      if (result.part1AnswerTimeoutMs) {
+        part1ThresholdMsRef.current = result.part1AnswerTimeoutMs;
+      }
+
       // ── State machine transitions (driven by backend ieltsState) ──
       const state = result.ieltsState;
 
@@ -790,7 +830,7 @@ export default function IeltsConversationV2({
           await playTTS(result.aiTurn.content, false);
           await new Promise((r) => setTimeout(r, 1200));
           setIsProcessing(false);
-          const q1Result = await submitScenarioTurn(sessionId, "[READY FOR PART 1]");
+          const q1Result = await submitScenarioTurn(sessionId, { content: "[READY FOR PART 1]" });
           if (q1Result.ieltsState) {
             const q1Turn: TaggedTurn = {
               id: `ai-${q1Result.aiTurn.turnIndex}`,
@@ -803,6 +843,9 @@ export default function IeltsConversationV2({
             };
             setTurns((prev) => [...prev, q1Turn]);
             setPhase("part1");
+            if (q1Result.part1AnswerTimeoutMs) {
+              part1ThresholdMsRef.current = q1Result.part1AnswerTimeoutMs;
+            }
             await new Promise((r) => setTimeout(r, 500));
             playTTS(q1Result.aiTurn.content, true);
           }
@@ -814,7 +857,7 @@ export default function IeltsConversationV2({
           await new Promise((r) => setTimeout(r, 2000));
           // Auto-advance to cue_card
           setIsProcessing(false);
-          const cueResult = await submitScenarioTurn(sessionId, "[READY FOR PART 2]");
+          const cueResult = await submitScenarioTurn(sessionId, { content: "[READY FOR PART 2]" });
           if (cueResult.ieltsState?.phase === "cue_card") {
             if (cueResult.ieltsState.cueCard) setCueCard(cueResult.ieltsState.cueCard);
             // Show the cue card UI first — BUT DO NOT start timer yet
@@ -854,7 +897,7 @@ export default function IeltsConversationV2({
           setTimerExpired(false);
           setTimerSeconds(SPEAK_SECONDS);
           setTimerActive(true);
-          if (voice.isSupported && !voice.isRecording) {
+          if (recorder.isSupported && !recorder.isRecording) {
             setTimeout(() => startMicWithTiming(), 300);
           }
 
@@ -865,7 +908,7 @@ export default function IeltsConversationV2({
           await new Promise((r) => setTimeout(r, 1500));
           // Auto-advance to first Part 3 question
           setIsProcessing(false);
-          const p3Result = await submitScenarioTurn(sessionId, "[READY FOR PART 3]");
+          const p3Result = await submitScenarioTurn(sessionId, { content: "[READY FOR PART 3]" });
           if (p3Result.ieltsState) {
             const aiT: TaggedTurn = {
               id: `ai-${p3Result.aiTurn.turnIndex}`,
@@ -904,7 +947,120 @@ export default function IeltsConversationV2({
       setIsProcessing(false);
       inputRef.current?.focus();
     }
-  }, [sessionId, inputText, isProcessing, turns, userTurnCount, voice, playTTS, handleEndSession, speechTiming, phase, handleIdentitySubmit, stopCurrentAudio]);
+  }, [sessionId, inputText, isProcessing, turns, userTurnCount, recorder, playTTS, handleEndSession, phase, handleIdentitySubmit, stopCurrentAudio]);
+
+  // ── Audio submission pipeline ────────────────────────────────────────────
+  //
+  //   record → stop (get blob) → request presigned URL → PUT to R2 →
+  //   POST /turns with { storageKey } via handleSend(storageKey)
+  //
+  // Backend does Whisper transcription inside the /turns handler. Retries:
+  //   - upload-url + R2 PUT   : 2 attempts, 1s backoff
+  //   - (the /turns call itself is retried inside handleSend's wrapper below)
+  //
+  // On unrecoverable failure we surface `uploadError`. The last recorded blob
+  // is held in `lastPendingBlobRef` so a manual "retry" button can re-run
+  // the pipeline against the same audio.
+  const uploadBlobToStorage = useCallback(async (sid: string, blob: Blob): Promise<string> => {
+    // Get presigned URL — 2 attempts.
+    let storageKey = "";
+    let uploadUrl = "";
+    let lastErr: unknown = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const presigned = await getScenarioAudioUploadUrl(sid, "audio/webm");
+        storageKey = presigned.storageKey;
+        uploadUrl = presigned.uploadUrl;
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    if (!uploadUrl) throw lastErr ?? new Error("Could not obtain upload URL");
+
+    // PUT to R2 — 2 attempts.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await putAudioToStorage(uploadUrl, blob);
+        return storageKey;
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    throw lastErr ?? new Error("R2 upload failed");
+  }, []);
+
+  const handleRecordingComplete = useCallback(async () => {
+    if (!sessionId || isProcessing || uploadPhase !== "idle") return;
+
+    // Stop recording and wait for the final blob.
+    const blob = recorder.isRecording ? await recorder.stop() : recorder.audioBlob;
+    if (!blob || blob.size === 0) {
+      setUploadError("No audio captured. Please try recording again.");
+      return;
+    }
+
+    lastPendingBlobRef.current = blob;
+    setUploadError(null);
+    setUploadPhase("uploading");
+
+    let storageKey: string;
+    try {
+      storageKey = await uploadBlobToStorage(sessionId, blob);
+    } catch (err) {
+      setUploadPhase("idle");
+      setUploadError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      return;
+    }
+
+    setUploadPhase("transcribing");
+    try {
+      // handleSend accepts the storageKey and drives the full state-machine
+      // flow that a typed submission would.
+      await handleSend(storageKey);
+      lastPendingBlobRef.current = null;
+      setUploadError(null);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Transcription failed. Please try again.");
+    } finally {
+      setUploadPhase("idle");
+    }
+  }, [sessionId, isProcessing, uploadPhase, recorder, uploadBlobToStorage, handleSend]);
+
+  const handleRetryUpload = useCallback(async () => {
+    const blob = lastPendingBlobRef.current;
+    if (!blob || !sessionId || isProcessing) return;
+    setUploadError(null);
+    setUploadPhase("uploading");
+    let storageKey: string;
+    try {
+      storageKey = await uploadBlobToStorage(sessionId, blob);
+    } catch (err) {
+      setUploadPhase("idle");
+      setUploadError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      return;
+    }
+    setUploadPhase("transcribing");
+    try {
+      await handleSend(storageKey);
+      lastPendingBlobRef.current = null;
+      setUploadError(null);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Transcription failed. Please try again.");
+    } finally {
+      setUploadPhase("idle");
+    }
+  }, [sessionId, isProcessing, uploadBlobToStorage, handleSend]);
+
+  const handleMicToggle = useCallback(() => {
+    if (recorder.isRecording) {
+      void handleRecordingComplete();
+    } else {
+      startMicWithTiming();
+    }
+  }, [recorder.isRecording, handleRecordingComplete, startMicWithTiming]);
 
   // ── Key handler ──
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -918,48 +1074,65 @@ export default function IeltsConversationV2({
 
   const part2EndByTimerRef = useRef(false);
   const handlePart2End = useCallback(async () => {
-    if (!sessionId || isProcessing) return;
+    if (!sessionId || isProcessing || uploadPhase !== "idle") return;
 
-    if (voice.isRecording) voice.stopRecording();
-
-    const content = inputText.trim() || "[Speaking completed]";
-    const wordCount = content.split(/\s+/).filter(Boolean).length;
-    const speakingDurationMs = speechTiming.getCurrentSpeakingDurationMs();
-
-    // Enforce minimum speaking: word count AND duration check
     const isTimerExpiry = part2EndByTimerRef.current;
     part2EndByTimerRef.current = false;
 
-    if (!isTimerExpiry && content !== "[Speaking completed]") {
-      const tooFewWords = wordCount < 30;
-      const tooShortDuration = speakingDurationMs < 30000; // < 30 seconds of actual speaking
+    // Stop recording first so we have an accurate blob + duration for the
+    // min-duration check below. `stop()` resolves with the final webm blob.
+    const recordedBlob = recorder.isRecording
+      ? await recorder.stop()
+      : recorder.audioBlob;
+    const speakingDurationMs = recorder.durationMs;
 
-      if (tooFewWords || tooShortDuration) {
-        const reason = tooFewWords && tooShortDuration
-          ? "You still have time. In the real IELTS test, you should speak for at least one minute. Try to continue."
-          : tooShortDuration
-          ? "You've been speaking for less than 30 seconds. Try to develop your ideas more."
-          : "You still have time. Try to expand on your points.";
-        setPart2Nudge(reason);
-        if (voice.isSupported) {
-          setTimeout(() => startMicWithTiming(), 300);
-        }
-        return;
+    // Minimum-duration nudge — 30s real speaking. Word count can't be
+    // checked pre-transcription (Whisper runs server-side), so we rely on
+    // duration alone. Skip on timer expiry (timer already ran the full 2 min).
+    if (!isTimerExpiry && recordedBlob && speakingDurationMs > 0 && speakingDurationMs < 30000) {
+      setPart2Nudge("You've been speaking for less than 30 seconds. Try to develop your ideas more.");
+      if (recorder.isSupported) {
+        setTimeout(() => startMicWithTiming(), 300);
       }
+      return;
     }
 
-    // Finalize speech timing for Part 2
-    const metrics = speechTiming.finalizeTurn();
     consecutiveShortSegmentsRef.current = 0;
-
     setPart2Nudge(null);
-    setPart2SilenceNudge(null);
+    // Part 2 speak is ending — notes have already been persisted on the
+    // prep→speak transition, so drop them from local state now that we are
+    // leaving Part 2. Defensive: guards against stale notes if the user later
+    // retries inline or hits a back-button flow.
+    setPart2Notes("");
     setTimerActive(false);
     setInputText("");
+
+    // Figure out what to submit: if we captured audio, upload + send
+    // storageKey; otherwise fall back to the text placeholder (user never
+    // recorded anything).
+    let submission: { content: string } | { storageKey: string };
+    if (recordedBlob && recordedBlob.size > 0) {
+      lastPendingBlobRef.current = recordedBlob;
+      setUploadError(null);
+      setUploadPhase("uploading");
+      try {
+        const storageKey = await uploadBlobToStorage(sessionId, recordedBlob);
+        submission = { storageKey };
+        setUploadPhase("transcribing");
+      } catch (err) {
+        setUploadPhase("idle");
+        setUploadError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+        return;
+      }
+    } else {
+      submission = { content: "[Speaking completed]" };
+    }
+    const content = "storageKey" in submission ? "[Transcribing…]" : submission.content;
+
     setIsProcessing(true);
 
     try {
-      const result = await submitScenarioTurn(sessionId, content, metrics);
+      const result = await submitScenarioTurn(sessionId, submission);
 
       const userTurn: TaggedTurn = {
         id: `user-${result.userTurn.turnIndex}`,
@@ -994,7 +1167,7 @@ export default function IeltsConversationV2({
         if (state.phase === "long_turn") {
           // Backend was still at cue_card when we submitted — re-submit to advance
           setIsProcessing(false);
-          const retry = await submitScenarioTurn(sessionId, "[Speaking completed]");
+          const retry = await submitScenarioTurn(sessionId, { content: "[Speaking completed]" });
           if (retry.ieltsState?.phase === "transition_to_part3") {
             // Direct to Part 3 (no follow-up)
             setPhase("part3");
@@ -1003,7 +1176,7 @@ export default function IeltsConversationV2({
             await playTTS(retry.aiTurn.content, false);
             await new Promise((r) => setTimeout(r, 1500));
             setIsProcessing(false);
-            const p3Result = await submitScenarioTurn(sessionId, "[READY FOR PART 3]");
+            const p3Result = await submitScenarioTurn(sessionId, { content: "[READY FOR PART 3]" });
             if (p3Result.ieltsState) {
               const p3Turn: TaggedTurn = {
                 id: `ai-${p3Result.aiTurn.turnIndex}`,
@@ -1023,7 +1196,7 @@ export default function IeltsConversationV2({
           await playTTS(result.aiTurn.content, false);
           await new Promise((r) => setTimeout(r, 2000));
           setIsProcessing(false);
-          const p3Result = await submitScenarioTurn(sessionId, "[READY FOR PART 3]");
+          const p3Result = await submitScenarioTurn(sessionId, { content: "[READY FOR PART 3]" });
           if (p3Result.ieltsState) {
             const p3Turn: TaggedTurn = {
               id: `ai-${p3Result.aiTurn.turnIndex}`,
@@ -1046,8 +1219,9 @@ export default function IeltsConversationV2({
       }
     } catch (err) { console.error("[ielts-ui] handlePart2End error:", err); } finally {
       setIsProcessing(false);
+      setUploadPhase("idle");
     }
-  }, [sessionId, isProcessing, inputText, voice, playTTS, speechTiming, startMicWithTiming]);
+  }, [sessionId, isProcessing, uploadPhase, inputText, recorder, playTTS, startMicWithTiming, uploadBlobToStorage]);
 
   const prepSkipFiredRef = useRef(false);
   const handlePrepSkip = useCallback(async () => {
@@ -1055,9 +1229,16 @@ export default function IeltsConversationV2({
     prepSkipFiredRef.current = true;
     setTimerActive(false);
 
-    // Advance backend from cue_card → long_turn
+    // Advance backend from cue_card → long_turn, and persist the candidate's
+    // prep notes into session_meta.part2Notes on this same transition turn.
+    // Empty string is intentional — it signals "candidate entered prep but
+    // wrote nothing" to any future history UI.
     try {
-      const result = await submitScenarioTurn(sessionId, "[PREP TIME COMPLETE — I AM READY TO SPEAK]");
+      const result = await submitScenarioTurn(
+        sessionId,
+        { content: "[PREP TIME COMPLETE — I AM READY TO SPEAK]" },
+        { part2Notes },
+      );
 
       // Add the examiner's announcement as a turn so it appears in transcript
       if (result.aiTurn) {
@@ -1089,10 +1270,10 @@ export default function IeltsConversationV2({
     setTimerActive(true);
 
     // Start mic with timing after a brief pause (TTS has already finished via await)
-    if (voice.isSupported) {
+    if (recorder.isSupported) {
       setTimeout(() => startMicWithTiming(), 300);
     }
-  }, [sessionId, voice, playTTS, startMicWithTiming]);
+  }, [sessionId, recorder, playTTS, startMicWithTiming, part2Notes]);
 
   // ── Timer expiry handlers ──
   // CRITICAL: Use timerExpired flag, NOT timerSeconds === 0.
@@ -1217,6 +1398,8 @@ export default function IeltsConversationV2({
         setPhase("error");
         return;
       }
+      // Fresh session — wipe any Part 2 notes left from the previous attempt.
+      setPart2Notes("");
       try {
         await new Promise((r) => setTimeout(r, 2000));
         if (cancelled) return;
@@ -1227,11 +1410,18 @@ export default function IeltsConversationV2({
         });
         if (cancelled) return;
 
+        // On retry the backend picks a fresh persona + greeting — we do not carry
+        // the old ones over. User may see a different examiner, which is intended.
+        const persona = result.examinerPersona ?? FALLBACK_PERSONA;
+        setPersona(persona);
+
+        const openingContent = result.turns[0]?.content ?? "";
+
         const greetingTurn: TaggedTurn = {
           id: "greeting-retry",
           turnIndex: -1,
           role: "assistant",
-          content: EXAMINER_GREETING,
+          content: openingContent,
           audioStorageKey: null,
           scores: null,
           feedback: null,
@@ -1245,7 +1435,7 @@ export default function IeltsConversationV2({
         setPhase("identity");
 
         if (!cancelled) {
-          await playTTS(EXAMINER_GREETING, true);
+          await playTTS(openingContent, true);
         }
       } catch (err: unknown) {
         if (cancelled) return;
@@ -1436,6 +1626,61 @@ export default function IeltsConversationV2({
           </div>
         )}
 
+        {/* ═══ SCORING FAILED — retry UI (replaces the fake Band 2.0 fallback) ═══ */}
+        {phase === "scoring_failed" && (
+          <div className="min-h-full flex flex-col items-center justify-center gap-6 px-4 animate-fadeIn">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            {scoringRetryCount >= MAX_SCORING_RETRIES ? (
+              <>
+                <div className="text-center max-w-[320px]">
+                  <p className="font-bold text-lg" style={{ color: 'var(--ielts-text)' }}>Something went wrong</p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--ielts-text-muted)' }}>
+                    Your session data is saved. Please contact support so we can generate your score manually.
+                  </p>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="ielts-btn-ghost px-6 py-2 rounded-xl text-sm"
+                >
+                  Close
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="text-center max-w-[320px]">
+                  <p className="font-bold text-lg" style={{ color: 'var(--ielts-text)' }}>Scoring failed</p>
+                  <p className="text-sm mt-2" style={{ color: 'var(--ielts-text-muted)' }}>
+                    Your answers are safely stored. Please try again — the AI sometimes takes a moment to catch up on long sessions.
+                  </p>
+                  {errorMsg && (
+                    <p className="text-xs mt-3 italic" style={{ color: 'var(--ielts-text-faint)' }}>{errorMsg}</p>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleRetryScoring}
+                    className="ielts-btn-primary px-6 py-2 rounded-xl text-sm font-semibold"
+                  >
+                    Try again{scoringRetryCount > 0 ? ` (${scoringRetryCount}/${MAX_SCORING_RETRIES})` : ""}
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="ielts-btn-ghost px-6 py-2 rounded-xl text-sm"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {/* ── Two-column layout for interactive phases ── */}
         <div className="max-w-[1400px] mx-auto px-4 py-6 flex gap-6 lg:gap-8">
           {/* Desktop sidebar */}
@@ -1494,6 +1739,18 @@ export default function IeltsConversationV2({
                 </ul>
               </div>
 
+              {/* Notepad — lined paper for prep jottings */}
+              <textarea
+                ref={notepadRef}
+                className="ielts-notepad"
+                value={part2Notes}
+                onChange={(e) => setPart2Notes(e.target.value)}
+                placeholder="You may make some notes here. (Optional)"
+                spellCheck={false}
+                autoCorrect="off"
+                aria-label="Part 2 preparation notes"
+              />
+
               {/* Timer + controls */}
               <div className="flex flex-col items-center gap-5">
                 <div className={`ielts-timer ${timerUrgent ? "ielts-timer-urgent" : ""}`}>
@@ -1525,6 +1782,18 @@ export default function IeltsConversationV2({
                 <span className="text-sm ml-2" style={{ color: 'var(--ielts-text-secondary)' }}>{cueCard.topic}</span>
               </div>
 
+              {/* Notepad — read-only during the long turn so the candidate can
+                  glance at their prep notes while speaking. Only render if
+                  they actually wrote something; otherwise it is just clutter. */}
+              {part2Notes.trim().length > 0 && (
+                <textarea
+                  className="ielts-notepad"
+                  value={part2Notes}
+                  readOnly
+                  aria-label="Part 2 preparation notes (read-only)"
+                />
+              )}
+
               {/* Timer */}
               <div className="flex flex-col items-center gap-5">
                 <div className={`ielts-timer ${timerUrgent ? "ielts-timer-urgent" : ""}`}>
@@ -1534,15 +1803,15 @@ export default function IeltsConversationV2({
 
                 {/* Central mic orb */}
                 <div className="relative">
-                  {voice.isRecording && (
+                  {recorder.isRecording && (
                     <div className="absolute -inset-4 rounded-full ielts-mic-pulse" />
                   )}
                   <button
-                    onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
-                    disabled={isProcessing || !voice.isSupported}
-                    className={`ielts-mic-btn ${voice.isRecording ? "ielts-mic-active" : ""}`}
+                    onClick={handleMicToggle}
+                    disabled={isProcessing || !recorder.isSupported || uploadPhase !== "idle"}
+                    className={`ielts-mic-btn ${recorder.isRecording ? "ielts-mic-active" : ""}`}
                   >
-                    {voice.isRecording ? (
+                    {recorder.isRecording ? (
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                     ) : (
                       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1554,15 +1823,15 @@ export default function IeltsConversationV2({
                   </button>
                 </div>
 
-                {/* Live transcript */}
-                {voice.isRecording && voice.interimTranscript && (
-                  <div className="ielts-live-transcript">
-                    {voice.interimTranscript}
-                  </div>
+                {/* Upload / transcribe status. Whisper doesn't stream like Web
+                    Speech did, so there's no interim transcript — we show the
+                    pipeline phase instead so the user knows something is happening. */}
+                {uploadPhase === "uploading" && (
+                  <div className="ielts-live-transcript">Uploading…</div>
                 )}
-
-                {/* V2: No silence nudge — realistic examiner silence protocol.
-                    The absence of UI feedback IS the feature. */}
+                {uploadPhase === "transcribing" && (
+                  <div className="ielts-live-transcript">Processing…</div>
+                )}
 
                 {/* Nudge message when user tries to end too early */}
                 {part2Nudge && (
@@ -1646,6 +1915,12 @@ export default function IeltsConversationV2({
                 </div>
               )}
 
+              {/* Part 1 answer countdown is INVISIBLE by design — the
+                  underlying timer (part1ThresholdMsRef + the 1Hz tick and
+                  the auto-advance setTimeout) still runs so the examiner
+                  interrupts at 25-35s, but the real exam doesn't show a
+                  countdown to the candidate, so we don't either. */}
+
               {/* Last user answer */}
               {latestUserMsg && qaPairs.length > 0 && (
                 <div className="ielts-user-answer animate-answerIn">
@@ -1664,26 +1939,47 @@ export default function IeltsConversationV2({
       {showInput && (
         <div className="shrink-0 ielts-input-bar">
           <div className="max-w-2xl mx-auto px-4 py-3">
-            {/* Voice recording indicator */}
-            {voice.isRecording && (
+            {/* Recording indicator — no live transcript (Whisper doesn't stream). */}
+            {recorder.isRecording && (
               <div className="flex items-center gap-2 mb-2 animate-fadeIn">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-xs text-red-400 font-medium">Recording</span>
-                {voice.interimTranscript && (
-                  <span className="text-xs italic truncate flex-1" style={{ color: 'var(--ielts-text-muted)' }}>{voice.interimTranscript}</span>
-                )}
+              </div>
+            )}
+            {uploadPhase === "uploading" && (
+              <div className="flex items-center gap-2 mb-2 animate-fadeIn">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs text-amber-400 font-medium">Uploading…</span>
+              </div>
+            )}
+            {uploadPhase === "transcribing" && (
+              <div className="flex items-center gap-2 mb-2 animate-fadeIn">
+                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                <span className="text-xs text-teal-400 font-medium">Processing…</span>
+              </div>
+            )}
+            {uploadError && (
+              <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30 animate-fadeIn">
+                <span className="text-xs text-red-400 flex-1">{uploadError}</span>
+                <button
+                  onClick={handleRetryUpload}
+                  disabled={uploadPhase !== "idle" || !lastPendingBlobRef.current}
+                  className="text-xs font-semibold text-red-200 underline disabled:opacity-50"
+                >
+                  Retry
+                </button>
               </div>
             )}
 
             <div className="flex items-end gap-2">
               {/* Mic button */}
-              {voice.isSupported && (
+              {recorder.isSupported && (
                 <button
-                  onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
-                  disabled={isProcessing || examinerSpeaking}
-                  className={`ielts-mic-btn-sm ${voice.isRecording ? "ielts-mic-active" : ""}`}
+                  onClick={handleMicToggle}
+                  disabled={isProcessing || examinerSpeaking || uploadPhase !== "idle"}
+                  className={`ielts-mic-btn-sm ${recorder.isRecording ? "ielts-mic-active" : ""}`}
                 >
-                  {voice.isRecording ? (
+                  {recorder.isRecording ? (
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
                   ) : (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1709,7 +2005,7 @@ export default function IeltsConversationV2({
 
               {/* Send button */}
               <button
-                onClick={handleSend}
+                onClick={() => handleSend()}
                 disabled={!inputText.trim() || isProcessing || examinerSpeaking}
                 className="ielts-send-btn"
               >
@@ -1719,9 +2015,9 @@ export default function IeltsConversationV2({
               </button>
             </div>
 
-            {!voice.isSupported && (
+            {!recorder.isSupported && (
               <p className="text-xs mt-2 px-3 py-1.5 rounded text-center" style={{ color: 'var(--ielts-text-faint)', backgroundColor: 'rgba(255,255,255,0.05)' }}>
-                Voice input is not available in this browser. Use Chrome or Edge for the best experience, or type your answers below.
+                Your browser doesn&apos;t support audio recording. Please use Chrome, Safari, Firefox, or Edge latest version, or type your answers below.
               </p>
             )}
           </div>

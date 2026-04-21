@@ -7,6 +7,8 @@
  */
 
 const scenarioService = require("../services/scenarioService");
+const mediaService = require("../services/mediaService");
+const scenarioRepository = require("../repositories/scenarioRepository");
 const { sendSuccess, sendError } = require("../response");
 
 // UUID v4 pattern
@@ -79,7 +81,9 @@ async function startSession(req, res, next) {
 
     // V2: Optional cueCardIndex for retry-same-topic
     const cueCardIndex = req.body.cueCardIndex != null ? Number(req.body.cueCardIndex) : undefined;
-    const result = await scenarioService.startSession(scenarioId, userId, { cueCardIndex });
+    // Optional IANA timezone — service normalizes invalid values to the VN default.
+    const timezone = typeof req.body.timezone === "string" ? req.body.timezone : undefined;
+    const result = await scenarioService.startSession(scenarioId, userId, { cueCardIndex, timezone });
 
     return sendSuccess(res, {
       data: result,
@@ -105,13 +109,26 @@ async function submitTurn(req, res, next) {
   try {
     const { sessionId } = req.params;
     const userId = req.user.id;
-    const { content, speechMetrics } = req.body;
+    const { content, speechMetrics, part2Notes, storageKey } = req.body;
 
     if (!UUID_RE.test(sessionId)) {
       return sendError(res, { status: 400, message: "Valid sessionId (UUID) is required" });
     }
-    if (!content || typeof content !== "string" || !content.trim()) {
-      return sendError(res, { status: 400, message: "content is required" });
+    // Accept EITHER text content (legacy / identity check / placeholders) OR
+    // an R2 storageKey that the backend will transcribe via Whisper.
+    const hasText = typeof content === "string" && content.trim().length > 0;
+    const hasKey = typeof storageKey === "string" && storageKey.length > 0;
+    if (!hasText && !hasKey) {
+      return sendError(res, { status: 400, message: "content or storageKey is required" });
+    }
+    // Guard against obvious storageKey tampering. Our mediaService mints keys
+    // under `scenarios/:userId/:sessionId/` — enforce the prefix so one user
+    // can't point the transcription path at another user's audio.
+    if (hasKey) {
+      const expectedPrefix = `scenarios/${userId}/${sessionId}/`;
+      if (!storageKey.startsWith(expectedPrefix)) {
+        return sendError(res, { status: 403, message: "Invalid storageKey for this session" });
+      }
     }
 
     // Validate speechMetrics if provided (optional — frontend may not send it)
@@ -119,9 +136,24 @@ async function submitTurn(req, res, next) {
       ? speechMetrics
       : null;
 
+    // Optional Part 2 prep notes. Frontend sends this only on the prep→speak
+    // transition turn. Capped at 10k chars as a sanity bound (textarea is for
+    // short jottings, not essays). Notes are persisted verbatim to session_meta
+    // — they never reach the scoring prompt.
+    const notes = typeof part2Notes === "string" ? part2Notes.slice(0, 10000) : undefined;
+
     // V2: Pass experimental flag from query param
     const experimental = req.query.experimental === "true";
-    const result = await scenarioService.submitTurn(sessionId, userId, content.trim(), validMetrics, { experimental });
+    // If the client sent a storageKey, `content` is a placeholder — service
+    // overwrites it with the Whisper transcript. Otherwise use submitted text.
+    const initialContent = hasText ? content.trim() : "";
+    const result = await scenarioService.submitTurn(
+      sessionId,
+      userId,
+      initialContent,
+      validMetrics,
+      { experimental, part2Notes: notes, storageKey: hasKey ? storageKey : undefined },
+    );
 
     return sendSuccess(res, {
       data: result,
@@ -241,8 +273,13 @@ async function synthesizeSpeech(req, res, next) {
       return sendError(res, { status: 400, message: "text is required (max 2000 chars)" });
     }
 
-    console.log(`[tts] chars: ${text.length}`);
-    const audioBuffer = await tts.synthesize(text, { voice });
+    // Invalid/missing voice falls back to "alloy" — never 400, so TTS stays robust
+    // when older clients (or clients with stale sessions) omit the field.
+    const { normalizeVoice } = require("../domain/ielts/examinerPersona");
+    const safeVoice = normalizeVoice(voice);
+
+    console.log(`[tts] chars: ${text.length} | voice: ${safeVoice}`);
+    const audioBuffer = await tts.synthesize(text, { voice: safeVoice });
     console.log(`[tts] bytes: ${audioBuffer.length}`);
     console.log(`[tts] status: OK`);
     res.set("Content-Type", "audio/mpeg");
@@ -250,6 +287,53 @@ async function synthesizeSpeech(req, res, next) {
     return res.send(audioBuffer);
   } catch (err) {
     console.log(`[tts] status: FAILED — ${err.message}`);
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/scenarios/sessions/:sessionId/audio/upload-url
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate a pre-signed R2 upload URL for a scenario/IELTS audio turn.
+ * The browser PUTs the webm blob to the returned URL, then calls
+ * POST /sessions/:sessionId/turns with the storageKey.
+ *
+ * Response: { uploadUrl: string, storageKey: string, expiresIn: number }
+ */
+async function getAudioUploadUrl(req, res, next) {
+  try {
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    if (!UUID_RE.test(sessionId)) {
+      return sendError(res, { status: 400, message: "Valid sessionId (UUID) is required" });
+    }
+
+    // Session ownership check — don't let user A mint upload URLs against
+    // user B's session. Mirrors the guard in submitTurn / endSession.
+    const session = await scenarioRepository.findSessionById(sessionId);
+    if (!session) {
+      return sendError(res, { status: 404, message: "Session not found" });
+    }
+    if (session.user_id !== userId) {
+      return sendError(res, { status: 403, message: "Not authorized to access this session" });
+    }
+    if (session.status !== "active") {
+      return sendError(res, { status: 400, message: "Session is no longer active" });
+    }
+
+    const { contentType } = req.body || {};
+    const safeContentType = contentType === "audio/webm" ? contentType : "audio/webm";
+
+    const result = await mediaService.getScenarioAudioUploadUrl(userId, sessionId, safeContentType);
+
+    return sendSuccess(res, {
+      data: result,
+      message: "Upload URL generated",
+    });
+  } catch (err) {
     next(err);
   }
 }
@@ -262,5 +346,6 @@ module.exports = {
   endSession,
   getSession,
   getUserSessions,
+  getAudioUploadUrl,
   synthesizeSpeech,
 };

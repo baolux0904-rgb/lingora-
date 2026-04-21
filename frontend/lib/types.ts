@@ -190,6 +190,11 @@ export interface ConversationTurn {
   createdAt: string;
 }
 
+export interface ExaminerPersona {
+  name: string;
+  voice: string;
+}
+
 export interface StartSessionResult {
   sessionId: string;
   title: string;
@@ -197,6 +202,7 @@ export interface StartSessionResult {
   category: string;
   cueCard?: IeltsCueCard;
   cueCardIndex?: number;
+  examinerPersona?: ExaminerPersona;
   turns: ConversationTurn[];
 }
 
@@ -212,6 +218,9 @@ export interface SubmitTurnResult {
   userTurn: ConversationTurn;
   aiTurn: ConversationTurn;
   ieltsState?: IeltsState;
+  /** Part 1 only: ms the candidate has to answer before the examiner cuts in.
+   *  Populated only when the returned aiTurn IS a Part 1 question. */
+  part1AnswerTimeoutMs?: number;
 }
 
 export interface TurnFeedback {
@@ -244,6 +253,14 @@ export interface FeedbackCard {
   example: string;
 }
 
+export interface SpeakingBandRanges {
+  fluency:       BandRange;
+  vocabulary:    BandRange;
+  grammar:       BandRange;
+  pronunciation: BandRange;
+  overall:       BandRange;
+}
+
 export interface EndSessionResult {
   overallScore: number;
   fluency: number;
@@ -251,6 +268,11 @@ export interface EndSessionResult {
   grammar: number;
   pronunciation: number;
   bandScore?: number | null;
+  /** Per-criterion + overall band ranges for the diagnostic report. Backend
+   *  is the single source of truth — never derive these on the client. */
+  bandRanges?: SpeakingBandRanges | null;
+  /** Avg-of-4 criteria (0–100) used as the input for `bandRanges.overall`. */
+  diagnosticOverall100?: number | null;
   criteriaFeedback?: CriteriaFeedback | null;
   coachFeedback: string;
   turnFeedback: TurnFeedback[];

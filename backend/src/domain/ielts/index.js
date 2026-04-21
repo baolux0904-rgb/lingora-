@@ -13,4 +13,6 @@ module.exports = {
   ...require('./exam-ux'),
   ...require('./rubrics'),
   ...require('./postProcessor'),
+  ...require('./examinerPersona'),
+  ...require('./speechMetrics'),
 };

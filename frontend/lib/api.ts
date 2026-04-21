@@ -731,24 +731,28 @@ export async function startScenarioSession(
 ): Promise<StartSessionResult> {
   const body: Record<string, unknown> = {};
   if (options?.cueCardIndex != null) body.cueCardIndex = options.cueCardIndex;
+  // Send the user's IANA timezone so backend can pick the correct greeting
+  // ("Good morning/afternoon/evening") for their local time. Falls back server-side.
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tz) body.timezone = tz;
+  } catch { /* older browsers — backend falls back to Asia/Ho_Chi_Minh */ }
   return apiPostAuth<StartSessionResult>(`/scenarios/${scenarioId}/start`, body);
 }
 
 /** POST /api/v1/scenarios/sessions/:sessionId/turns — submit a user message. */
+/**
+ * POST /api/v1/scenarios/sessions/:sessionId/turns — submit a user message.
+ *
+ * Accepts EITHER:
+ *   - `content`: text turn (keyboard input or placeholders),
+ *   - OR `storageKey`: a prior R2 upload; backend transcribes via Whisper.
+ */
 export async function submitScenarioTurn(
   sessionId: string,
-  content: string,
-  speechMetrics?: {
-    totalDurationMs: number;
-    wordsPerMinute: number;
-    pauseCount: number;
-    longestPauseMs: number;
-    segmentCount: number;
-    speakingRatio: number;
-  } | null,
+  submission: { content: string } | { storageKey: string },
 ): Promise<SubmitTurnResult> {
-  const body: Record<string, unknown> = { content };
-  if (speechMetrics) body.speechMetrics = speechMetrics;
+  const body: Record<string, unknown> = { ...submission };
   return apiPostAuth<SubmitTurnResult>(`/scenarios/sessions/${sessionId}/turns`, body);
 }
 
@@ -764,25 +768,49 @@ export async function endScenarioSession(
 // V2 Experimental API wrappers — append ?experimental=true to endpoints
 // ---------------------------------------------------------------------------
 
-/** V2: Submit turn with experimental examiner behavior. */
+/** V2: Submit turn with experimental examiner behavior.
+ *
+ * Accepts EITHER:
+ *   - `content`: a text turn (identity check, placeholders like "[READY FOR PART 1]"),
+ *   - OR `storageKey`: a prior R2 upload; backend transcribes via Whisper.
+ *
+ * Exactly one of the two must be non-empty. `speechMetrics` is legacy — with
+ * the Whisper flow, the backend computes metrics from Whisper segments.
+ */
 export async function submitScenarioTurnV2(
   sessionId: string,
-  content: string,
-  speechMetrics?: {
-    totalDurationMs: number;
-    wordsPerMinute: number;
-    pauseCount: number;
-    longestPauseMs: number;
-    segmentCount: number;
-    speakingRatio: number;
-  } | null,
+  submission: { content: string } | { storageKey: string },
+  extras?: { part2Notes?: string },
 ): Promise<SubmitTurnResult> {
-  const body: Record<string, unknown> = { content };
-  if (speechMetrics) body.speechMetrics = speechMetrics;
+  const body: Record<string, unknown> = { ...submission };
+  if (extras && typeof extras.part2Notes === "string") body.part2Notes = extras.part2Notes;
   return apiPostAuth<SubmitTurnResult>(
     `/scenarios/sessions/${sessionId}/turns?experimental=true`,
     body
   );
+}
+
+/** POST /scenarios/sessions/:id/audio/upload-url — pre-signed R2 PUT URL. */
+export async function getScenarioAudioUploadUrl(
+  sessionId: string,
+  contentType: string = "audio/webm",
+): Promise<{ uploadUrl: string; storageKey: string; expiresIn: number }> {
+  return apiPostAuth(`/scenarios/sessions/${sessionId}/audio/upload-url`, { contentType });
+}
+
+/**
+ * Upload an audio blob to a pre-signed R2 URL. Simple PUT with Content-Type.
+ * Caller is responsible for retry; see uploadAudioWithRetry for the wrapper.
+ */
+export async function putAudioToStorage(uploadUrl: string, blob: Blob): Promise<void> {
+  const res = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "Content-Type": blob.type || "audio/webm" },
+    body: blob,
+  });
+  if (!res.ok) {
+    throw new Error(`R2 upload failed (${res.status})`);
+  }
 }
 
 /** V2: End session with enhanced scoring (Vietnamese L1 detection). */
@@ -818,7 +846,8 @@ export async function getScenarioHistory(): Promise<SessionDetail[]> {
  * keeps working even if the access token expires mid-IELTS exam (the exam
  * can run 14+ minutes against a 15-minute token).
  */
-export async function synthesizeSpeech(text: string): Promise<Blob | null> {
+export async function synthesizeSpeech(text: string, voice?: string): Promise<Blob | null> {
+  const body = voice ? { text, voice } : { text };
   const makeReq = (token: string | null) =>
     fetch(`${BASE_URL}/scenarios/tts`, {
       method: "POST",
@@ -827,7 +856,7 @@ export async function synthesizeSpeech(text: string): Promise<Blob | null> {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       credentials: "include",
-      body: JSON.stringify({ text }),
+      body: JSON.stringify(body),
     });
 
   try {

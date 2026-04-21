@@ -24,6 +24,16 @@ router.get("/sessions", verifyToken, scenarioController.getUserSessions);
 // GET /api/v1/scenarios/sessions/:sessionId
 router.get("/sessions/:sessionId", verifyToken, scenarioController.getSession);
 
+// POST /api/v1/scenarios/sessions/:sessionId/audio/upload-url
+// Pre-signed R2 URL for uploading a recorded audio turn. Client PUTs the blob,
+// then calls POST /turns with the returned storageKey.
+router.post(
+  "/sessions/:sessionId/audio/upload-url",
+  verifyToken,
+  ...aiLimiters,
+  scenarioController.getAudioUploadUrl,
+);
+
 // POST /api/v1/scenarios/sessions/:sessionId/turns
 router.post("/sessions/:sessionId/turns", verifyToken, ...aiLimiters, scenarioController.submitTurn);
 
