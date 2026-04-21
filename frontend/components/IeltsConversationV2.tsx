@@ -345,9 +345,11 @@ export default function IeltsConversationV2({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const lastPendingBlobRef = useRef<Blob | null>(null);
 
-  // Part 2 pause handling: after the SpeechRecognition auto-stops on silence,
-  // we need to restart the mic so the candidate can keep going. No UI nudge —
-  // the silence is part of the exam (real examiners stay quiet).
+  // Part 2 pause handling: legacy guard from the Web-Speech era (which
+  // auto-stopped the mic on silence). MediaRecorder doesn't auto-stop, but
+  // we keep the timer as a safety net — if the recorder somehow ends up
+  // idle during part2_speak it silently re-arms itself. No UI nudge —
+  // real examiners stay silent while the candidate pauses.
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const consecutiveShortSegmentsRef = useRef(0);
 
@@ -375,9 +377,10 @@ export default function IeltsConversationV2({
     void recorder.start();
   }, [recorder]);
 
-  // ── Part 2 mic auto-restart: when SpeechRecognition auto-stops during the
-  // 120s long turn, silently re-arm the mic so the candidate can keep going.
-  // No UI nudge — real IELTS examiners stay silent while the candidate pauses.
+  // ── Part 2 mic auto-restart: safety net if the recorder goes idle during
+  // the 120s long turn — silently re-arms the mic so the candidate can
+  // keep going. No UI nudge — real examiners stay silent while the
+  // candidate pauses.
   useEffect(() => {
     if (phase !== "part2_speak" || recorder.isRecording || !timerActive || isProcessing) return;
 

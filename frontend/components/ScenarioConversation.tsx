@@ -6,6 +6,10 @@
  * AI role-play conversation for speaking practice scenarios.
  * Designed as a guided speaking session — AI partner + your responses,
  * not a generic chat app.
+ *
+ * Audio capture: MediaRecorder (cross-browser). Stop → upload to R2 via
+ * presigned URL → backend transcribes via Whisper and replies. Mirrors the
+ * IELTS Speaking flow. Web Speech API is no longer used.
  */
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -14,6 +18,8 @@ import {
   startScenarioSession,
   submitScenarioTurn,
   endScenarioSession,
+  getScenarioAudioUploadUrl,
+  putAudioToStorage,
 } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type {
@@ -23,7 +29,7 @@ import type {
 } from "@/lib/types";
 import ScenarioSummary from "./ScenarioSummary";
 import Button from "@/components/ui/Button";
-import { useVoiceInput } from "@/hooks/useVoiceInput";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import useSound from "@/hooks/useSound";
 
 interface ScenarioConversationProps {
@@ -68,15 +74,17 @@ export default function ScenarioConversation({
   const [summary, setSummary] = useState<EndSessionResult | null>(null);
   const [startTime] = useState(() => Date.now());
 
+  // Upload pipeline state — shown while audio is being shipped to R2 and
+  // the server is transcribing via Whisper.
+  const [uploadPhase, setUploadPhase] = useState<"idle" | "uploading" | "transcribing">("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const lastPendingBlobRef = useRef<Blob | null>(null);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Voice input — populates inputText, user sends manually
-  const voice = useVoiceInput(
-    useCallback((transcript: string) => {
-      setInputText((prev) => (prev ? prev + " " + transcript : transcript));
-    }, [])
-  );
+  // Cross-browser audio capture — MediaRecorder only.
+  const recorder = useAudioRecorder();
 
   // Auto-scroll
   useEffect(() => {
@@ -122,17 +130,19 @@ export default function ScenarioConversation({
     return () => { cancelled = true; };
   }, [scenario.id]);
 
-  // Submit a user message
-  const handleSend = useCallback(async () => {
-    if (!sessionId || !inputText.trim() || sending) return;
+  // Submit a user message. Accepts EITHER typed text (from `inputText`) or
+  // a pre-uploaded audio turn (`audioStorageKey`). The post-submit flow is
+  // identical; backend resolves the transcript if given a storageKey.
+  const handleSend = useCallback(async (audioStorageKey?: string) => {
+    if (!sessionId || sending) return;
+    const useAudio = typeof audioStorageKey === "string" && audioStorageKey.length > 0;
+    const message = useAudio ? "[Transcribing…]" : inputText.trim();
+    if (!useAudio && !message) return;
 
-    // Stop recording if active
-    if (voice.isRecording) {
-      voice.stopRecording();
-    }
+    // Stop any stale recorder session when submitting typed text.
+    if (!useAudio && recorder.isRecording) recorder.cancel();
 
-    const message = inputText.trim();
-    setInputText("");
+    if (!useAudio) setInputText("");
     setSending(true);
 
     const tempUserTurn: ConversationTurn = {
@@ -148,7 +158,10 @@ export default function ScenarioConversation({
     setTurns((prev) => [...prev, tempUserTurn]);
 
     try {
-      const result = await submitScenarioTurn(sessionId, message);
+      const submission = useAudio
+        ? { storageKey: audioStorageKey as string }
+        : { content: message };
+      const result = await submitScenarioTurn(sessionId, submission);
       setTurns((prev) => {
         const withoutTemp = prev.filter((t) => t.id !== tempUserTurn.id);
         return [
@@ -180,11 +193,12 @@ export default function ScenarioConversation({
       const msg = err instanceof Error ? err.message : "Message didn't go through — try sending again";
       setError(msg);
       setTurns((prev) => prev.filter((t) => t.id !== tempUserTurn.id));
+      throw err;
     } finally {
       setSending(false);
-      inputRef.current?.focus();
+      if (!useAudio) inputRef.current?.focus();
     }
-  }, [sessionId, inputText, sending, turns.length, voice]);
+  }, [sessionId, inputText, sending, turns.length, recorder, play]);
 
   // End conversation and get scores
   const handleEndConversation = useCallback(async () => {
@@ -207,9 +221,116 @@ export default function ScenarioConversation({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   };
+
+  // ── Audio submission pipeline ────────────────────────────────────────────
+  //
+  //   record → stop (get blob) → request presigned URL → PUT to R2 →
+  //   POST /turns with { storageKey } via handleSend(storageKey)
+  //
+  // Retry policy: presigned-URL fetch + R2 PUT each get 2 attempts with 1s
+  // backoff. The /turns submit is wrapped inside handleSend (no retry loop
+  // here — a failed submit surfaces `error` via the catch in handleSend).
+  const uploadBlobToStorage = useCallback(async (sid: string, blob: Blob): Promise<string> => {
+    let storageKey = "";
+    let uploadUrl = "";
+    let lastErr: unknown = null;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const presigned = await getScenarioAudioUploadUrl(sid, "audio/webm");
+        storageKey = presigned.storageKey;
+        uploadUrl = presigned.uploadUrl;
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    if (!uploadUrl) throw lastErr ?? new Error("Could not obtain upload URL");
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await putAudioToStorage(uploadUrl, blob);
+        return storageKey;
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) await new Promise((r) => setTimeout(r, 1000));
+      }
+    }
+    throw lastErr ?? new Error("R2 upload failed");
+  }, []);
+
+  const handleRecordingComplete = useCallback(async () => {
+    if (!sessionId || sending || uploadPhase !== "idle") return;
+
+    const blob = recorder.isRecording ? await recorder.stop() : recorder.audioBlob;
+    if (!blob || blob.size === 0) {
+      setUploadError("No audio captured. Please try recording again.");
+      return;
+    }
+
+    lastPendingBlobRef.current = blob;
+    setUploadError(null);
+    setUploadPhase("uploading");
+
+    let storageKey: string;
+    try {
+      storageKey = await uploadBlobToStorage(sessionId, blob);
+    } catch (err) {
+      setUploadPhase("idle");
+      setUploadError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      return;
+    }
+
+    setUploadPhase("transcribing");
+    try {
+      await handleSend(storageKey);
+      lastPendingBlobRef.current = null;
+      setUploadError(null);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Transcription failed. Please try again.");
+    } finally {
+      setUploadPhase("idle");
+    }
+  }, [sessionId, sending, uploadPhase, recorder, uploadBlobToStorage, handleSend]);
+
+  const handleRetryUpload = useCallback(async () => {
+    const blob = lastPendingBlobRef.current;
+    if (!blob || !sessionId || sending) return;
+    setUploadError(null);
+    setUploadPhase("uploading");
+
+    let storageKey: string;
+    try {
+      storageKey = await uploadBlobToStorage(sessionId, blob);
+    } catch (err) {
+      setUploadPhase("idle");
+      setUploadError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+      return;
+    }
+
+    setUploadPhase("transcribing");
+    try {
+      await handleSend(storageKey);
+      lastPendingBlobRef.current = null;
+      setUploadError(null);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Transcription failed. Please try again.");
+    } finally {
+      setUploadPhase("idle");
+    }
+  }, [sessionId, sending, uploadBlobToStorage, handleSend]);
+
+  const handleMicToggle = useCallback(() => {
+    if (recorder.isRecording) {
+      void handleRecordingComplete();
+    } else {
+      void recorder.start();
+    }
+  }, [recorder, handleRecordingComplete]);
 
   const userTurnCount = turns.filter((t) => t.role === "user").length;
 
@@ -362,34 +483,60 @@ export default function ScenarioConversation({
               </div>
             )}
 
-            {/* Live transcript */}
-            {voice.isRecording && voice.interimTranscript && (
+            {/* Upload/transcribe status (Whisper doesn't stream — show the
+                pipeline phase instead of a live transcript). */}
+            {uploadPhase === "uploading" && (
               <div
-                className="mb-2 px-3 py-2 rounded-xl text-sm italic"
-                style={{ background: "var(--color-primary-soft)", color: "var(--color-text)" }}
+                className="mb-2 px-3 py-2 rounded-xl text-sm flex items-center gap-2"
+                style={{ background: "var(--color-primary-soft)", color: "var(--color-text-secondary)" }}
               >
-                {voice.interimTranscript}
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--color-warning)" }} />
+                Uploading…
+              </div>
+            )}
+            {uploadPhase === "transcribing" && (
+              <div
+                className="mb-2 px-3 py-2 rounded-xl text-sm flex items-center gap-2"
+                style={{ background: "var(--color-primary-soft)", color: "var(--color-text-secondary)" }}
+              >
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--color-primary)" }} />
+                Processing…
+              </div>
+            )}
+            {uploadError && (
+              <div
+                className="mb-2 px-3 py-2 rounded-xl text-sm flex items-center gap-2"
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "var(--color-warning)" }}
+              >
+                <span className="flex-1">{uploadError}</span>
+                <button
+                  onClick={handleRetryUpload}
+                  disabled={uploadPhase !== "idle" || !lastPendingBlobRef.current}
+                  className="font-semibold underline disabled:opacity-50"
+                >
+                  Retry
+                </button>
               </div>
             )}
 
             <div className="flex items-end gap-2">
               {/* Mic button */}
-              {voice.isSupported && (
+              {recorder.isSupported && (
                 <div className="relative flex items-center justify-center">
-                  {voice.isRecording && (
+                  {recorder.isRecording && (
                     <div className="absolute inset-0 rounded-xl animate-recording-pulse" style={{ background: "rgba(239,68,68,0.15)" }} />
                   )}
                   <button
-                    onClick={voice.isRecording ? voice.stopRecording : voice.startRecording}
-                    disabled={sending}
-                    title={voice.isRecording ? "Stop recording" : "Speak"}
+                    onClick={handleMicToggle}
+                    disabled={sending || uploadPhase !== "idle"}
+                    title={recorder.isRecording ? "Stop recording" : "Speak"}
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition disabled:opacity-40"
                     style={{
-                      background: voice.isRecording ? "linear-gradient(135deg, #ef4444, #dc2626)" : "var(--color-primary-soft)",
-                      color: voice.isRecording ? "#fff" : "var(--color-primary)",
+                      background: recorder.isRecording ? "linear-gradient(135deg, #ef4444, #dc2626)" : "var(--color-primary-soft)",
+                      color: recorder.isRecording ? "#fff" : "var(--color-primary)",
                     }}
                   >
-                    {voice.isRecording ? (
+                    {recorder.isRecording ? (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="3" /></svg>
                     ) : (
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -416,8 +563,8 @@ export default function ScenarioConversation({
               />
 
               <button
-                onClick={handleSend}
-                disabled={!inputText.trim() || sending}
+                onClick={() => handleSend()}
+                disabled={!inputText.trim() || sending || uploadPhase !== "idle"}
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition duration-normal disabled:opacity-30"
                 style={{
                   background: inputText.trim() && !sending ? "var(--color-primary)" : "var(--color-border)",
@@ -430,9 +577,9 @@ export default function ScenarioConversation({
               </button>
             </div>
 
-            {!voice.isSupported && (
+            {!recorder.isSupported && (
               <p className="text-xs mt-2 px-3 py-1.5 rounded text-center" style={{ color: "var(--color-text-secondary)", backgroundColor: "var(--color-primary-soft)" }}>
-                Voice input is not available in this browser. Use Chrome or Edge for the best experience, or type your answers below.
+                Your browser doesn&apos;t support audio recording. Please use Chrome, Safari, Firefox, or Edge latest version, or type your answers below.
               </p>
             )}
           </div>

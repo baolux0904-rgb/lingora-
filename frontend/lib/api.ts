@@ -741,20 +741,18 @@ export async function startScenarioSession(
 }
 
 /** POST /api/v1/scenarios/sessions/:sessionId/turns — submit a user message. */
+/**
+ * POST /api/v1/scenarios/sessions/:sessionId/turns — submit a user message.
+ *
+ * Accepts EITHER:
+ *   - `content`: text turn (keyboard input or placeholders),
+ *   - OR `storageKey`: a prior R2 upload; backend transcribes via Whisper.
+ */
 export async function submitScenarioTurn(
   sessionId: string,
-  content: string,
-  speechMetrics?: {
-    totalDurationMs: number;
-    wordsPerMinute: number;
-    pauseCount: number;
-    longestPauseMs: number;
-    segmentCount: number;
-    speakingRatio: number;
-  } | null,
+  submission: { content: string } | { storageKey: string },
 ): Promise<SubmitTurnResult> {
-  const body: Record<string, unknown> = { content };
-  if (speechMetrics) body.speechMetrics = speechMetrics;
+  const body: Record<string, unknown> = { ...submission };
   return apiPostAuth<SubmitTurnResult>(`/scenarios/sessions/${sessionId}/turns`, body);
 }
 
