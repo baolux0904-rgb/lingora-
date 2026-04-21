@@ -10,6 +10,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getReadingPassage, submitReadingPractice } from "@/lib/api";
 import type { ReadingPassageFull, ReadingPracticeResult } from "@/lib/types";
+import YnngQuestion from "./questions/YnngQuestion";
+import MatchingHeadingsQuestion from "./questions/MatchingHeadingsQuestion";
+import SentenceCompletionQuestion from "./questions/SentenceCompletionQuestion";
+import SummaryCompletionQuestion from "./questions/SummaryCompletionQuestion";
 
 interface ReadingScreenProps {
   passageId: string;
@@ -37,7 +41,7 @@ function McqQuestion({ q, answer, onAnswer }: { q: ReadingPassageFull["questions
             style={{ background: answer === key ? "#00A896" : "var(--color-border)", color: answer === key ? "#fff" : "var(--color-text-secondary)" }}>
             {key}
           </span>
-          {text}
+          {String(text)}
         </button>
       ))}
     </div>
@@ -97,7 +101,7 @@ function MatchingQuestion({ q, answer, onAnswer }: { q: ReadingPassageFull["ques
               >
                 {key}
               </span>
-              <span className="flex-1 line-clamp-2">{text}</span>
+              <span className="flex-1 line-clamp-2">{String(text)}</span>
             </button>
           );
         })}
@@ -310,7 +314,11 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
           <p className="text-sm font-medium mb-3" style={{ color: "var(--color-text)" }}>{q.question_text}</p>
           {q.type === "mcq" && <McqQuestion q={q} answer={answers[q.order_index] || ""} onAnswer={(a) => handleAnswer(q.order_index, a)} />}
           {q.type === "tfng" && <TfngQuestion answer={answers[q.order_index] || ""} onAnswer={(a) => handleAnswer(q.order_index, a)} />}
+          {q.type === "ynng" && <YnngQuestion answer={answers[q.order_index] || ""} onAnswer={(a) => handleAnswer(q.order_index, a)} />}
           {q.type === "matching" && <MatchingQuestion q={q} answer={answers[q.order_index] || ""} onAnswer={(a) => handleAnswer(q.order_index, a)} />}
+          {q.type === "matching_headings" && <MatchingHeadingsQuestion options={q.options} answer={answers[q.order_index] || ""} onAnswer={(a) => handleAnswer(q.order_index, a)} />}
+          {q.type === "sentence_completion" && <SentenceCompletionQuestion options={q.options} answer={answers[q.order_index] || ""} onAnswer={(a) => handleAnswer(q.order_index, a)} />}
+          {q.type === "summary_completion" && <SummaryCompletionQuestion options={q.options} answer={answers[q.order_index] || ""} onAnswer={(a) => handleAnswer(q.order_index, a)} />}
         </div>
       ))}
     </div>

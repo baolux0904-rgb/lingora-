@@ -793,6 +793,26 @@ export interface ReadingPassageSummary {
   passage_title: string;
 }
 
+export type ReadingQuestionType =
+  | 'mcq'
+  | 'tfng'
+  | 'matching'
+  | 'ynng'
+  | 'matching_headings'
+  | 'sentence_completion'
+  | 'summary_completion';
+
+export interface ReadingQuestion {
+  id: string;
+  order_index: number;
+  type: ReadingQuestionType;
+  question_text: string;
+  // Type-specific payload. Documented per-type in backend migration 0029 header.
+  // Frontend renderers type-narrow this per type branch.
+  options: Record<string, unknown> | null;
+  correct_answer: string;
+}
+
 export interface ReadingPassageFull {
   passage: {
     id: string;
@@ -802,14 +822,7 @@ export interface ReadingPassageFull {
     passage_title: string;
     passage_text: string;
   };
-  questions: Array<{
-    id: string;
-    order_index: number;
-    type: 'mcq' | 'tfng' | 'matching';
-    question_text: string;
-    options: Record<string, string> | null;
-    correct_answer: string;
-  }>;
+  questions: ReadingQuestion[];
 }
 
 export interface ReadingQuestionResult {
