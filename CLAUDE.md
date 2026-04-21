@@ -2,7 +2,7 @@
 
 ## 1. Project Identity
 
-**Lingona** is an IELTS preparation platform for Vietnamese learners aged 18–25, built solo by **Louis Nguyen**. Target launch: **2026-07-09**. Pro pricing: **179,000₫/month** or **1,199,000₫/year** (20% student discount, 3-day trial).
+**Lingona** is an IELTS preparation platform for Vietnamese learners aged 18–25, built solo by **Louis Nguyen**. Target launch: **2026-07-09**. Pro pricing: **179.000₫/tháng**, **499.000₫/3 tháng**, **929.000₫/6 tháng**, or **1.490.000₫/năm** (best value, save ~31%). 3-day free trial.
 
 **Product philosophy:** Simulate the **real IELTS exam environment** (layout, colors, behavior), not just content. This is the moat vs Study4 (ugly dashboard) and DOL IELTS (no CBT fidelity).
 
@@ -20,6 +20,26 @@
 | Listening | **Not built** | Post-launch backlog |
 
 **Features outside the 4 skills:** Battle Arena (Reading MVP), XP, streaks, badges, leaderboard, social (friend chat, public profile), onboarding diagnostic, Pro upgrade flow (gating + payment pending).
+
+### Tiers
+
+**Free tier (everything a serious learner needs to start):**
+- Speaking AI: 1x/day
+- Writing AI: 1x/day
+- Grammar, Reading, Listening: unlimited
+- Battle Arena, Rank, Streak: full access
+- Study Rooms (social feature — keep viral loop in free tier)
+- AI Study Coach (rules-based "Today's Focus")
+- Friend Chat, Achievements, public profile
+
+**Pro tier:**
+- Unlimited Speaking AI
+- Unlimited Writing AI
+- Detailed Analytics (planned, post-launch)
+- Personal Roadmap (planned, post-launch)
+- Priority Support
+
+Do NOT gate Study Rooms or AI Study Coach behind Pro — they are free features. If any doc or code implies otherwise, this section wins.
 
 **Do NOT treat any skill marked "Active rework" as done.** The old doc said "Pronunciation ✅ Done" when it was still being reworked — that is how drift happens. If unsure, assume in-progress.
 
@@ -153,10 +173,10 @@ Every rule in Lingona falls into one of the categories below. When implementing 
 | Type | Answers | Lingona example |
 |---|---|---|
 | Validation | Is the input valid? | Essay ≥ 150 words before accepting Task 1; MoMo amount ∈ {179000, 1199000} |
-| Authorization | Is the user allowed? | Free user cannot enter Study Rooms; only post owner can delete their comment |
+| Authorization | Is the user allowed? | Free user past daily Speaking/Writing limit → 403 PRO_REQUIRED; only post owner can delete their comment |
 | Calculation | What's the computed value? | Band = avg of 4 skills, IELTS rounding rule; rank ±25/−18 per win/loss |
 | State transition | Is A → B valid? | Order: `pending → paid → completed`; no skipping, no rewinding |
-| Limit / Quota | Has a threshold been crossed? | 3 Speaking/day free; 1 pending order per user |
+| Limit / Quota | Has a threshold been crossed? | 1 Speaking/day free, 1 Writing/day free; 1 pending order per user |
 | Side effect | What else must happen when X occurs? | 7-day streak → badge + push notification + XP |
 
 ### Execution layer (WHERE)
