@@ -134,6 +134,8 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
   const [submitting, setSubmitting] = useState(false);
   const [mobileTab, setMobileTab] = useState<"passage" | "questions">("passage");
   const [showConfirm, setShowConfirm] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -144,10 +146,10 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
   }, [passageId]);
 
   useEffect(() => {
-    if (!data || loading) return;
+    if (!data || loading || paused) return;
     timerRef.current = setInterval(() => setElapsed((t) => t + 1), 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [data, loading]);
+  }, [data, loading, paused]);
 
   const handleAnswer = useCallback((orderIndex: number, answer: string) => {
     setAnswers((prev) => ({ ...prev, [orderIndex]: answer }));
@@ -209,9 +211,22 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
   const QuestionsPanel = () => (
     <div className="flex flex-col gap-5">
       <QuestionNav />
-      {/* Timer */}
-      <div className="text-center text-sm font-mono" style={{ color: elapsed > 300 ? "#F59E0B" : "var(--color-text-secondary)" }}>
-        {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}
+      {/* Timer + Pause */}
+      <div className="flex items-center justify-center gap-3">
+        <div className="text-sm font-mono" style={{ color: elapsed > 300 ? "#F59E0B" : "var(--color-text-secondary)" }}>
+          {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, "0")}
+        </div>
+        <button
+          onClick={() => (paused ? setPaused(false) : setShowPauseModal(true))}
+          className="text-xs px-2.5 py-1 rounded-md font-medium transition-all"
+          style={{
+            background: paused ? "rgba(0,168,150,0.12)" : "var(--color-bg-secondary)",
+            color: paused ? "#00A896" : "var(--color-text-secondary)",
+            border: `1px solid ${paused ? "rgba(0,168,150,0.3)" : "var(--color-border)"}`,
+          }}
+        >
+          {paused ? "Tiếp tục" : "Tạm dừng"}
+        </button>
       </div>
       {/* Questions */}
       {questions.map((q) => (
@@ -314,6 +329,37 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
   // Confirm modal
   // ---------------------------------------------------------------------------
 
+  const PauseModal = () => (
+    <div className="fixed inset-0 z-sheet flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
+      <div className="w-full max-w-sm rounded-xl p-5 text-center" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+        <div className="text-base font-semibold mb-2" style={{ color: "var(--color-text)" }}>Tạm dừng luyện tập?</div>
+        <div className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+          Đây chỉ là luyện tập. Nếu bận thì dừng lại, xong quay lại tiếp tục nhé.
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => setShowPauseModal(false)} className="flex-1 py-2.5 rounded-lg text-sm font-medium" style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}>
+            Tiếp tục làm
+          </button>
+          <button onClick={() => { setShowPauseModal(false); setPaused(true); }} className="flex-1 py-2.5 rounded-lg text-sm font-semibold" style={{ background: "#00A896", color: "#fff" }}>
+            Tạm dừng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const PauseOverlay = () => (
+    <div className="absolute inset-0 z-overlay flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)" }}>
+      <div className="text-center rounded-xl px-6 py-5" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
+        <div className="text-base font-semibold mb-1" style={{ color: "var(--color-text)" }}>Đã tạm dừng</div>
+        <div className="text-xs mb-4" style={{ color: "var(--color-text-secondary)" }}>Sẵn sàng thì bấm tiếp tục nhé.</div>
+        <button onClick={() => setPaused(false)} className="px-5 py-2 rounded-lg text-sm font-semibold" style={{ background: "#00A896", color: "#fff" }}>
+          Tiếp tục
+        </button>
+      </div>
+    </div>
+  );
+
   const ConfirmModal = () => (
     <div className="fixed inset-0 z-sheet flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.5)" }}>
       <div className="w-full max-w-sm rounded-xl p-5 text-center" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
@@ -364,7 +410,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
       </div>
 
       {/* Content — desktop split / mobile tabs */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Passage — always visible on desktop, conditional on mobile */}
         <div className={`${mobileTab === "passage" ? "block" : "hidden"} md:block md:w-[55%] overflow-y-auto p-5`}>
           <PassagePanel />
@@ -377,11 +423,13 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
         <div className={`${mobileTab === "questions" ? "block" : "hidden"} md:block md:w-[45%] overflow-y-auto p-5`}>
           <QuestionsPanel />
         </div>
+
+        {paused && <PauseOverlay />}
       </div>
 
       {/* Submit bar */}
       <div className="px-4 py-3 shrink-0" style={{ background: "var(--color-bg-card)", borderTop: "1px solid var(--color-border)" }}>
-        <button onClick={() => setShowConfirm(true)} disabled={submitting}
+        <button onClick={() => setShowConfirm(true)} disabled={submitting || paused}
           className="w-full py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-50"
           style={{ background: allAnswered ? "#00A896" : "var(--color-bg-secondary)", color: allAnswered ? "#fff" : "var(--color-text-tertiary)" }}>
           {submitting ? "Đang nộp..." : allAnswered ? "Nộp bài" : `Trả lời tất cả (${answeredCount}/${questions.length})`}
@@ -389,6 +437,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose }: Readin
       </div>
 
       {showConfirm && <ConfirmModal />}
+      {showPauseModal && <PauseModal />}
     </div>
   );
 }
