@@ -17,6 +17,7 @@ import RemainingBadge from "@/components/Pro/RemainingBadge";
 import ProUpgradeModal from "@/components/Pro/ProUpgradeModal";
 import WritingResult from "./WritingResult";
 import WritingHistory from "./WritingHistory";
+import WritingTimerBar from "./WritingTimerBar";
 import type { WritingTaskType } from "@/lib/types";
 
 interface WritingTabProps {
@@ -32,12 +33,6 @@ const TIMER_SECONDS: Record<WritingTaskType, number> = { task1: 1200, task2: 240
 
 function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -192,19 +187,6 @@ export default function WritingTab({ onClose }: WritingTabProps) {
   }, []);
 
   // ---------------------------------------------------------------------------
-  // Timer display helpers
-  // ---------------------------------------------------------------------------
-
-  const timerColor =
-    timeLeft !== null && timeLeft < 60
-      ? "#EF4444"
-      : timeLeft !== null && timeLeft < 300
-        ? "#F59E0B"
-        : "var(--color-text-secondary)";
-
-  const timerBold = timeLeft !== null && timeLeft < 60;
-
-  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -243,28 +225,18 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           </div>
         </div>
 
-        {/* Timer + History button */}
+        {/* History button */}
         {phase === "editor" && (
-          <div className="flex items-center gap-2">
-            {timerStarted && timeLeft !== null && (
-              <span
-                className={`text-sm font-mono ${timerBold ? "font-semibold" : ""}`}
-                style={{ color: timerColor }}
-              >
-                {formatTime(timeLeft)}
-              </span>
-            )}
-            <button
-              onClick={() => setPhase("history")}
-              className="px-3 py-1.5 rounded-lg text-xs font-medium"
-              style={{
-                background: "var(--color-bg-secondary)",
-                color: "var(--color-text-secondary)",
-              }}
-            >
-              History
-            </button>
-          </div>
+          <button
+            onClick={() => setPhase("history")}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium"
+            style={{
+              background: "var(--color-bg-secondary)",
+              color: "var(--color-text-secondary)",
+            }}
+          >
+            History
+          </button>
         )}
         {(phase === "history" || phase === "result") && (
           <button
@@ -279,6 +251,14 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           </button>
         )}
       </div>
+
+      {/* Global Timer Bar — shown only during active editor session */}
+      {phase === "editor" && timerStarted && (
+        <WritingTimerBar
+          timerSeconds={timeLeft}
+          totalSeconds={TIMER_SECONDS[taskType]}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-4 py-4">
@@ -317,45 +297,24 @@ export default function WritingTab({ onClose }: WritingTabProps) {
               />
             )}
 
-            {/* Task Type Toggle + Timer */}
-            <div className="flex items-center gap-3">
-              <div
-                className="flex rounded-xl overflow-hidden flex-1"
-                style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
-              >
-                {(["task1", "task2"] as WritingTaskType[]).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => handleTaskSwitch(t)}
-                    className="flex-1 py-2.5 text-sm font-medium transition-all cursor-pointer"
-                    style={{
-                      background: taskType === t ? "var(--color-accent)" : "transparent",
-                      color: taskType === t ? "#fff" : "var(--color-text-secondary)",
-                    }}
-                  >
-                    {t === "task1" ? "Task 1 (20 min)" : "Task 2 (40 min)"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Prominent timer */}
-              {timerStarted && timeLeft !== null && (
-                <div
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl shrink-0"
+            {/* Task Type Toggle */}
+            <div
+              className="flex rounded-xl overflow-hidden"
+              style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
+            >
+              {(["task1", "task2"] as WritingTaskType[]).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => handleTaskSwitch(t)}
+                  className="flex-1 py-2.5 text-sm font-medium transition-all cursor-pointer"
                   style={{
-                    background: timeLeft < 60 ? "rgba(239,68,68,0.08)" : timeLeft < 300 ? "rgba(245,158,11,0.08)" : "var(--surface-primary)",
-                    border: `1px solid ${timeLeft < 60 ? "rgba(239,68,68,0.2)" : timeLeft < 300 ? "rgba(245,158,11,0.2)" : "var(--surface-border)"}`,
-                    boxShadow: "var(--surface-shadow)",
+                    background: taskType === t ? "var(--color-accent)" : "transparent",
+                    color: taskType === t ? "#fff" : "var(--color-text-secondary)",
                   }}
                 >
-                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: timerColor }}>
-                    <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  <span className={`text-sm font-mono ${timerBold ? "font-semibold" : "font-medium"}`} style={{ color: timerColor }}>
-                    {formatTime(timeLeft)}
-                  </span>
-                </div>
-              )}
+                  {t === "task1" ? "Task 1 (20 min)" : "Task 2 (40 min)"}
+                </button>
+              ))}
             </div>
 
             {/* Split view: prompt panel (left) + answer panel (right) */}
