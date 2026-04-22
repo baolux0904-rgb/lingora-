@@ -830,14 +830,38 @@ export interface ReadingPassageFull {
   questions: ReadingQuestion[];
 }
 
+export interface ReadingSubResult {
+  /**
+   * Sub-key identifier — exact field varies per type:
+   *   matching_*  → `key` (paragraph label / start id / item id)
+   *   completion / short_answer → `blank` (blank id)
+   * Renderers should fall back across the alternates.
+   */
+  key?: string;
+  blank?: string;
+  user: unknown;
+  correct?: unknown;
+  accepted?: unknown[];
+  is_correct: boolean;
+  /** Why the sub-result was rejected when applicable (e.g. exceeds_max_words). */
+  reason?: string;
+}
+
 export interface ReadingQuestionResult {
   question_id: string;
   order_index: number;
   type: string;
-  user_answer: string | null;
-  correct_answer: string;
+  user_answer: unknown;
+  correct_answer: unknown;
   is_correct: boolean;
   explanation: string | null;
+  /** Total possible points for this question (1 for simple types, N for complex). */
+  max?: number;
+  /** Earned points, 0..max. */
+  points?: number;
+  /** Per-sub-question detail rows for complex types. */
+  sub_results?: ReadingSubResult[];
+  unsupported_type?: boolean;
 }
 
 export interface ReadingPracticeResult {
