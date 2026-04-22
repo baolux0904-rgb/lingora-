@@ -32,6 +32,7 @@ import MatchingFeaturesQuestion from "./questions/MatchingFeaturesQuestion";
 import MatchingSentenceEndingsQuestion from "./questions/MatchingSentenceEndingsQuestion";
 import NoteTableDiagramCompletion from "./questions/NoteTableDiagramCompletion";
 import ShortAnswerQuestion from "./questions/ShortAnswerQuestion";
+import PassageAnnotator from "./PassageAnnotator";
 
 interface Props {
   testId: string;
@@ -329,12 +330,14 @@ function FullTestSplitView({
           <h3 className="text-lg font-display font-bold mb-4" style={{ color: "var(--color-text)" }}>
             {passage.passage.passage_title}
           </h3>
-          <div
-            className="text-[15px] leading-[1.8] whitespace-pre-wrap"
-            style={{ color: "var(--color-text)", fontFamily: 'Georgia, "Times New Roman", Times, serif' }}
-          >
-            {passage.passage.passage_text}
-          </div>
+          <PassageAnnotator passageKey={passage.passage.id}>
+            <div
+              className="text-[15px] leading-[1.8] whitespace-pre-wrap"
+              style={{ color: "var(--color-text)", fontFamily: 'Georgia, "Times New Roman", Times, serif' }}
+            >
+              {passage.passage.passage_text}
+            </div>
+          </PassageAnnotator>
         </div>
 
         <div className="hidden md:block w-px shrink-0" style={{ background: "var(--color-border)" }} />

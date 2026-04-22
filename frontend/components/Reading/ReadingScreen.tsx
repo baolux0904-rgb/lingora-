@@ -11,6 +11,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { getReadingPassage, submitReadingPractice } from "@/lib/api";
 import type { ReadingPassageFull, ReadingPracticeResult } from "@/lib/types";
 import MatchingQuestion from "./questions/MatchingQuestion";
+import PassageAnnotator from "./PassageAnnotator";
 import YnngQuestion from "./questions/YnngQuestion";
 import MatchingHeadingsQuestion from "./questions/MatchingHeadingsQuestion";
 import SentenceCompletionQuestion from "./questions/SentenceCompletionQuestion";
@@ -363,6 +364,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose, mode = "
         <h3 className="text-lg font-display font-bold mb-4" style={{ color: "var(--color-text)" }}>
           {data.passage.passage_title}
         </h3>
+        <PassageAnnotator passageKey={data.passage.id}>
         <div className="text-[15px] leading-[1.8]" style={{ color: "var(--color-text)", fontFamily: PASSAGE_FONT }}>
           {paragraphs.map((para, paraIdx) => {
             const match = para.match(PARAGRAPH_LABEL_RE);
@@ -399,6 +401,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose, mode = "
             );
           })}
         </div>
+        </PassageAnnotator>
       </div>
     );
   };
