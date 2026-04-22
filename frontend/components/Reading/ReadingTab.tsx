@@ -213,9 +213,17 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
   }
 
   if (phase === "full_test_result" && fullTestResult) {
+    const sections = fullTestResult.passage_breakdowns.map((b, i) => ({
+      label: `Passage ${i + 1}`,
+      score: b.score,
+      total: b.total,
+      band: null, // per-section band requires the IELTS table on FE; deferred
+    }));
     return (
       <ReadingResult
         result={fullTestResultToPracticeShape(fullTestResult)}
+        sections={sections}
+        late={fullTestResult.late}
         onPracticeAgain={() => { setFullTestResult(null); setActiveTestId(null); setPhase("full_test_select"); }}
         onClose={() => { setPhase("home"); setFullTestResult(null); setActiveTestId(null); }}
       />

@@ -17,10 +17,25 @@ import { useState } from "react";
 import { bandColor } from "@/lib/bandColors";
 import type { ReadingPracticeResult, ReadingQuestionResult, ReadingSubResult } from "@/lib/types";
 
+/**
+ * Optional per-section breakdown for Full Test results — when present a
+ * row of "Passage 1 — X/Y • Band Z.Z" cards renders above the per-question
+ * accordion. ReadingTab passes this when phase === 'full_test_result'.
+ */
+export interface ReadingResultSection {
+  label: string;
+  score: number;
+  total: number;
+  band: number | null;
+}
+
 interface ReadingResultProps {
   result: ReadingPracticeResult;
   onPracticeAgain: () => void;
   onClose: () => void;
+  sections?: ReadingResultSection[];
+  /** True when Full Test exceeded the 60-min budget (server-trusted). */
+  late?: boolean;
 }
 
 const SIMPLE_TYPES = new Set(["mcq", "tfng", "ynng", "matching"]);
@@ -54,7 +69,7 @@ function subKeyLabel(sub: ReadingSubResult): string {
   return sub.key ?? sub.blank ?? "?";
 }
 
-export default function ReadingResult({ result, onPracticeAgain, onClose }: ReadingResultProps) {
+export default function ReadingResult({ result, onPracticeAgain, onClose, sections, late }: ReadingResultProps) {
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
   const { score, total, band_estimate, per_question_results } = result;
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
@@ -83,7 +98,41 @@ export default function ReadingResult({ result, onPracticeAgain, onClose }: Read
           <div className="text-xs mt-1" style={{ color: "var(--color-text-tertiary)" }}>
             {pct}% accuracy · {Math.floor(result.time_seconds / 60)}m {result.time_seconds % 60}s
           </div>
+          {late && (
+            <div
+              className="inline-block mt-3 px-3 py-1 rounded-md text-xs font-medium"
+              style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.4)" }}
+            >
+              Quá giờ — bài thi vượt 60 phút (vẫn được chấm điểm)
+            </div>
+          )}
         </div>
+
+        {/* Per-section breakdown — Full Test only */}
+        {sections && sections.length > 0 && (
+          <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${sections.length}, minmax(0, 1fr))` }}>
+            {sections.map((s, i) => {
+              const sPct = s.total > 0 ? Math.round((s.score / s.total) * 100) : 0;
+              return (
+                <div
+                  key={i}
+                  className="rounded-lg p-3 text-center"
+                  style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+                >
+                  <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "var(--color-text-tertiary)" }}>
+                    {s.label}
+                  </div>
+                  <div className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+                    {s.score}/{s.total}
+                  </div>
+                  <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                    {s.band != null ? `Band ${s.band.toFixed(1)}` : `${sPct}%`}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* Type breakdown — covers all 12 types */}
         <div className="flex flex-wrap gap-2 justify-center">
