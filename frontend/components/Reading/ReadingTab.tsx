@@ -9,11 +9,34 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getReadingPassages } from "@/lib/api";
-import type { ReadingPassageSummary, ReadingPracticeResult } from "@/lib/types";
+import type { ReadingPassageSummary, ReadingPracticeResult, ReadingFullTestResult } from "@/lib/types";
 import ReadingScreen from "./ReadingScreen";
 import ReadingResult from "./ReadingResult";
+import FullTestLauncher from "./FullTestLauncher";
+import FullTestRunner from "./FullTestRunner";
 
-type Phase = "home" | "select" | "reading" | "result";
+type Phase =
+  | "home"
+  | "select"
+  | "reading"
+  | "result"
+  | "full_test_select"
+  | "full_test_run"
+  | "full_test_result";
+
+// Adapter: collapse a Full Test result into the single-passage shape that
+// ReadingResult currently expects. Per-passage breakdowns are flattened into
+// one per_question_results array — Commit 7 will extend ReadingResult to
+// render the per-section breakdown natively.
+function fullTestResultToPracticeShape(r: ReadingFullTestResult): ReadingPracticeResult {
+  return {
+    score: r.total_score,
+    total: r.total_questions,
+    band_estimate: r.band_estimate,
+    time_seconds: r.time_seconds,
+    per_question_results: r.passage_breakdowns.flatMap((b) => b.per_question_results),
+  };
+}
 
 const DIFFICULTY_TABS = [
   { id: "band_50_55", label: "5.0–5.5" },
@@ -130,7 +153,9 @@ function PassageSelect({ onSelect, onBack }: { onSelect: (id: string) => void; o
 export default function ReadingTab({ onClose }: { onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>("home");
   const [activePassageId, setActivePassageId] = useState<string | null>(null);
+  const [activeTestId, setActiveTestId] = useState<string | null>(null);
   const [result, setResult] = useState<ReadingPracticeResult | null>(null);
+  const [fullTestResult, setFullTestResult] = useState<ReadingFullTestResult | null>(null);
 
   const handleSelectPassage = (id: string) => {
     setActivePassageId(id);
@@ -140,6 +165,11 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
   const handleComplete = (r: ReadingPracticeResult) => {
     setResult(r);
     setPhase("result");
+  };
+
+  const handleFullTestComplete = (r: ReadingFullTestResult) => {
+    setFullTestResult(r);
+    setPhase("full_test_result");
   };
 
   const handlePracticeAgain = () => {
@@ -162,12 +192,32 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
     );
   }
 
+  if (phase === "full_test_run" && activeTestId) {
+    return (
+      <FullTestRunner
+        testId={activeTestId}
+        onComplete={handleFullTestComplete}
+        onClose={() => { setActiveTestId(null); setPhase("full_test_select"); }}
+      />
+    );
+  }
+
   if (phase === "result" && result) {
     return (
       <ReadingResult
         result={result}
         onPracticeAgain={handlePracticeAgain}
         onClose={() => { setPhase("home"); setResult(null); }}
+      />
+    );
+  }
+
+  if (phase === "full_test_result" && fullTestResult) {
+    return (
+      <ReadingResult
+        result={fullTestResultToPracticeShape(fullTestResult)}
+        onPracticeAgain={() => { setFullTestResult(null); setActiveTestId(null); setPhase("full_test_select"); }}
+        onClose={() => { setPhase("home"); setFullTestResult(null); setActiveTestId(null); }}
       />
     );
   }
@@ -208,9 +258,9 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
 
               {/* Full Test card */}
               <button
-                className="w-full text-left rounded-xl p-5 transition-all"
-                style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderLeft: "4px solid #F59E0B", opacity: 0.6 }}
-                disabled>
+                onClick={() => setPhase("full_test_select")}
+                className="w-full text-left rounded-xl p-5 transition-all active:scale-[0.98]"
+                style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", borderLeft: "4px solid #F59E0B" }}>
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl shrink-0" style={{ background: "rgba(245,158,11,0.10)" }}>
                     📝
@@ -218,7 +268,6 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
                   <div>
                     <div className="font-semibold text-base mb-0.5" style={{ color: "var(--color-text)" }}>Full Test Mode</div>
                     <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>3 passages, 60 minutes. Simulates real exam conditions.</p>
-                    <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium" style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B" }}>Coming Soon</span>
                   </div>
                 </div>
               </button>
@@ -227,6 +276,13 @@ export default function ReadingTab({ onClose }: { onClose: () => void }) {
 
           {phase === "select" && (
             <PassageSelect onSelect={handleSelectPassage} onBack={() => setPhase("home")} />
+          )}
+
+          {phase === "full_test_select" && (
+            <FullTestLauncher
+              onSelect={(id) => { setActiveTestId(id); setPhase("full_test_run"); }}
+              onBack={() => setPhase("home")}
+            />
           )}
         </div>
       </div>
