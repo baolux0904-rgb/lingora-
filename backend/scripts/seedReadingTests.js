@@ -22,7 +22,7 @@
 const path = require("path");
 
 const BACKEND_DIR = path.resolve(__dirname, "..");
-require("dotenv").config({ path: path.join(BACKEND_DIR, ".env"), override: true });
+require("dotenv").config({ path: path.join(BACKEND_DIR, ".env"), override: false });
 
 const { pool } = require(path.join(BACKEND_DIR, "src", "config", "db.js"));
 
