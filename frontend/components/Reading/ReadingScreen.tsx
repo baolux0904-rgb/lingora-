@@ -12,6 +12,7 @@ import { getReadingPassage, submitReadingPractice } from "@/lib/api";
 import type { ReadingPassageFull, ReadingPracticeResult } from "@/lib/types";
 import MatchingQuestion from "./questions/MatchingQuestion";
 import PassageAnnotator from "./PassageAnnotator";
+import NotePanel from "./NotePanel";
 import YnngQuestion from "./questions/YnngQuestion";
 import MatchingHeadingsQuestion from "./questions/MatchingHeadingsQuestion";
 import SentenceCompletionQuestion from "./questions/SentenceCompletionQuestion";
@@ -130,6 +131,8 @@ export default function ReadingScreen({ passageId, onComplete, onClose, mode = "
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [toast, setToast] = useState<string | null>(null);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [notesByPassage, setNotesByPassage] = useState<Record<string, string>>({});
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const warningsFiredRef = useRef<{ five: boolean; one: boolean; zero: boolean }>({ five: false, one: false, zero: false });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -474,6 +477,20 @@ export default function ReadingScreen({ passageId, onComplete, onClose, mode = "
         <div className="flex-1 text-sm font-semibold truncate" style={{ color: "var(--color-text)" }}>
           {data.passage.passage_title}
         </div>
+        <button
+          type="button"
+          onClick={() => setNoteOpen((v) => !v)}
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+          style={{
+            background: noteOpen ? "rgba(0,168,150,0.12)" : "var(--color-bg-secondary)",
+            color: noteOpen ? "#00A896" : "var(--color-text-secondary)",
+            border: `1px solid ${noteOpen ? "rgba(0,168,150,0.3)" : "var(--color-border)"}`,
+          }}
+          aria-label={noteOpen ? "Đóng ghi chú" : "Mở ghi chú"}
+          aria-pressed={noteOpen}
+        >
+          📝
+        </button>
         <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
           {answeredCount}/{questions.length}
         </div>
@@ -519,6 +536,14 @@ export default function ReadingScreen({ passageId, onComplete, onClose, mode = "
 
       {showConfirm && <ConfirmModal />}
       {showPauseModal && <PauseModal />}
+
+      <NotePanel
+        open={noteOpen}
+        value={notesByPassage[data.passage.id] ?? ""}
+        onChange={(next) => setNotesByPassage((prev) => ({ ...prev, [data.passage.id]: next }))}
+        onClose={() => setNoteOpen(false)}
+        passageTitle={data.passage.passage_title}
+      />
 
       {toast && (
         <div

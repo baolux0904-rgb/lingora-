@@ -33,6 +33,7 @@ import MatchingSentenceEndingsQuestion from "./questions/MatchingSentenceEndings
 import NoteTableDiagramCompletion from "./questions/NoteTableDiagramCompletion";
 import ShortAnswerQuestion from "./questions/ShortAnswerQuestion";
 import PassageAnnotator from "./PassageAnnotator";
+import NotePanel from "./NotePanel";
 
 interface Props {
   testId: string;
@@ -60,6 +61,8 @@ export default function FullTestRunner({ testId, onComplete, onClose }: Props) {
   const [answersBySection, setAnswersBySection] = useState<Record<number, Record<number, string>>>({});
   const [flagsBySection, setFlagsBySection] = useState<Record<number, Record<number, boolean>>>({});
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [notesByPassage, setNotesByPassage] = useState<Record<string, string>>({});
 
   useEffect(() => {
     (async () => {
@@ -193,6 +196,20 @@ export default function FullTestRunner({ testId, onComplete, onClose }: Props) {
             {totals.answered}/{totals.totalQs} đã trả lời • {totals.flagged} đánh dấu
           </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setNoteOpen((v) => !v)}
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-base"
+          style={{
+            background: noteOpen ? "rgba(0,168,150,0.12)" : "var(--color-bg-secondary)",
+            color: noteOpen ? "#00A896" : "var(--color-text-secondary)",
+            border: `1px solid ${noteOpen ? "rgba(0,168,150,0.3)" : "var(--color-border)"}`,
+          }}
+          aria-label={noteOpen ? "Đóng ghi chú" : "Mở ghi chú"}
+          aria-pressed={noteOpen}
+        >
+          📝
+        </button>
         <div
           className="font-mono text-base px-3 py-1.5 rounded-lg"
           style={{
@@ -285,6 +302,14 @@ export default function FullTestRunner({ testId, onComplete, onClose }: Props) {
           {toast}
         </div>
       )}
+
+      <NotePanel
+        open={noteOpen}
+        value={notesByPassage[passage.passage.id] ?? ""}
+        onChange={(next) => setNotesByPassage((prev) => ({ ...prev, [passage.passage.id]: next }))}
+        onClose={() => setNoteOpen(false)}
+        passageTitle={`Passage ${activeSection + 1} — ${passage.passage.passage_title}`}
+      />
     </div>
   );
 }
