@@ -18,6 +18,7 @@ import ProUpgradeModal from "@/components/Pro/ProUpgradeModal";
 import WritingResult from "./WritingResult";
 import WritingHistory from "./WritingHistory";
 import WritingTimerBar from "./WritingTimerBar";
+import WritingNotesModal from "./WritingNotesModal";
 import type { WritingTaskType } from "@/lib/types";
 
 interface WritingTabProps {
@@ -60,6 +61,10 @@ export default function WritingTab({ onClose }: WritingTabProps) {
 
   // Exam-input toast (shown when paste is blocked on essay textarea)
   const [pasteToast, setPasteToast] = useState(false);
+
+  // Scratch notes — kept in local state, reset on task switch / submit, NOT persisted to DB
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notes, setNotes] = useState<Record<WritingTaskType, string>>({ task1: "", task2: "" });
 
   useEffect(() => {
     if (!pasteToast) return;
@@ -109,13 +114,15 @@ export default function WritingTab({ onClose }: WritingTabProps) {
   // Handlers
   // ---------------------------------------------------------------------------
 
-  // Handle task type switch — resets essay and timer
+  // Handle task type switch — resets essay, timer, and scratch notes
   const handleTaskSwitch = useCallback((type: WritingTaskType) => {
     setTaskType(type);
     setQuestionText("");
     setEssayText("");
     setTimeLeft(null);
     setTimerStarted(false);
+    setNotes({ task1: "", task2: "" });
+    setNotesOpen(false);
   }, []);
 
   // Handle essay text change — starts timer on first keystroke
@@ -152,6 +159,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
       });
       setActiveSubmissionId(result.submissionId);
       setPhase("pending");
+      setNotes({ task1: "", task2: "" });
       // Refetch limits so the RemainingBadge updates after a successful submit.
       limits.refetch();
     } catch (err) {
@@ -381,12 +389,27 @@ export default function WritingTab({ onClose }: WritingTabProps) {
                 className="rounded-xl p-5 flex flex-col gap-3"
                 style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
                     Your Essay
                   </label>
-                  {/* Live word count badge */}
-                  <span
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNotesOpen(true)}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer"
+                      style={{
+                        background: notes[taskType].length > 0 ? "rgba(0,168,150,0.10)" : "var(--color-bg-secondary)",
+                        color: notes[taskType].length > 0 ? "#00A896" : "var(--color-text-secondary)",
+                        border: "1px solid var(--color-border)",
+                      }}
+                      aria-label="Mở ghi chú"
+                    >
+                      <span>📝</span>
+                      <span>Ghi chú{notes[taskType].length > 0 ? ` (${notes[taskType].length})` : ""}</span>
+                    </button>
+                    {/* Live word count badge */}
+                    <span
                     className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
                     style={{
                       background: wordCount >= minRequired
@@ -403,6 +426,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
                   >
                     {wordCount} / {minRequired} words
                   </span>
+                  </div>
                 </div>
                 <textarea
                   value={essayText}
@@ -525,6 +549,14 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           </div>
         )}
       </div>
+
+      {/* Scratch-notes modal */}
+      <WritingNotesModal
+        open={notesOpen}
+        value={notes[taskType]}
+        onChange={(next) => setNotes((prev) => ({ ...prev, [taskType]: next }))}
+        onClose={() => setNotesOpen(false)}
+      />
 
       {/* Paste-blocked toast */}
       {pasteToast && (
