@@ -56,6 +56,10 @@ describe("submitFullTest — aggregation", () => {
     expect(r.total_questions).toBe(40);
     expect(r.passage_breakdowns).toHaveLength(3);
     expect(r.passage_breakdowns[2].score).toBe(6);
+    // Per-section band: 10/13 → 31/40 → band 7; 8/13 → 25/40 → band 6; 6/14 → 17/40 → band 5.
+    expect(r.passage_breakdowns[0].band).toBe(7);
+    expect(r.passage_breakdowns[1].band).toBe(6);
+    expect(r.passage_breakdowns[2].band).toBe(5);
     expect(r.late).toBe(false);
   });
 

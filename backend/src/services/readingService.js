@@ -158,6 +158,9 @@ async function submitFullTest(userId, passageResults, timeSeconds, { startedAt =
       passage_id: pr.passage_id,
       score: correct,
       total,
+      // Per-section band uses the canonical 40-Q proration so a 10/13
+      // section maps to the same scale as the overall band.
+      band: total > 0 ? readingScoreToBand(correct, total) : 0,
       per_question_results: results,
     });
   }
