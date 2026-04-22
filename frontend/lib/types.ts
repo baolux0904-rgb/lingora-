@@ -412,6 +412,33 @@ export type FeedbackAccuracy = 'too_generous' | 'about_right' | 'too_harsh';
 
 export type WritingTaskType = 'task1' | 'task2';
 export type WritingStatus = 'pending' | 'completed' | 'failed';
+export type WritingChartType = 'line' | 'bar' | 'pie' | 'table';
+export type WritingEssayType =
+  | 'opinion'
+  | 'discussion'
+  | 'problem_solution'
+  | 'advantages_disadvantages'
+  | 'two_part_question';
+export type WritingDifficulty = 'band_5_6' | 'band_6_7' | 'band_7_8';
+
+export interface WritingQuestionListItem {
+  id: string;
+  task_type: WritingTaskType;
+  chart_type: WritingChartType | null;
+  essay_type: WritingEssayType | null;
+  topic: string;
+  difficulty: WritingDifficulty;
+  title: string | null;
+  question_text: string;
+  attempted: boolean;
+  created_at: string;
+}
+
+export interface WritingQuestionDetail extends WritingQuestionListItem {
+  chart_data: unknown | null;
+  sample_band_7_answer: string;
+  supplementary: Record<string, unknown>;
+}
 
 export interface WritingCriteria {
   score: number;

@@ -974,7 +974,7 @@ export async function logoutUser(): Promise<void> {
 // IELTS Writing
 // ---------------------------------------------------------------------------
 
-import type { WritingSubmission, WritingSubmissionSummary, WritingTaskType, UserFeedback, FeedbackActivityType, FeedbackRating } from "./types";
+import type { WritingSubmission, WritingSubmissionSummary, WritingTaskType, WritingQuestionListItem, WritingQuestionDetail, WritingDifficulty, UserFeedback, FeedbackActivityType, FeedbackRating } from "./types";
 
 /** POST /writing/submit — submit an essay for AI scoring */
 export async function submitWritingEssay(body: {
@@ -997,6 +997,51 @@ export async function getWritingHistory(
 ): Promise<{ submissions: WritingSubmissionSummary[]; page: number; limit: number }> {
   return apiFetchAuth<{ submissions: WritingSubmissionSummary[]; page: number; limit: number }>(
     `/writing/history?page=${page}&limit=${limit}`
+  );
+}
+
+/** GET /writing/questions — filtered prompt-bank list */
+export async function listWritingQuestions(filters: {
+  taskType?: WritingTaskType;
+  topic?: string;
+  difficulty?: WritingDifficulty;
+  excludeAttempted?: boolean;
+  page?: number;
+  limit?: number;
+} = {}): Promise<{ questions: WritingQuestionListItem[]; page: number; limit: number }> {
+  const params = new URLSearchParams();
+  if (filters.taskType) params.set("task_type", filters.taskType);
+  if (filters.topic) params.set("topic", filters.topic);
+  if (filters.difficulty) params.set("difficulty", filters.difficulty);
+  if (filters.excludeAttempted) params.set("excludeAttempted", "true");
+  if (filters.page) params.set("page", String(filters.page));
+  if (filters.limit) params.set("limit", String(filters.limit));
+  const qs = params.toString();
+  return apiFetchAuth<{ questions: WritingQuestionListItem[]; page: number; limit: number }>(
+    `/writing/questions${qs ? `?${qs}` : ""}`
+  );
+}
+
+/** GET /writing/questions/topics — distinct topics for filter dropdowns */
+export async function listWritingQuestionTopics(taskType?: WritingTaskType): Promise<{ topics: string[] }> {
+  const qs = taskType ? `?task_type=${taskType}` : "";
+  return apiFetchAuth<{ topics: string[] }>(`/writing/questions/topics${qs}`);
+}
+
+/** GET /writing/questions/:id — full question detail */
+export async function getWritingQuestion(id: string): Promise<WritingQuestionDetail> {
+  return apiFetchAuth<WritingQuestionDetail>(`/writing/questions/${id}`);
+}
+
+/** POST /writing/questions/:id/attempt — mark a prompt as opened */
+export async function recordWritingAttempt(id: string): Promise<{ id: string }> {
+  return apiPostAuth<{ id: string }>(`/writing/questions/${id}/attempt`, {});
+}
+
+/** GET /writing/full-test/start — auto-assigned Task 1 + Task 2 pair */
+export async function startWritingFullTest(): Promise<{ task1: WritingQuestionDetail; task2: WritingQuestionDetail }> {
+  return apiFetchAuth<{ task1: WritingQuestionDetail; task2: WritingQuestionDetail }>(
+    `/writing/full-test/start`
   );
 }
 
