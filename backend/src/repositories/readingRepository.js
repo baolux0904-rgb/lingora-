@@ -62,9 +62,45 @@ async function scoreAnswers(passageId, answers) {
   return scoreSubmission(questions, answers);
 }
 
+async function listReadingTests() {
+  try {
+    const { rows } = await query(
+      `SELECT t.id, t.title, t.difficulty_tier, t.created_at,
+              t.passage_1_id, t.passage_2_id, t.passage_3_id
+         FROM reading_tests t
+        ORDER BY
+          CASE t.difficulty_tier
+            WHEN 'foundation' THEN 1
+            WHEN 'standard'   THEN 2
+            WHEN 'challenge'  THEN 3
+            ELSE 4
+          END,
+          t.created_at`
+    );
+    return rows;
+  } catch (err) {
+    if (err.message?.includes("does not exist")) {
+      console.warn("[reading] reading_tests table not found — migration 0031 pending");
+      return [];
+    }
+    throw err;
+  }
+}
+
+async function getReadingTestById(testId) {
+  const { rows } = await query(
+    `SELECT id, title, difficulty_tier, passage_1_id, passage_2_id, passage_3_id, created_at
+       FROM reading_tests WHERE id = $1`,
+    [testId]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   listPassages,
   getPassageWithQuestions,
   getPassagesByDifficulties,
   scoreAnswers,
+  listReadingTests,
+  getReadingTestById,
 };

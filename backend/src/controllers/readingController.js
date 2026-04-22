@@ -39,22 +39,38 @@ async function submitPractice(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function listFullTests(req, res, next) {
+  try {
+    const tests = await readingService.listFullTests();
+    return sendSuccess(res, { data: { tests }, message: "Tests retrieved" });
+  } catch (err) { next(err); }
+}
+
 async function startFullTest(req, res, next) {
   try {
-    const result = await readingService.startFullTest(req.user.id);
+    const testId = req.body?.test_id ?? null;
+    if (testId && !UUID_RE.test(testId)) {
+      return sendError(res, { status: 400, message: "Valid test_id required" });
+    }
+    const result = await readingService.startFullTest(req.user.id, testId);
     return sendSuccess(res, { data: result, status: 201, message: "Full test started" });
   } catch (err) { next(err); }
 }
 
 async function submitFullTest(req, res, next) {
   try {
-    const { passage_results, time_seconds } = req.body;
+    const { passage_results, time_seconds, started_at } = req.body;
     if (!passage_results || !Array.isArray(passage_results)) {
       return sendError(res, { status: 400, message: "passage_results array required" });
     }
-    const result = await readingService.submitFullTest(req.user.id, passage_results, time_seconds || 0);
+    const result = await readingService.submitFullTest(
+      req.user.id,
+      passage_results,
+      time_seconds || 0,
+      { startedAt: started_at || null }
+    );
     return sendSuccess(res, { data: result, message: "Full test submitted" });
   } catch (err) { next(err); }
 }
 
-module.exports = { listPassages, getPassage, submitPractice, startFullTest, submitFullTest };
+module.exports = { listPassages, getPassage, submitPractice, listFullTests, startFullTest, submitFullTest };

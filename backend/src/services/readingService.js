@@ -96,30 +96,56 @@ async function submitPractice(userId, passageId, answers, timeSeconds) {
   return { score: correct, total, band_estimate: bandEstimate, time_seconds: timeSeconds, per_question_results: results };
 }
 
-async function startFullTest(userId) {
-  // Select 3 passages: one from each difficulty tier
-  const passages = await readingRepo.getPassagesByDifficulties(
-    ["band_50_55", "band_60_65", "band_70_80"], 1
-  );
+// Strict 60-min budget for Full Test, with a 10-second grace window to
+// absorb network round-trips on submit. Submissions outside the window
+// are scored anyway but flagged `late: true` for the result UI.
+const FULL_TEST_BUDGET_SECONDS = 3600;
+const FULL_TEST_GRACE_SECONDS = 10;
 
-  if (passages.length < 3) {
-    const err = new Error("Not enough passages for full test");
-    err.status = 503;
-    throw err;
+async function listFullTests() {
+  return readingRepo.listReadingTests();
+}
+
+async function startFullTest(userId, testId = null) {
+  let passageIds;
+  let testRow = null;
+
+  if (testId) {
+    testRow = await readingRepo.getReadingTestById(testId);
+    if (!testRow) {
+      const err = new Error("Reading test not found");
+      err.status = 404;
+      throw err;
+    }
+    passageIds = [testRow.passage_1_id, testRow.passage_2_id, testRow.passage_3_id];
+  } else {
+    // Legacy fallback: ad-hoc grouping for callers without a testId.
+    const picked = await readingRepo.getPassagesByDifficulties(
+      ["band_50_55", "band_60_65", "band_70_80"], 1
+    );
+    if (picked.length < 3) {
+      const err = new Error("Not enough passages for full test");
+      err.status = 503;
+      throw err;
+    }
+    passageIds = picked.map((p) => p.id);
   }
 
-  // Fetch full content for each
-  const fullPassages = await Promise.all(
-    passages.map((p) => readingRepo.getPassageWithQuestions(p.id))
+  const passages = await Promise.all(
+    passageIds.map((id) => readingRepo.getPassageWithQuestions(id))
   );
 
   return {
-    passages: fullPassages,
-    time_limit: 3600, // 60 minutes
+    test_id: testRow?.id ?? null,
+    test_title: testRow?.title ?? null,
+    difficulty_tier: testRow?.difficulty_tier ?? null,
+    passages,
+    time_limit: FULL_TEST_BUDGET_SECONDS,
+    started_at: new Date().toISOString(),
   };
 }
 
-async function submitFullTest(userId, passageResults, timeSeconds) {
+async function submitFullTest(userId, passageResults, timeSeconds, { startedAt = null } = {}) {
   let totalCorrect = 0;
   let totalQuestions = 0;
   const breakdowns = [];
@@ -170,13 +196,36 @@ async function submitFullTest(userId, passageResults, timeSeconds) {
     console.error(`[reading] badge module load failed:`, err.message);
   }
 
+  // Lateness: server-trusted check against startedAt when present.
+  // Frontend-reported timeSeconds is also flagged when it overruns (covers
+  // requests with a missing startedAt).
+  let late = false;
+  let actualSeconds = Number(timeSeconds) || 0;
+  if (startedAt) {
+    const startMs = Date.parse(startedAt);
+    if (!Number.isNaN(startMs)) {
+      actualSeconds = Math.max(actualSeconds, Math.floor((Date.now() - startMs) / 1000));
+    }
+  }
+  if (actualSeconds > FULL_TEST_BUDGET_SECONDS + FULL_TEST_GRACE_SECONDS) late = true;
+
   return {
     total_score: totalCorrect,
     total_questions: totalQuestions,
     band_estimate: bandEstimate,
-    time_seconds: timeSeconds,
+    time_seconds: actualSeconds,
     passage_breakdowns: breakdowns,
+    late,
   };
 }
 
-module.exports = { listPassages, getPassage, submitPractice, startFullTest, submitFullTest };
+module.exports = {
+  listPassages,
+  getPassage,
+  submitPractice,
+  listFullTests,
+  startFullTest,
+  submitFullTest,
+  FULL_TEST_BUDGET_SECONDS,
+  FULL_TEST_GRACE_SECONDS,
+};
