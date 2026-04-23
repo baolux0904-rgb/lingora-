@@ -554,6 +554,16 @@ export interface WritingSelfCompare {
   submission_count_previous: number;
 }
 
+export interface WritingFullTestInProgress {
+  id: string;
+  started_at: string;
+  task1_question: WritingQuestionDetail | null;
+  task2_question: WritingQuestionDetail | null;
+  task1_submitted: boolean;
+  task2_submitted: boolean;
+  time_remaining_seconds: number;
+}
+
 export type ParagraphIconType =
   | 'coherence'
   | 'band_upgrade'

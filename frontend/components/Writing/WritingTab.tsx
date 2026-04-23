@@ -9,7 +9,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { submitWritingEssay, startWritingFullTest, submitWritingFullTestTask } from "@/lib/api";
+import { submitWritingEssay, startWritingFullTest, submitWritingFullTestTask, getInProgressWritingFullTest } from "@/lib/api";
 import { useWritingResult } from "@/hooks/useWritingResult";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import UpgradeTrigger from "@/components/Pro/UpgradeTrigger";
@@ -22,7 +22,11 @@ import WritingTimerBar from "./WritingTimerBar";
 import WritingNotesModal from "./WritingNotesModal";
 import WritingPromptSelector from "./WritingPromptSelector";
 import WritingChartRenderer from "./WritingChartRenderer";
-import type { WritingTaskType, WritingQuestionDetail } from "@/lib/types";
+import type { WritingTaskType, WritingQuestionDetail, WritingFullTestInProgress } from "@/lib/types";
+
+// localStorage slot the resume-banner uses as a belt-and-braces hint.
+// Backend is always the source of truth; this just survives a cold reload.
+const FULL_TEST_LS_KEY = "lingona.writing.full_test_id";
 
 interface WritingTabProps {
   onClose: () => void;
@@ -69,6 +73,8 @@ export default function WritingTab({ onClose }: WritingTabProps) {
   // disable the editor for a task once it's been scored server-side.
   const [fullTestSubmitted, setFullTestSubmitted] = useState<Record<WritingTaskType, string | null>>({ task1: null, task2: null });
   const [fullTestResultId, setFullTestResultId] = useState<string | null>(null);
+  const [resumeData, setResumeData] = useState<WritingFullTestInProgress | null>(null);
+  const [resumeDismissed, setResumeDismissed] = useState(false);
 
   const activePrompt = prompts[taskType];
   const questionText = activePrompt?.question_text ?? "";
@@ -201,6 +207,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           setFullTestResultId(fullTestId);
           setPhase("full_test_result");
           setNotes(EMPTY_TASK_BUFFERS);
+          try { localStorage.removeItem(FULL_TEST_LS_KEY); } catch { /* ignore */ }
         } else {
           // First task done; nudge to the other one.
           const other: WritingTaskType = taskType === "task1" ? "task2" : "task1";
@@ -276,12 +283,54 @@ export default function WritingTab({ onClose }: WritingTabProps) {
       setFullTestId(pair.full_test_id);
       setFullTestSubmitted({ task1: null, task2: null });
       setTaskType("task1");
+      try { localStorage.setItem(FULL_TEST_LS_KEY, pair.full_test_id); } catch { /* SSR / quota — ignore */ }
     } catch (err) {
       setFullTestError(err instanceof Error ? err.message : "Không tải được Full Test");
     } finally {
       setFullTestLoading(false);
     }
   }, [fullTestLoading]);
+
+  // Resume-banner fetch: once the editor is live and the user has no
+  // active Full Test, check whether there's an unfinished run server-side.
+  useEffect(() => {
+    if (phase !== "editor") return;
+    if (fullTestId) return;         // already resumed or freshly started
+    if (resumeData !== null) return; // banner already populated
+    if (resumeDismissed) return;
+    let cancelled = false;
+    getInProgressWritingFullTest()
+      .then((d) => { if (!cancelled) setResumeData(d); })
+      .catch(() => { /* silent — resume is optional UX */ });
+    return () => { cancelled = true; };
+  }, [phase, fullTestId, resumeData, resumeDismissed]);
+
+  const handleResumeFullTest = useCallback(() => {
+    if (!resumeData || !resumeData.task1_question || !resumeData.task2_question) return;
+    setMode("full_test");
+    setPrompts({ task1: resumeData.task1_question, task2: resumeData.task2_question });
+    setFullTestId(resumeData.id);
+    setFullTestSubmitted({
+      task1: resumeData.task1_submitted ? "resumed" : null,
+      task2: resumeData.task2_submitted ? "resumed" : null,
+    });
+    const firstOpen: WritingTaskType =
+      !resumeData.task1_submitted ? "task1" :
+      !resumeData.task2_submitted ? "task2" : "task1";
+    setTaskType(firstOpen);
+    // Resume the combined 60-min timer at its remaining value.
+    setTimeLeft(resumeData.time_remaining_seconds);
+    setTimerStarted(true);
+    setTimeOutFired(false);
+    setResumeData(null);
+    try { localStorage.setItem(FULL_TEST_LS_KEY, resumeData.id); } catch { /* ignore */ }
+  }, [resumeData]);
+
+  const handleDismissResume = useCallback(() => {
+    setResumeDismissed(true);
+    setResumeData(null);
+    try { localStorage.removeItem(FULL_TEST_LS_KEY); } catch { /* ignore */ }
+  }, []);
 
   // Reset to editor — wipes both task buffers and the combined timer.
   const handleNewEssay = useCallback(() => {
@@ -303,6 +352,9 @@ export default function WritingTab({ onClose }: WritingTabProps) {
     setFullTestId(null);
     setFullTestSubmitted({ task1: null, task2: null });
     setFullTestResultId(null);
+    setResumeData(null);
+    setResumeDismissed(false);
+    try { localStorage.removeItem(FULL_TEST_LS_KEY); } catch { /* ignore */ }
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -421,6 +473,44 @@ export default function WritingTab({ onClose }: WritingTabProps) {
                 limit={limits.writing.limit ?? 0}
                 onUpgrade={() => setProModalOpen(true)}
               />
+            )}
+
+            {/* Resume-Full-Test banner — shown when the backend says the user
+                has an unfinished run and they haven't dismissed or resumed yet. */}
+            {resumeData && !fullTestId && (
+              <div
+                className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                style={{ background: "rgba(27,43,75,0.06)", border: "1px solid rgba(27,43,75,0.25)", color: "var(--color-text)" }}
+              >
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-semibold">
+                    Bạn có 1 Full Test chưa hoàn thành
+                  </span>
+                  <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                    Còn {Math.max(1, Math.round(resumeData.time_remaining_seconds / 60))} phút.
+                    {resumeData.task1_submitted ? " Task 1 đã nộp." : ""}
+                    {resumeData.task2_submitted ? " Task 2 đã nộp." : ""}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDismissResume}
+                    className="px-3 py-1.5 rounded-lg text-sm cursor-pointer"
+                    style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+                  >
+                    Bỏ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResumeFullTest}
+                    className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white cursor-pointer"
+                    style={{ background: "#1B2B4B" }}
+                  >
+                    Tiếp tục
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Mode Selector — locked once the timer starts */}

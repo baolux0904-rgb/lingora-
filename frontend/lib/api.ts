@@ -974,7 +974,7 @@ export async function logoutUser(): Promise<void> {
 // IELTS Writing
 // ---------------------------------------------------------------------------
 
-import type { WritingSubmission, WritingSubmissionSummary, WritingTaskType, WritingQuestionListItem, WritingQuestionDetail, WritingDifficulty, WritingProgressContext, WritingFullTestDetail, WritingFullTestSummary, WritingTrendRange, WritingTrendBreakdown, WritingTrendResponse, WritingSelfCompare, UserFeedback, FeedbackActivityType, FeedbackRating } from "./types";
+import type { WritingSubmission, WritingSubmissionSummary, WritingTaskType, WritingQuestionListItem, WritingQuestionDetail, WritingDifficulty, WritingProgressContext, WritingFullTestDetail, WritingFullTestSummary, WritingFullTestInProgress, WritingTrendRange, WritingTrendBreakdown, WritingTrendResponse, WritingSelfCompare, UserFeedback, FeedbackActivityType, FeedbackRating } from "./types";
 
 /** POST /writing/submit — submit an essay for AI scoring */
 export async function submitWritingEssay(body: {
@@ -1100,6 +1100,11 @@ export async function listWritingFullTests(page = 1, limit = 10): Promise<{ runs
   return apiFetchAuth<{ runs: WritingFullTestSummary[]; page: number; limit: number }>(
     `/writing/full-tests?page=${page}&limit=${limit}`
   );
+}
+
+/** GET /writing/full-tests/in-progress — source for the resume banner */
+export async function getInProgressWritingFullTest(): Promise<WritingFullTestInProgress | null> {
+  return apiFetchAuth<WritingFullTestInProgress | null>(`/writing/full-tests/in-progress`);
 }
 
 /** GET /writing/analytics/trend */
