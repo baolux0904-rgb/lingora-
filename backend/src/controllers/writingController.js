@@ -26,7 +26,7 @@ async function submitEssay(req, res, next) {
     const userId = req.user.id;
     const role = req.user.role;
     const isPro = req.user.is_pro === true;
-    const { taskType, questionText, essayText } = req.body;
+    const { taskType, questionText, essayText, writingQuestionId } = req.body;
 
     // Validate taskType
     if (!taskType || !["task1", "task2"].includes(taskType)) {
@@ -43,10 +43,16 @@ async function submitEssay(req, res, next) {
       return sendError(res, { status: 400, message: "essayText is required" });
     }
 
+    // Validate optional writingQuestionId — must be UUID if present
+    if (writingQuestionId !== undefined && writingQuestionId !== null && !UUID_RE.test(writingQuestionId)) {
+      return sendError(res, { status: 400, message: "writingQuestionId must be a valid UUID" });
+    }
+
     const result = await writingService.submitEssay(userId, role, isPro, {
       taskType,
       questionText: questionText.trim(),
       essayText: essayText.trim(),
+      writingQuestionId: writingQuestionId || null,
     });
 
     return sendSuccess(res, {

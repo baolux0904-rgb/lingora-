@@ -20,12 +20,14 @@ const { query } = require("../config/db");
  * @param {number} wordCount
  * @returns {Promise<object>} – the created row
  */
-async function createSubmission(userId, taskType, questionText, essayText, wordCount) {
+async function createSubmission(userId, taskType, questionText, essayText, wordCount, writingQuestionId = null) {
   const result = await query(
-    `INSERT INTO writing_submissions (user_id, task_type, question_text, essay_text, word_count)
-     VALUES ($1, $2, $3, $4, $5)
-     RETURNING id, user_id, task_type, question_text, essay_text, word_count, status, created_at`,
-    [userId, taskType, questionText, essayText, wordCount]
+    `INSERT INTO writing_submissions
+       (user_id, task_type, question_text, essay_text, word_count, writing_question_id)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING id, user_id, task_type, question_text, essay_text, word_count,
+               writing_question_id, status, created_at`,
+    [userId, taskType, questionText, essayText, wordCount, writingQuestionId]
   );
   return result.rows[0];
 }

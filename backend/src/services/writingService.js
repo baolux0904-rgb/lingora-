@@ -58,7 +58,7 @@ function countWords(text) {
  * @param {string}  input.essayText
  * @returns {Promise<{ submissionId: string, status: string }>}
  */
-async function submitEssay(userId, role, isPro, { taskType, questionText, essayText }) {
+async function submitEssay(userId, role, isPro, { taskType, questionText, essayText, writingQuestionId = null }) {
   // 1. Word count validation
   const wordCount = countWords(essayText);
   const minRequired = MIN_WORDS_BY_TASK[taskType];
@@ -104,9 +104,21 @@ async function submitEssay(userId, role, isPro, { taskType, questionText, essayT
 
   // 4. Create submission + increment usage
   const submission = await writingRepository.createSubmission(
-    userId, taskType, questionText, essayText, wordCount
+    userId, taskType, questionText, essayText, wordCount, writingQuestionId
   );
   await writingRepository.incrementUsageCount(userId);
+
+  // 4b. If the essay was written against a curated prompt, link the submission
+  //     to that user's attempt record. Idempotent — upsertAttempt creates the
+  //     row if the user never opened the prompt via PromptSelector.
+  if (writingQuestionId) {
+    try {
+      const writingQuestionsRepository = require("../repositories/writingQuestionsRepository");
+      await writingQuestionsRepository.upsertAttempt(userId, writingQuestionId, submission.id);
+    } catch (err) {
+      console.error(`[writing] failed to link attempt for submission ${submission.id}: ${err.message}`);
+    }
+  }
 
   // 4. Fire-and-forget AI analysis
   const submissionId = submission.id;
