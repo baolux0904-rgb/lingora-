@@ -453,6 +453,30 @@ export interface SentenceCorrection {
   explanation: string;
   error_type?: WritingErrorType;
   sentence_index?: number;
+  band_context?: string;
+  pro_version?: string;
+}
+
+export interface ParaphraseSuggestion {
+  phrase: string;
+  alternatives: string[];
+  context: string;
+}
+
+export interface WritingProgressPattern {
+  pattern_type: 'error_type' | 'issue';
+  error_type?: WritingErrorType;
+  stem?: string;
+  occurrences: number;
+  first_seen_date: string;
+  last_seen_date: string;
+  example_issue: string | null;
+}
+
+export interface WritingProgressContext {
+  insufficient_data: boolean;
+  patterns: WritingProgressPattern[];
+  sample_size: number;
 }
 
 export type ParagraphIconType =
@@ -509,6 +533,9 @@ export interface WritingFeedback {
   top_3_priorities?: string[];
   word_count_feedback?: WordCountFeedback;
   paragraph_analysis?: ParagraphAnalysis[];
+  essay_type?: WritingEssayType | null;
+  paraphrase_suggestions?: ParaphraseSuggestion[];
+  cache_version?: number;
 }
 
 export interface WritingSubmission {

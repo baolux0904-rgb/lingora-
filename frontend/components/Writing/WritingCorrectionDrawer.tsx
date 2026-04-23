@@ -13,17 +13,22 @@
  * Close  : X button, Escape key, backdrop click.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getWritingProgressContext } from "@/lib/api";
 import type {
   SentenceCorrection,
   ParagraphAnalysis,
   WritingErrorType,
   ParagraphIconType,
+  WritingProgressContext,
+  WritingProgressPattern,
 } from "@/lib/types";
 
 export type WritingDrawerDetail =
   | { kind: "sentence"; corrections: SentenceCorrection[] }
   | { kind: "paragraph"; paragraph: ParagraphAnalysis };
+
+type StyleTab = "basic" | "band" | "pro" | "progress";
 
 interface WritingCorrectionDrawerProps {
   open: boolean;
@@ -31,6 +36,8 @@ interface WritingCorrectionDrawerProps {
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  /** Submission id used by the Style F tab to fetch recurring-error patterns. */
+  submissionId?: string | null;
 }
 
 function errorTypeColor(type: WritingErrorType | undefined) {
@@ -81,13 +88,122 @@ function iconLabel(type: ParagraphIconType): string {
   }
 }
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+interface ProgressPanelProps {
+  loading: boolean;
+  error: string | null;
+  context: WritingProgressContext | null;
+  enabled: boolean;
+}
+
+function ProgressPanel({ loading, error, context, enabled }: ProgressPanelProps) {
+  if (!enabled) {
+    return (
+      <p className="text-sm italic text-center py-6" style={{ color: "var(--color-text-tertiary)" }}>
+        Không có submission để phân tích.
+      </p>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <div
+          className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
+          style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }}
+        />
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <p className="text-sm rounded-lg px-3 py-2" style={{ background: "rgba(239,68,68,0.08)", color: "#EF4444" }}>
+        {error}
+      </p>
+    );
+  }
+  if (!context) return null;
+  if (context.insufficient_data) {
+    return (
+      <div
+        className="rounded-lg px-4 py-5 text-sm text-center"
+        style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px dashed var(--color-border)" }}
+      >
+        Hoàn thành thêm bài viết để thấy phân tích tiến độ (cần ≥10 bài). Hiện có {context.sample_size}.
+      </div>
+    );
+  }
+  if (context.patterns.length === 0) {
+    return (
+      <p className="text-sm italic text-center py-6" style={{ color: "var(--color-text-tertiary)" }}>
+        Chưa phát hiện pattern lặp lại nào — great sign!
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {context.patterns.map((p, i) => (
+        <PatternCard key={i} pattern={p} />
+      ))}
+    </div>
+  );
+}
+
+function PatternCard({ pattern }: { pattern: WritingProgressPattern }) {
+  const color =
+    pattern.pattern_type === "error_type"
+      ? errorTypeColor(pattern.error_type)
+      : "#7E4EC1";
+  const label =
+    pattern.pattern_type === "error_type"
+      ? errorTypeLabel(pattern.error_type)
+      : "Issue lặp lại";
+
+  return (
+    <div
+      className="rounded-lg p-3 flex flex-col gap-2"
+      style={{ background: "var(--color-bg-secondary)", borderLeft: `3px solid ${color}` }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span
+          className="text-[11px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
+          style={{ background: `${color}15`, color }}
+        >
+          {label}
+        </span>
+        <span className="text-xs font-semibold" style={{ color: "var(--color-text)" }}>
+          {pattern.occurrences} bài
+        </span>
+      </div>
+      {pattern.example_issue && (
+        <p className="text-sm leading-relaxed" style={{ color: "var(--color-text)" }}>
+          “{pattern.example_issue}”
+        </p>
+      )}
+      <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
+        {formatDate(pattern.first_seen_date)} → {formatDate(pattern.last_seen_date)}
+      </div>
+    </div>
+  );
+}
+
 export default function WritingCorrectionDrawer({
   open,
   detail,
   onClose,
   onPrev,
   onNext,
+  submissionId,
 }: WritingCorrectionDrawerProps) {
+  const [activeTab, setActiveTab] = useState<StyleTab>("basic");
+  const [progress, setProgress] = useState<WritingProgressContext | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [progressError, setProgressError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -97,7 +213,27 @@ export default function WritingCorrectionDrawer({
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
+  // Reset tab state + progress cache whenever a new detail opens.
+  useEffect(() => {
+    if (detail) setActiveTab("basic");
+  }, [detail]);
+
+  // Lazy-load progress only when the user actually opens the Tiến độ tab.
+  useEffect(() => {
+    if (activeTab !== "progress") return;
+    if (!submissionId) return;
+    if (progress || progressLoading) return;
+    setProgressLoading(true);
+    setProgressError(null);
+    getWritingProgressContext(submissionId)
+      .then((ctx) => setProgress(ctx))
+      .catch((err) => setProgressError(err instanceof Error ? err.message : "Không tải được dữ liệu tiến độ"))
+      .finally(() => setProgressLoading(false));
+  }, [activeTab, submissionId, progress, progressLoading]);
+
   if (!open || !detail) return null;
+
+  const isSentence = detail.kind === "sentence";
 
   return (
     <div
@@ -168,9 +304,42 @@ export default function WritingCorrectionDrawer({
           </button>
         </div>
 
+        {/* Inner style tab bar — only for sentence corrections */}
+        {isSentence && (
+          <div
+            className="flex shrink-0 overflow-x-auto"
+            style={{ borderBottom: "1px solid var(--color-border)", background: "var(--color-bg-secondary)" }}
+          >
+            {([
+              { key: "basic",    label: "Basic" },
+              { key: "band",     label: "Band-aware" },
+              { key: "pro",      label: "Pro tips" },
+              { key: "progress", label: "Tiến độ" },
+            ] as { key: StyleTab; label: string }[]).map((t) => {
+              const active = activeTab === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setActiveTab(t.key)}
+                  className="flex-1 py-2 text-xs font-medium transition-all cursor-pointer whitespace-nowrap"
+                  style={{
+                    color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
+                    borderBottom: `2px solid ${active ? "var(--color-accent)" : "transparent"}`,
+                    background: active ? "var(--color-bg-card)" : "transparent",
+                  }}
+                >
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-          {detail.kind === "sentence" && detail.corrections.map((c, idx) => (
+          {/* ── Sentence mode — Basic tab (Style A) ── */}
+          {isSentence && activeTab === "basic" && detail.corrections.map((c, idx) => (
             <div key={idx} className="flex flex-col gap-3">
               <span
                 className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider self-start"
@@ -220,6 +389,72 @@ export default function WritingCorrectionDrawer({
               )}
             </div>
           ))}
+
+          {/* ── Sentence mode — Band-aware tab (Style D) ── */}
+          {isSentence && activeTab === "band" && (
+            <div className="flex flex-col gap-3">
+              {detail.corrections.map((c, idx) => (
+                <div key={idx} className="flex flex-col gap-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+                    Lỗi {idx + 1} · Ảnh hưởng band
+                  </div>
+                  {c.band_context ? (
+                    <p
+                      className="text-sm leading-relaxed rounded-lg px-3 py-3"
+                      style={{ background: "rgba(27,43,75,0.06)", color: "var(--color-text)", borderLeft: "3px solid #1B2B4B" }}
+                    >
+                      {c.band_context}
+                    </p>
+                  ) : (
+                    <p className="text-sm italic" style={{ color: "var(--color-text-tertiary)" }}>
+                      Đang cập nhật phân tích band…
+                    </p>
+                  )}
+                  {idx < detail.corrections.length - 1 && (
+                    <div style={{ height: 1, background: "var(--color-border)" }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Sentence mode — Pro tips tab (Style E) ── */}
+          {isSentence && activeTab === "pro" && (
+            <div className="flex flex-col gap-3">
+              {detail.corrections.map((c, idx) => (
+                <div key={idx} className="flex flex-col gap-2">
+                  <div className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+                    Phiên bản band 8+
+                  </div>
+                  {c.pro_version ? (
+                    <p
+                      className="text-sm leading-relaxed rounded-lg px-3 py-3"
+                      style={{ background: "rgba(126,78,193,0.06)", color: "var(--color-text)", borderLeft: "3px solid #7E4EC1" }}
+                    >
+                      {c.pro_version}
+                    </p>
+                  ) : (
+                    <p className="text-sm italic" style={{ color: "var(--color-text-tertiary)" }}>
+                      Đang cập nhật phiên bản nâng cao…
+                    </p>
+                  )}
+                  {idx < detail.corrections.length - 1 && (
+                    <div style={{ height: 1, background: "var(--color-border)" }} />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Sentence mode — Tiến độ tab (Style F) ── */}
+          {isSentence && activeTab === "progress" && (
+            <ProgressPanel
+              loading={progressLoading}
+              error={progressError}
+              context={progress}
+              enabled={!!submissionId}
+            />
+          )}
 
           {detail.kind === "paragraph" && (
             <div className="flex flex-col gap-4">

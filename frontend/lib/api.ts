@@ -974,7 +974,7 @@ export async function logoutUser(): Promise<void> {
 // IELTS Writing
 // ---------------------------------------------------------------------------
 
-import type { WritingSubmission, WritingSubmissionSummary, WritingTaskType, WritingQuestionListItem, WritingQuestionDetail, WritingDifficulty, UserFeedback, FeedbackActivityType, FeedbackRating } from "./types";
+import type { WritingSubmission, WritingSubmissionSummary, WritingTaskType, WritingQuestionListItem, WritingQuestionDetail, WritingDifficulty, WritingProgressContext, UserFeedback, FeedbackActivityType, FeedbackRating } from "./types";
 
 /** POST /writing/submit — submit an essay for AI scoring */
 export async function submitWritingEssay(body: {
@@ -989,6 +989,11 @@ export async function submitWritingEssay(body: {
 /** GET /writing/result/:submissionId — get submission with scores */
 export async function getWritingResult(submissionId: string): Promise<WritingSubmission> {
   return apiFetchAuth<WritingSubmission>(`/writing/result/${submissionId}`);
+}
+
+/** GET /writing/submissions/:id/progress-context — Style F data source */
+export async function getWritingProgressContext(submissionId: string): Promise<WritingProgressContext> {
+  return apiFetchAuth<WritingProgressContext>(`/writing/submissions/${submissionId}/progress-context`);
 }
 
 /** GET /writing/history — paginated submission history */
