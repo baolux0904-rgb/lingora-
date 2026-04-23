@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { IconHome, IconSwords, IconUsers, IconUser, IconBook, IconMic, IconPen, IconOpenBook, IconHeadphones } from "./Icons";
 import Mascot from "@/components/ui/Mascot";
 import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./Social/NotificationBell";
 import useSound from "@/hooks/useSound";
 import { useReward } from "@/contexts/RewardContext";
+import { itemsForSurface } from "@/config/nav";
 import type { GamificationData } from "@/lib/types";
 import type { BattleRankTier } from "@/lib/types";
 
@@ -21,22 +21,9 @@ const RANK_CONFIG: Record<string, { label: string; color: string; glow: string }
   challenger: { label: "Challenger", color: "#FF6B35", glow: "rgba(255,107,53,0.2)" },
 };
 
-/* ── Learn sub-skills ── */
-const LEARN_SKILLS = [
-  { id: "learn-speaking",  label: "Speaking",  Icon: IconMic },
-  { id: "learn-grammar",   label: "Grammar",   Icon: IconPen },
-  { id: "learn-reading",   label: "Reading",   Icon: IconOpenBook },
-  { id: "learn-writing",   label: "Writing",   Icon: IconPen },
-  { id: "learn-listening", label: "Listening",  Icon: IconHeadphones },
-] as const;
-
-const NAV_ITEMS = [
-  { id: "home",    label: "Home",    Icon: IconHome },
-  { id: "learn",   label: "Learn",   Icon: IconBook },
-  { id: "battle",  label: "Battle",  Icon: IconSwords },
-  { id: "social",  label: "Friends", Icon: IconUsers },
-  { id: "profile", label: "Profile", Icon: IconUser },
-] as const;
+/* Nav items now sourced from @/config/nav (shared with BottomNav). */
+const SIDEBAR_ITEMS = itemsForSurface("sidebar");
+const LEARN_SKILLS = SIDEBAR_ITEMS.find((i) => i.id === "learn")?.children ?? [];
 
 interface AppSidebarProps {
   active: string;
@@ -111,7 +98,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
 
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        {NAV_ITEMS.map(({ id, label, Icon }) => {
+        {SIDEBAR_ITEMS.map(({ id, label, icon: Icon }) => {
           const isActive = resolvedActive === id;
 
           return (
@@ -161,7 +148,7 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
                 <div className="animate-sub-nav ml-5 mt-0.5 mb-1 pl-3 space-y-0.5"
                   style={{ borderLeft: "1px solid var(--sidebar-border)" }}
                 >
-                  {LEARN_SKILLS.map(({ id: subId, label: subLabel, Icon: SubIcon }) => {
+                  {LEARN_SKILLS.map(({ id: subId, label: subLabel, icon: SubIcon }) => {
                     const subActive = active === subId;
                     return (
                       <button

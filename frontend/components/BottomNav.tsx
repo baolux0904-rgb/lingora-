@@ -1,20 +1,14 @@
 "use client";
 
-import { IconHome, IconGraduationCap, IconSwords, IconUsers, IconUser } from "./Icons";
 import useSound from "@/hooks/useSound";
+import { itemsForSurface, BOTTOMNAV_LABEL_OVERRIDES } from "@/config/nav";
 
 interface BottomNavProps {
   active: string;
   onChange: (id: string) => void;
 }
 
-const NAV_ITEMS = [
-  { id: "home", label: "Trang chủ", Icon: IconHome },
-  { id: "exam", label: "Thi", Icon: IconGraduationCap },
-  { id: "battle", label: "Đấu", Icon: IconSwords },
-  { id: "social", label: "Bạn bè", Icon: IconUsers },
-  { id: "profile", label: "Hồ sơ", Icon: IconUser },
-] as const;
+const BOTTOMNAV_ITEMS = itemsForSurface("bottomnav");
 
 export default function BottomNav({ active, onChange }: BottomNavProps) {
   const { play } = useSound();
@@ -29,8 +23,9 @@ export default function BottomNav({ active, onChange }: BottomNavProps) {
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
     >
-      {NAV_ITEMS.map(({ id, label, Icon }) => {
+      {BOTTOMNAV_ITEMS.map(({ id, label, icon: Icon }) => {
         const isActive = active === id;
+        const displayLabel = BOTTOMNAV_LABEL_OVERRIDES[id] ?? label;
 
         return (
           <button
@@ -57,7 +52,7 @@ export default function BottomNav({ active, onChange }: BottomNavProps) {
                 fontWeight: isActive ? 700 : 500,
               }}
             >
-              {label}
+              {displayLabel}
             </span>
           </button>
         );
