@@ -396,6 +396,26 @@ export default function WritingTab({ onClose }: WritingTabProps) {
           </div>
         </div>
 
+        {/* Progress page link (Writing analytics dashboard) */}
+        {phase === "editor" && (
+          <a
+            href="/writing/progress"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5"
+            style={{
+              background: "var(--color-bg-secondary)",
+              color: "var(--color-text-secondary)",
+            }}
+            aria-label="Tiến độ Writing"
+            title="Tiến độ Writing"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
+            <span className="hidden sm:inline">Tiến độ</span>
+          </a>
+        )}
+
         {/* History button */}
         {phase === "editor" && (
           <button

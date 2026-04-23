@@ -192,6 +192,23 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
         })}
       </nav>
 
+      {/* ── Quick links (standalone routes outside the tab system) ── */}
+      <div className="px-3 pb-2 flex-shrink-0">
+        <a
+          href="/writing/progress"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors cursor-pointer"
+          style={{ color: "var(--color-text-tertiary)", fontSize: "13px" }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+        >
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
+          <span className="font-medium">Tiến độ Writing</span>
+        </a>
+      </div>
+
       {/* ── Bottom section: identity anchors ── */}
       <div
         className="flex-shrink-0 px-4 py-4 space-y-3"
