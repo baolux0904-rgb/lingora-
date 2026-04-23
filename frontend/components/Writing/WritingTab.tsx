@@ -9,13 +9,14 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { submitWritingEssay, startWritingFullTest } from "@/lib/api";
+import { submitWritingEssay, startWritingFullTest, submitWritingFullTestTask } from "@/lib/api";
 import { useWritingResult } from "@/hooks/useWritingResult";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import UpgradeTrigger from "@/components/Pro/UpgradeTrigger";
 import RemainingBadge from "@/components/Pro/RemainingBadge";
 import ProUpgradeModal from "@/components/Pro/ProUpgradeModal";
 import WritingResult from "./WritingResult";
+import WritingFullTestResult from "./WritingFullTestResult";
 import WritingHistory from "./WritingHistory";
 import WritingTimerBar from "./WritingTimerBar";
 import WritingNotesModal from "./WritingNotesModal";
@@ -44,7 +45,7 @@ function countWords(text: string): number {
 // Component
 // ---------------------------------------------------------------------------
 
-type Phase = "intro" | "editor" | "pending" | "result" | "history";
+type Phase = "intro" | "editor" | "pending" | "result" | "history" | "full_test_result";
 type WritingMode = "practice" | "full_test";
 
 export default function WritingTab({ onClose }: WritingTabProps) {
@@ -63,6 +64,11 @@ export default function WritingTab({ onClose }: WritingTabProps) {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fullTestLoading, setFullTestLoading] = useState(false);
   const [fullTestError, setFullTestError] = useState<string | null>(null);
+  const [fullTestId, setFullTestId] = useState<string | null>(null);
+  // Per-task submission IDs captured during a Full Test run so we can
+  // disable the editor for a task once it's been scored server-side.
+  const [fullTestSubmitted, setFullTestSubmitted] = useState<Record<WritingTaskType, string | null>>({ task1: null, task2: null });
+  const [fullTestResultId, setFullTestResultId] = useState<string | null>(null);
 
   const activePrompt = prompts[taskType];
   const questionText = activePrompt?.question_text ?? "";
@@ -182,6 +188,30 @@ export default function WritingTab({ onClose }: WritingTabProps) {
     setSubmitError(null);
 
     try {
+      // ── Full Test flow ─────────────────────────────────────────────
+      if (mode === "full_test" && fullTestId) {
+        const ftResult = await submitWritingFullTestTask(fullTestId, {
+          taskType,
+          questionText: questionText.trim(),
+          essayText: essayText.trim(),
+          writingQuestionId: activePrompt?.id,
+        });
+        setFullTestSubmitted((prev) => ({ ...prev, [taskType]: ftResult.submissionId }));
+        if (ftResult.finalized) {
+          setFullTestResultId(fullTestId);
+          setPhase("full_test_result");
+          setNotes(EMPTY_TASK_BUFFERS);
+        } else {
+          // First task done; nudge to the other one.
+          const other: WritingTaskType = taskType === "task1" ? "task2" : "task1";
+          setTaskType(other);
+          showToast(`${taskType === "task1" ? "Task 1" : "Task 2"} đã nộp. Tiếp tục ${other === "task1" ? "Task 1" : "Task 2"}.`);
+        }
+        limits.refetch();
+        return;
+      }
+
+      // ── Practice flow (default) ────────────────────────────────────
       const result = await submitWritingEssay({
         taskType,
         questionText: questionText.trim(),
@@ -206,7 +236,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [isValid, submitting, taskType, questionText, essayText, activePrompt, limits]);
+  }, [isValid, submitting, taskType, questionText, essayText, activePrompt, limits, mode, fullTestId, showToast]);
 
   // Timer reaching 0 — Practice shows a toast, Full Test auto-submits once.
   useEffect(() => {
@@ -243,6 +273,8 @@ export default function WritingTab({ onClose }: WritingTabProps) {
     try {
       const pair = await startWritingFullTest();
       setPrompts({ task1: pair.task1, task2: pair.task2 });
+      setFullTestId(pair.full_test_id);
+      setFullTestSubmitted({ task1: null, task2: null });
       setTaskType("task1");
     } catch (err) {
       setFullTestError(err instanceof Error ? err.message : "Không tải được Full Test");
@@ -268,6 +300,9 @@ export default function WritingTab({ onClose }: WritingTabProps) {
     setTimeOutFired(false);
     setSubmitConfirmOpen(false);
     setToast(null);
+    setFullTestId(null);
+    setFullTestSubmitted({ task1: null, task2: null });
+    setFullTestResultId(null);
   }, []);
 
   // ---------------------------------------------------------------------------
@@ -587,7 +622,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
                   spellCheck={false}
                   autoCorrect="off"
                   autoCapitalize="off"
-                  readOnly={paused}
+                  readOnly={paused || Boolean(fullTestSubmitted[taskType])}
                   placeholder={`Start writing your ${taskType === "task1" ? "Task 1" : "Task 2"} response...\n\nMinimum ${minRequired} words required. Timer starts on first keystroke.`}
                   rows={16}
                   maxLength={5000}
@@ -709,6 +744,16 @@ export default function WritingTab({ onClose }: WritingTabProps) {
         {phase === "history" && (
           <div className="max-w-2xl mx-auto">
             <WritingHistory onSelect={handleHistorySelect} />
+          </div>
+        )}
+
+        {/* ── FULL TEST RESULT PHASE ── */}
+        {phase === "full_test_result" && fullTestResultId && (
+          <div className="max-w-3xl mx-auto">
+            <WritingFullTestResult
+              fullTestId={fullTestResultId}
+              onBack={handleNewEssay}
+            />
           </div>
         )}
       </div>
