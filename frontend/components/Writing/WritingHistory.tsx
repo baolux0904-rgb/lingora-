@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { getWritingHistory } from "@/lib/api";
 import Skeleton from "@/components/ui/Skeleton";
+import WritingTrendChart from "./WritingTrendChart";
 import type { WritingSubmissionSummary } from "@/lib/types";
 
 interface WritingHistoryProps {
@@ -79,7 +80,10 @@ export default function WritingHistory({ onSelect }: WritingHistoryProps) {
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-4">
+      <WritingTrendChart />
+
+      <div className="flex flex-col gap-2">
       {submissions.map((sub) => (
         <button
           key={sub.id}
@@ -126,6 +130,7 @@ export default function WritingHistory({ onSelect }: WritingHistoryProps) {
           </div>
         </button>
       ))}
+      </div>
     </div>
   );
 }

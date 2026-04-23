@@ -14,6 +14,7 @@ import WritingCorrectionDrawer, { type WritingDrawerDetail } from "./WritingCorr
 import WritingParagraphIcons from "./WritingParagraphIcons";
 import WritingSampleComparison from "./WritingSampleComparison";
 import WritingParaphraseChips from "./WritingParaphraseChips";
+import WritingSelfCompareBanner from "./WritingSelfCompareBanner";
 import { bandColor } from "@/lib/bandColors";
 import type { WritingSubmission, WritingFeedback, WritingFeedbackCard, ParagraphAnalysis, WritingEssayType } from "@/lib/types";
 
@@ -189,6 +190,9 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
           )}
         </div>
       </div>
+
+      {/* Self-compare banner — silent if previous month has no submissions */}
+      <WritingSelfCompareBanner currentBand={feedback.overall_band ?? null} />
 
       {/* Word Count Analysis */}
       {feedback.word_count_feedback && (
