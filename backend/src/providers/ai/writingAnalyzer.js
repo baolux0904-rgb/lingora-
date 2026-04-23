@@ -11,8 +11,10 @@
 
 "use strict";
 
+const crypto = require("crypto");
 const OpenAI = require("openai");
 const { aggregateSamples } = require("./writingScoringMedian");
+const writingScoringCacheRepository = require("../../repositories/writingScoringCacheRepository");
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -132,6 +134,31 @@ function isValidBand(n) {
   return typeof n === "number" && n >= 0 && n <= 9;
 }
 
+// ---------------------------------------------------------------------------
+// Cache key helpers — both inputs are normalised so trivial whitespace
+// differences collapse onto the same key.
+// ---------------------------------------------------------------------------
+
+function normalize(text) {
+  return String(text || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function sha256(input) {
+  return crypto.createHash("sha256").update(input).digest("hex");
+}
+
+function computeEssayHash(essayText) {
+  return sha256(normalize(essayText));
+}
+
+function computeCacheKey(essayText, questionText, writingQuestionId) {
+  const essayHash = computeEssayHash(essayText);
+  // Prefer the stable prompt id; fall back to a hash of the prompt text so
+  // legacy paste-your-own-question submissions still cache coherently.
+  const promptSig = writingQuestionId ? `q:${writingQuestionId}` : `t:${sha256(normalize(questionText))}`;
+  return sha256(`${essayHash}:${promptSig}`);
+}
+
 /**
  * Validate the parsed JSON from the scoring response.
  * Returns true if the object has all required fields.
@@ -208,18 +235,57 @@ async function runSingleScoring(client, taskType, questionText, essayText) {
 /**
  * Analyze an IELTS essay and return stable scoring.
  *
- * Runs {@link SAMPLE_COUNT} (3) scoring calls in parallel and aggregates
- * them via median on every numeric band. Falls back to 2 samples if one
- * call fails and retries up to one failed call to stay at ≥2. Returns an
- * error only when fewer than 2 successful samples remain.
+ * Flow: cache lookup → on miss, fire {@link SAMPLE_COUNT} parallel scorings
+ * and aggregate via median on every numeric band. Falls back to 2 samples
+ * if one call fails and retries up to one failed call to stay at ≥2. Cache
+ * writes are best-effort — a DB hiccup never breaks the user's score.
  *
  * @param {string} taskType – 'task1' | 'task2'
  * @param {string} questionText
  * @param {string} essayText
- * @returns {Promise<object>} – validated scoring object (median-aggregated)
+ * @param {object} [opts]
+ * @param {string|null} [opts.writingQuestionId] – when present, used in the
+ *        cache key instead of hashing the prompt text
+ * @param {string|null} [opts.userId] – only for log context
+ * @returns {Promise<object>} – validated scoring object (median-aggregated or cached)
  * @throws {Error} – if OpenAI is unavailable or <2 samples succeed
  */
-async function analyzeEssay(taskType, questionText, essayText) {
+async function analyzeEssay(taskType, questionText, essayText, opts = {}) {
+  const { writingQuestionId = null, userId = null } = opts;
+
+  const essayHash = computeEssayHash(essayText);
+  const cacheKey = computeCacheKey(essayText, questionText, writingQuestionId);
+
+  // ── 1. Cache lookup ──
+  try {
+    const hit = await writingScoringCacheRepository.findByCacheKey(cacheKey);
+    if (hit && hit.scoring_result && typeof hit.scoring_result === "object") {
+      console.log(
+        JSON.stringify({
+          event: "scoring_cache_hit",
+          user_id: userId,
+          cache_key: cacheKey,
+          hit_count: hit.hit_count,
+          sample_count: hit.sample_count,
+        })
+      );
+      const cached = hit.scoring_result;
+      cached._meta = { sample_count: hit.sample_count, api_calls: 0, cached: true };
+      return cached;
+    }
+  } catch (err) {
+    // Corrupt row / DB hiccup → fall through to miss path; never crash the user.
+    console.warn(`[writing-ai] cache lookup failed: ${err.message}`);
+  }
+
+  console.log(
+    JSON.stringify({
+      event: "scoring_cache_miss",
+      user_id: userId,
+      cache_key: cacheKey,
+    })
+  );
+
   const client = getClient();
   if (!client) {
     throw new Error("OpenAI API key not configured — cannot analyze essay");
@@ -268,8 +334,32 @@ async function analyzeEssay(taskType, questionText, essayText) {
   console.log(
     `[writing-ai] status: OK — band ${aggregated.overall_band} from ${successes.length}/${apiCalls} samples`
   );
-  // Attach the sample count so the caller (service/cache writer) can record it.
-  aggregated._meta = { sample_count: successes.length, api_calls: apiCalls };
+  aggregated._meta = { sample_count: successes.length, api_calls: apiCalls, cached: false };
+
+  // ── 2. Cache write — best effort, never blocks the return value on failure ──
+  try {
+    const inserted = await writingScoringCacheRepository.insertEntry({
+      cacheKey,
+      essayHash,
+      writingQuestionId,
+      taskType,
+      scoringResult: aggregated,
+      sampleCount: successes.length,
+    });
+    console.log(
+      JSON.stringify({
+        event: "scoring_cache_write",
+        user_id: userId,
+        cache_key: cacheKey,
+        sample_count: successes.length,
+        api_calls: apiCalls,
+        inserted,
+      })
+    );
+  } catch (err) {
+    console.warn(`[writing-ai] cache write failed: ${err.message}`);
+  }
+
   return aggregated;
 }
 

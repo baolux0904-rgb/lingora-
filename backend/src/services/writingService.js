@@ -124,7 +124,10 @@ async function submitEssay(userId, role, isPro, { taskType, questionText, essayT
   const submissionId = submission.id;
   (async () => {
     try {
-      const result = await writingAnalyzer.analyzeEssay(taskType, questionText, essayText);
+      const result = await writingAnalyzer.analyzeEssay(taskType, questionText, essayText, {
+        writingQuestionId,
+        userId,
+      });
 
       await writingRepository.updateSubmissionResult(submissionId, {
         overallBand: result.overall_band,
