@@ -12,10 +12,20 @@ import FeedbackSheet from "@/components/FeedbackSheet";
 import WritingEssayHighlighted from "./WritingEssayHighlighted";
 import WritingCorrectionDrawer, { type WritingDrawerDetail } from "./WritingCorrectionDrawer";
 import WritingParagraphIcons from "./WritingParagraphIcons";
+import WritingSampleComparison from "./WritingSampleComparison";
+import WritingParaphraseChips from "./WritingParaphraseChips";
 import { bandColor } from "@/lib/bandColors";
-import type { WritingSubmission, WritingFeedback, WritingFeedbackCard, ParagraphAnalysis } from "@/lib/types";
+import type { WritingSubmission, WritingFeedback, WritingFeedbackCard, ParagraphAnalysis, WritingEssayType } from "@/lib/types";
 
-type ResultTab = "summary" | "highlight";
+type ResultTab = "summary" | "highlight" | "compare";
+
+const ESSAY_TYPE_LABEL: Record<WritingEssayType, string> = {
+  opinion: "Quan điểm",
+  discussion: "Thảo luận",
+  problem_solution: "Vấn đề & giải pháp",
+  advantages_disadvantages: "Ưu & nhược điểm",
+  two_part_question: "Câu hỏi 2 phần",
+};
 
 function normalize(s: string): string {
   return s.trim().replace(/\s+/g, " ").toLowerCase();
@@ -162,10 +172,18 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
         <div className="text-5xl font-bold mb-2" style={{ color }}>
           {overall.toFixed(1)}
         </div>
-        <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
-          {submission.task_type === "task1" ? "Task 1" : "Task 2"} &middot; {submission.word_count} words
+        <div className="text-xs flex items-center justify-center flex-wrap gap-2" style={{ color: "var(--color-text-tertiary)" }}>
+          <span>{submission.task_type === "task1" ? "Task 1" : "Task 2"} &middot; {submission.word_count} words</span>
+          {feedback.essay_type && feedback.essay_type !== null && ESSAY_TYPE_LABEL[feedback.essay_type] && (
+            <span
+              className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider text-white"
+              style={{ background: "#1B2B4B", letterSpacing: "0.1em" }}
+            >
+              Dạng bài: {ESSAY_TYPE_LABEL[feedback.essay_type]}
+            </span>
+          )}
           {feedback.language_detected && feedback.language_detected !== "en" && (
-            <span className="ml-2 px-1.5 py-0.5 rounded text-xs" style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B" }}>
+            <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B" }}>
               Language: {feedback.language_detected.toUpperCase()}
             </span>
           )}
@@ -201,6 +219,7 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
         {([
           { key: "summary",   label: "Tóm tắt" },
           { key: "highlight", label: "Highlight chi tiết" },
+          { key: "compare",   label: "So sánh mẫu" },
         ] as { key: ResultTab; label: string }[]).map((t) => {
           const active = activeTab === t.key;
           return (
@@ -244,7 +263,18 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
             <span style={{ color: "#00A896" }}>● từ vựng</span>
             <span style={{ color: "#F07167" }}>● liên kết</span>
           </div>
+
+          <WritingParaphraseChips suggestions={feedback.paraphrase_suggestions} />
         </div>
+      )}
+
+      {/* Compare tab — side-by-side vs sample band 7+ */}
+      {activeTab === "compare" && (
+        <WritingSampleComparison
+          userEssay={submission.essay_text}
+          sampleAnswer={feedback.sample_essay ?? ""}
+          userBand={feedback.overall_band}
+        />
       )}
 
       {/* Summary tab — original result layout */}
@@ -475,6 +505,7 @@ export default function WritingResult({ submission, onBack }: WritingResultProps
         open={drawerDetail !== null}
         detail={drawerDetail}
         onClose={() => setDrawerDetail(null)}
+        submissionId={submission.id}
       />
 
       <FeedbackSheet
