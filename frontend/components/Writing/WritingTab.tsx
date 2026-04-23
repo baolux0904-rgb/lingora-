@@ -122,7 +122,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
 
   // Result state
   const [activeSubmissionId, setActiveSubmissionId] = useState<string | null>(null);
-  const { submission, loading: resultLoading, polling } = useWritingResult(
+  const { submission, loading: resultLoading, polling, timedOut: resultTimedOut, refetch: refetchResult } = useWritingResult(
     phase === "pending" || phase === "result" ? activeSubmissionId : null
   );
 
@@ -809,7 +809,7 @@ export default function WritingTab({ onClose }: WritingTabProps) {
         )}
 
         {/* ── PENDING PHASE ── */}
-        {phase === "pending" && (
+        {phase === "pending" && !resultTimedOut && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div
               className="w-12 h-12 border-3 border-t-transparent rounded-full animate-spin"
@@ -827,6 +827,41 @@ export default function WritingTab({ onClose }: WritingTabProps) {
                   This usually takes 10-30 seconds
                 </p>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* ── PENDING PHASE — timeout after 40 attempts (120s) ── */}
+        {phase === "pending" && resultTimedOut && (
+          <div className="max-w-md mx-auto flex flex-col items-center justify-center py-16 gap-4">
+            <div
+              className="rounded-xl p-5 flex flex-col gap-3 w-full"
+              style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}
+            >
+              <div className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+                Việc chấm điểm mất nhiều thời gian hơn dự kiến
+              </div>
+              <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+                Bạn có thể thử lại hoặc quay lại sau ít phút — bài viết đã được nộp và sẽ tiếp tục chấm ở nền.
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => refetchResult()}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer"
+                  style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)" }}
+                >
+                  Thử lại
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNewEssay}
+                  className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
+                  style={{ background: "var(--color-bg-secondary)", color: "var(--color-text)", border: "1px solid var(--color-border)" }}
+                >
+                  Quay lại Writing
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -3,10 +3,14 @@
 /**
  * useWritingResult — polls a writing submission until completed or failed.
  *
- * Usage:
- *   const { submission, loading, error, polling } = useWritingResult(submissionId);
+ * Polling: fetches every POLL_INTERVAL_MS (3s) up to MAX_POLL_ATTEMPTS
+ * (40 attempts = 120s wall-clock). 40 covers two worst-case 60s scoring
+ * pipelines back-to-back, so cache misses that spike latency still
+ * surface a result instead of hanging the UI forever.
  *
- * Polling: if status === 'pending', fetches every 3s up to 20 times (60s max).
+ * After the cap, `status` flips to 'timeout'. The consumer can show an
+ * error card + retry button; calling refetch() resets the attempt
+ * counter and starts a fresh poll cycle.
  */
 
 import { useEffect, useState, useCallback, useRef } from "react";
@@ -14,13 +18,17 @@ import { getWritingResult } from "@/lib/api";
 import type { WritingSubmission } from "@/lib/types";
 
 const POLL_INTERVAL_MS = 3000;
-const MAX_POLL_ATTEMPTS = 20;
+const MAX_POLL_ATTEMPTS = 40;
+
+export type WritingResultStatus = "idle" | "loading" | "polling" | "completed" | "failed" | "timeout" | "error";
 
 interface UseWritingResultReturn {
   submission: WritingSubmission | null;
   loading: boolean;
   error: string | null;
   polling: boolean;
+  status: WritingResultStatus;
+  timedOut: boolean;
   refetch: () => void;
 }
 
@@ -29,6 +37,7 @@ export function useWritingResult(submissionId: string | null): UseWritingResultR
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
   const pollCount = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,10 +48,18 @@ export function useWritingResult(submissionId: string | null): UseWritingResultR
       const result = await getWritingResult(submissionId);
       setSubmission(result);
 
-      if (result.status === "pending" && pollCount.current < MAX_POLL_ATTEMPTS) {
-        setPolling(true);
-        pollCount.current += 1;
-        timerRef.current = setTimeout(fetchResult, POLL_INTERVAL_MS);
+      if (result.status === "pending") {
+        if (pollCount.current < MAX_POLL_ATTEMPTS) {
+          setPolling(true);
+          pollCount.current += 1;
+          timerRef.current = setTimeout(fetchResult, POLL_INTERVAL_MS);
+        } else {
+          // Exhausted the budget — surface timeout state for the retry UX.
+          setPolling(false);
+          setLoading(false);
+          setTimedOut(true);
+          console.warn(`[useWritingResult] timeout after ${MAX_POLL_ATTEMPTS} attempts for submission ${submissionId}`);
+        }
       } else {
         setPolling(false);
         setLoading(false);
@@ -62,6 +79,7 @@ export function useWritingResult(submissionId: string | null): UseWritingResultR
     setError(null);
     setPolling(false);
     setSubmission(null);
+    setTimedOut(false);
 
     fetchResult();
 
@@ -74,8 +92,19 @@ export function useWritingResult(submissionId: string | null): UseWritingResultR
     pollCount.current = 0;
     setLoading(true);
     setError(null);
+    setTimedOut(false);
     fetchResult();
   }, [fetchResult]);
 
-  return { submission, loading, error, polling, refetch };
+  const status: WritingResultStatus = (() => {
+    if (error) return "error";
+    if (timedOut) return "timeout";
+    if (submission?.status === "completed") return "completed";
+    if (submission?.status === "failed") return "failed";
+    if (polling) return "polling";
+    if (loading) return "loading";
+    return "idle";
+  })();
+
+  return { submission, loading, error, polling, status, timedOut, refetch };
 }
