@@ -445,10 +445,26 @@ export interface WritingCriteria {
   feedback: string;
 }
 
+export type WritingErrorType = 'grammar' | 'vocabulary' | 'coherence';
+
 export interface SentenceCorrection {
   original: string;
   corrected: string;
   explanation: string;
+  error_type?: WritingErrorType;
+  sentence_index?: number;
+}
+
+export type ParagraphIconType =
+  | 'coherence'
+  | 'band_upgrade'
+  | 'good_structure'
+  | 'task_response'
+  | 'lexical_highlight';
+
+export interface ParagraphIcon {
+  type: ParagraphIconType;
+  note: string;
 }
 
 export interface WritingFeedbackCard {
@@ -465,6 +481,7 @@ export interface ParagraphAnalysis {
   score: 'strong' | 'adequate' | 'weak';
   feedback: string;
   highlight_phrase?: string;
+  icons?: ParagraphIcon[];
 }
 
 export interface WordCountFeedback {
