@@ -69,11 +69,16 @@ async function insertIfAbsent(client, row) {
   );
   if (existing.rowCount > 0) return { inserted: false };
 
+  // NOTE: review_status is set explicitly instead of relying on the column
+  // default — migration 0032 stored the default as the literal string
+  // "'approved'" (with quotes) which violates its own check constraint.
+  // Passing the value here avoids the broken default.
   await client.query(
     `INSERT INTO writing_questions
        (task_type, chart_type, essay_type, topic, difficulty,
-        title, question_text, chart_data, sample_band_7_answer, supplementary)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        title, question_text, chart_data, sample_band_7_answer, supplementary,
+        review_status)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
     [
       row.task_type,
       row.chart_type,
@@ -85,6 +90,7 @@ async function insertIfAbsent(client, row) {
       row.chart_data === null ? null : JSON.stringify(row.chart_data),
       row.sample_band_7_answer,
       JSON.stringify(row.supplementary),
+      "approved",
     ]
   );
   return { inserted: true };
