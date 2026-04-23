@@ -95,7 +95,9 @@ export default function BattleTab() {
 
   const profile = data?.profile;
   const tier = profile?.current_rank_tier || "iron";
-  const rankCfg = RANK_CONFIG[tier];
+  // Defensive — backend has been observed returning tier strings outside the
+  // BattleRankTier enum. Matches the pattern at BattleLeaderboard:95 + BattleTab:399.
+  const rankCfg = RANK_CONFIG[tier] || RANK_CONFIG.iron;
   const winRate = profile
     ? Math.round(profile.wins / Math.max(1, profile.wins + profile.losses) * 100)
     : 0;
