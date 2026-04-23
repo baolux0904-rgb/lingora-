@@ -116,6 +116,44 @@ function AppHomeContent() {
 
   const displayStreak = gamification?.streak.currentStreak ?? stats.streak;
 
+  // PR2 — deep-link from new routes (/exam, /home) via ?tab=X and optional ?scenario=Y.
+  // Runs once on mount; navigation within legacy continues to mutate state directly.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const scenarioId = searchParams.get("scenario");
+    if (!tab) return;
+
+    const tabToNav: Record<string, string> = {
+      speaking: "learn-speaking",
+      writing:  "learn-writing",
+      reading:  "learn-reading",
+      listening:"learn-listening",
+      grammar:  "learn-grammar",
+      exam:     "exam",
+      scenarios:"exam",
+    };
+    const navId = tabToNav[tab];
+    if (!navId) return;
+
+    if (navId === "learn-writing")  { setWritingActive(true);  setActiveTab(navId); }
+    else if (navId === "learn-reading") { setReadingActive(true); setActiveTab(navId); }
+    else { setActiveTab(navId); }
+
+    if (scenarioId && (navId === "learn-speaking" || navId === "exam")) {
+      getScenarios()
+        .then((list) => {
+          const match = list.find((s) => s.id === scenarioId);
+          if (!match) return;
+          if (match.exam_type === "ielts") setIeltsScenario(match);
+          else setActiveScenario(match);
+        })
+        .catch(() => {});
+    }
+    // Intentionally read params only on mount to avoid re-triggering overlays
+    // while the user interacts with the tab UI.
+  }, []);
+
   // Fetch battle rank tier for sidebar display
   useEffect(() => {
     if (!user) return;

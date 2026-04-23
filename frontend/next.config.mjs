@@ -47,6 +47,28 @@ const nextConfig = {
       { source: "/health",        destination: `${BACKEND_URL}/health` },
     ];
   },
+
+  // ------------------------------------------------------------------
+  // Legacy /home?tab=* URLs → dedicated routes (PR2).
+  // Skill tabs (writing/reading/speaking/listening/grammar/scenarios)
+  // redirect to /home-legacy temporarily (permanent: false) until PR5
+  // migrates their sessions to real routes alongside Mode Selection.
+  // ------------------------------------------------------------------
+  async redirects() {
+    return [
+      { source: "/home", has: [{ type: "query", key: "tab", value: "exam" }],     destination: "/exam",    permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "battle" }],   destination: "/battle",  permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "social" }],   destination: "/friends", permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "friends" }],  destination: "/friends", permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "profile" }],  destination: "/profile", permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "writing" }],   destination: "/home-legacy?tab=writing",   permanent: false },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "reading" }],   destination: "/home-legacy?tab=reading",   permanent: false },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "speaking" }],  destination: "/home-legacy?tab=speaking",  permanent: false },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "listening" }], destination: "/home-legacy?tab=listening", permanent: false },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "grammar" }],   destination: "/home-legacy?tab=grammar",   permanent: false },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "scenarios" }], destination: "/home-legacy?tab=scenarios", permanent: false },
+    ];
+  },
 };
 
 // Wrap with Sentry only when NEXT_PUBLIC_SENTRY_DSN is set so that
