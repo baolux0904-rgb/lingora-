@@ -56,17 +56,25 @@ const nextConfig = {
   // ------------------------------------------------------------------
   async redirects() {
     return [
+      // Top-level tabs → dedicated routes.
       { source: "/home", has: [{ type: "query", key: "tab", value: "exam" }],     destination: "/exam",    permanent: true },
       { source: "/home", has: [{ type: "query", key: "tab", value: "battle" }],   destination: "/battle",  permanent: true },
       { source: "/home", has: [{ type: "query", key: "tab", value: "social" }],   destination: "/friends", permanent: true },
       { source: "/home", has: [{ type: "query", key: "tab", value: "friends" }],  destination: "/friends", permanent: true },
       { source: "/home", has: [{ type: "query", key: "tab", value: "profile" }],  destination: "/profile", permanent: true },
-      { source: "/home", has: [{ type: "query", key: "tab", value: "writing" }],   destination: "/home-legacy?tab=writing",   permanent: false },
-      { source: "/home", has: [{ type: "query", key: "tab", value: "reading" }],   destination: "/home-legacy?tab=reading",   permanent: false },
-      { source: "/home", has: [{ type: "query", key: "tab", value: "speaking" }],  destination: "/home-legacy?tab=speaking",  permanent: false },
-      { source: "/home", has: [{ type: "query", key: "tab", value: "listening" }], destination: "/home-legacy?tab=listening", permanent: false },
-      { source: "/home", has: [{ type: "query", key: "tab", value: "grammar" }],   destination: "/home-legacy?tab=grammar",   permanent: false },
-      { source: "/home", has: [{ type: "query", key: "tab", value: "scenarios" }], destination: "/home-legacy?tab=scenarios", permanent: false },
+      // Skill tabs promoted to (app) routes in PR3 (writing/reading/listening Hub; grammar; scenarios).
+      { source: "/home", has: [{ type: "query", key: "tab", value: "writing" }],   destination: "/exam/writing",    permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "reading" }],   destination: "/exam/reading",    permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "listening" }], destination: "/exam/listening",  permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "grammar" }],   destination: "/learn/grammar",   permanent: true },
+      { source: "/home", has: [{ type: "query", key: "tab", value: "scenarios" }], destination: "/learn/scenarios", permanent: true },
+      // Speaking sessions still live in /home-legacy until PR5 (multi-turn state persistence).
+      { source: "/home", has: [{ type: "query", key: "tab", value: "speaking" }],  destination: "/home-legacy?tab=speaking", permanent: false },
+      // Also redirect /home-legacy Hub/listing tabs to the new (app) routes.
+      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "writing" }],   destination: "/exam/writing",    permanent: true },
+      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "reading" }],   destination: "/exam/reading",    permanent: true },
+      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "listening" }], destination: "/exam/listening",  permanent: true },
+      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "grammar" }],   destination: "/learn/grammar",   permanent: true },
     ];
   },
 };

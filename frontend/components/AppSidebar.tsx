@@ -1,14 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Mascot from "@/components/ui/Mascot";
 import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./Social/NotificationBell";
 import useSound from "@/hooks/useSound";
 import { useReward } from "@/contexts/RewardContext";
-import { itemsForSurface } from "@/config/nav";
+import { itemsForSurface, parentGroupId, type NavItem } from "@/config/nav";
 import type { GamificationData } from "@/lib/types";
 import type { BattleRankTier } from "@/lib/types";
+
+const EXPAND_STORAGE_KEY = "lingona.sidebar.expandedGroups";
+const DEFAULT_EXPANDED = ["exam", "learn"];
+
+function loadExpanded(): Set<string> {
+  if (typeof window === "undefined") return new Set(DEFAULT_EXPANDED);
+  try {
+    const raw = window.localStorage.getItem(EXPAND_STORAGE_KEY);
+    if (!raw) return new Set(DEFAULT_EXPANDED);
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr)) return new Set(arr.filter((s) => typeof s === "string"));
+  } catch {}
+  return new Set(DEFAULT_EXPANDED);
+}
+
+function saveExpanded(set: Set<string>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(EXPAND_STORAGE_KEY, JSON.stringify(Array.from(set)));
+  } catch {}
+}
 
 /* ── Rank config ── */
 const RANK_CONFIG: Record<string, { label: string; color: string; glow: string }> = {
@@ -23,7 +44,6 @@ const RANK_CONFIG: Record<string, { label: string; color: string; glow: string }
 
 /* Nav items now sourced from @/config/nav (shared with BottomNav). */
 const SIDEBAR_ITEMS = itemsForSurface("sidebar");
-const LEARN_SKILLS = SIDEBAR_ITEMS.find((i) => i.id === "learn")?.children ?? [];
 
 interface AppSidebarProps {
   active: string;
@@ -38,9 +58,20 @@ interface AppSidebarProps {
 export default function AppSidebar({ active, onChange, gamification, rankTier = "iron", userName, displayStreak }: AppSidebarProps) {
   const { play } = useSound();
   const { shields } = useReward();
-  const [learnOpen, setLearnOpen] = useState(
-    active.startsWith("learn") || active === "exam"
-  );
+  const [expanded, setExpanded] = useState<Set<string>>(loadExpanded);
+
+  // Auto-expand the parent of the active child whenever active changes.
+  const activeParent = parentGroupId(active);
+  useEffect(() => {
+    if (!activeParent) return;
+    setExpanded((prev) => {
+      if (prev.has(activeParent)) return prev;
+      const next = new Set(prev);
+      next.add(activeParent);
+      saveExpanded(next);
+      return next;
+    });
+  }, [activeParent]);
 
   const xp = gamification?.xp;
   const streak = gamification?.streak;
@@ -51,25 +82,41 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
     ? userName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "?";
 
-  const handleNav = (id: string) => {
-    play("click", 0.2);
-    if (id === "learn") {
-      setLearnOpen((v) => !v);
-      if (!active.startsWith("learn") && active !== "exam") {
-        onChange("exam");
-      }
-    } else {
-      onChange(id);
-    }
-  };
-
-  const handleSubNav = (id: string) => {
+  const toggleGroup = (id: string) => {
     play("click", 0.15);
-    onChange(id);
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      saveExpanded(next);
+      return next;
+    });
   };
 
-  /* Determine which top-level item is "active" */
-  const resolvedActive = active.startsWith("learn") || active === "exam" ? "learn" : active;
+  const handleRowClick = (item: NavItem) => {
+    play("click", 0.2);
+    if (item.href) {
+      onChange(item.id);
+      return;
+    }
+    if (item.children && item.children.length > 0) {
+      toggleGroup(item.id);
+      return;
+    }
+    onChange(item.id);
+  };
+
+  const handleChildClick = (item: NavItem) => {
+    play("click", 0.15);
+    onChange(item.id);
+  };
+
+  /** Top-level item is "active" when active === item.id OR active is one of its children. */
+  const isTopActive = (item: NavItem) => {
+    if (active === item.id) return true;
+    if (activeParent && activeParent === item.id) return true;
+    return false;
+  };
 
   return (
     <aside
@@ -98,27 +145,31 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
 
       {/* ── Navigation ── */}
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-        {SIDEBAR_ITEMS.map(({ id, label, icon: Icon }) => {
-          const isActive = resolvedActive === id;
+        {SIDEBAR_ITEMS.map((item) => {
+          const { id, label, icon: Icon, children } = item;
+          const hasChildren = !!children && children.length > 0;
+          const isActive = isTopActive(item);
+          const isExpanded = expanded.has(id);
+          const isSelfActive = active === id;
 
           return (
             <div key={id}>
               <button
-                onClick={() => handleNav(id)}
+                onClick={() => handleRowClick(item)}
                 className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer"
                 style={{
-                  backgroundColor: isActive ? "var(--sidebar-item-active-bg)" : "transparent",
+                  backgroundColor: isSelfActive ? "var(--sidebar-item-active-bg)" : "transparent",
                   color: isActive ? "var(--sidebar-active-indicator)" : "var(--color-text-secondary)",
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+                  if (!isSelfActive) e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive) e.currentTarget.style.backgroundColor = "transparent";
+                  if (!isSelfActive) e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
                 {/* Active left bar */}
-                {isActive && (
+                {isSelfActive && (
                   <span
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full sidebar-nav-glow"
                     style={{ backgroundColor: "var(--sidebar-active-indicator)" }}
@@ -130,45 +181,57 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
                 </span>
                 <span className="text-sm font-medium flex-1">{label}</span>
 
-                {/* Learn chevron */}
-                {id === "learn" && (
-                  <svg
-                    width={14} height={14} viewBox="0 0 24 24" fill="none"
-                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                    className="transition-transform"
-                    style={{ transform: learnOpen ? "rotate(90deg)" : "rotate(0deg)", opacity: 0.5 }}
+                {/* Group chevron — toggles expand independently of row navigation */}
+                {hasChildren && (
+                  <span
+                    role={item.href ? "button" : undefined}
+                    onClick={(e) => {
+                      if (!item.href) return;
+                      // When the row also navigates, the chevron is a secondary target.
+                      e.stopPropagation();
+                      toggleGroup(id);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center rounded hover:bg-black/5 dark:hover:bg-white/5"
                   >
-                    <polyline points="9 18 15 12 9 6" />
-                  </svg>
+                    <svg
+                      width={14} height={14} viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      className="transition-transform"
+                      style={{ transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)", opacity: 0.5 }}
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
+                  </span>
                 )}
               </button>
 
-              {/* ── Learn sub-menu ── */}
-              {id === "learn" && learnOpen && (
+              {/* Group children */}
+              {hasChildren && isExpanded && (
                 <div className="animate-sub-nav ml-5 mt-0.5 mb-1 pl-3 space-y-0.5"
                   style={{ borderLeft: "1px solid var(--sidebar-border)" }}
                 >
-                  {LEARN_SKILLS.map(({ id: subId, label: subLabel, icon: SubIcon }) => {
-                    const subActive = active === subId;
+                  {children!.map((child) => {
+                    const ChildIcon = child.icon;
+                    const childActive = active === child.id;
                     return (
                       <button
-                        key={subId}
-                        onClick={() => handleSubNav(subId)}
+                        key={child.id}
+                        onClick={() => handleChildClick(child)}
                         className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors cursor-pointer"
                         style={{
-                          backgroundColor: subActive ? "var(--sidebar-item-active-bg)" : "transparent",
-                          color: subActive ? "var(--sidebar-active-indicator)" : "var(--color-text-tertiary)",
+                          backgroundColor: childActive ? "var(--sidebar-item-active-bg)" : "transparent",
+                          color: childActive ? "var(--sidebar-active-indicator)" : "var(--color-text-tertiary)",
                           fontSize: "13px",
                         }}
                         onMouseEnter={(e) => {
-                          if (!subActive) e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
+                          if (!childActive) e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)";
                         }}
                         onMouseLeave={(e) => {
-                          if (!subActive) e.currentTarget.style.backgroundColor = "transparent";
+                          if (!childActive) e.currentTarget.style.backgroundColor = "transparent";
                         }}
                       >
-                        <SubIcon size={16} />
-                        <span className="font-medium">{subLabel}</span>
+                        <ChildIcon size={16} />
+                        <span className="font-medium">{child.label}</span>
                       </button>
                     );
                   })}

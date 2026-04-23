@@ -24,13 +24,13 @@ export default function ExamPage() {
           onStartIelts={(s: Scenario) =>
             router.push(`/home-legacy?tab=speaking&scenario=${s.id}`)
           }
-          onStartWriting={() => router.push("/home-legacy?tab=writing")}
-          onStartReading={() => router.push("/home-legacy?tab=reading")}
+          onStartWriting={() => router.push("/exam/writing")}
+          onStartReading={() => router.push("/exam/reading")}
           onScenarioSelect={(s: Scenario) => {
             if (s.exam_type === "ielts") {
               router.push(`/home-legacy?tab=speaking&scenario=${s.id}`);
             } else {
-              router.push(`/home-legacy?tab=speaking&scenario=${s.id}`);
+              router.push(`/home-legacy?tab=scenarios&scenario=${s.id}`);
             }
           }}
         />
