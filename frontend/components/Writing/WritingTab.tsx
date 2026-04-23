@@ -20,6 +20,7 @@ import WritingHistory from "./WritingHistory";
 import WritingTimerBar from "./WritingTimerBar";
 import WritingNotesModal from "./WritingNotesModal";
 import WritingPromptSelector from "./WritingPromptSelector";
+import WritingChartRenderer from "./WritingChartRenderer";
 import type { WritingTaskType, WritingQuestionDetail } from "@/lib/types";
 
 interface WritingTabProps {
@@ -513,23 +514,12 @@ export default function WritingTab({ onClose }: WritingTabProps) {
                   </p>
                 )}
 
-                {/* Task 1 chart placeholder — real chart rendering arrives in Item 4 */}
-                {taskType === "task1" && (
-                  <div
-                    className="rounded-lg flex flex-col items-center justify-center gap-2 py-8"
-                    style={{
-                      background: "var(--color-bg-secondary)",
-                      border: "1px dashed var(--color-border)",
-                      minHeight: "160px",
-                    }}
-                  >
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-tertiary)" }}>
-                      <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
-                    </svg>
-                    <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
-                      Chart / visual data will appear here
-                    </p>
-                  </div>
+                {/* Task 1 chart — rendered from writing_questions.chart_data */}
+                {taskType === "task1" && activePrompt.chart_type && activePrompt.chart_data != null && (
+                  <WritingChartRenderer
+                    chartType={activePrompt.chart_type}
+                    data={activePrompt.chart_data}
+                  />
                 )}
 
                 <div
