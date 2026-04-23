@@ -73,6 +73,44 @@ async function markExpired(runId, totalTimeSeconds) {
   return result.rows[0] ?? null;
 }
 
+/**
+ * Find `in_progress` runs whose started_at is older than `cutoffHours`.
+ * Returns a lightweight shape with both submission ids + started_at so the
+ * expiry cron can decide per-row whether to finalize (both tasks done)
+ * or mark expired (0 or 1 task submitted).
+ */
+async function listOverdueInProgress(cutoffHours) {
+  const result = await query(
+    `SELECT id, user_id, task1_submission_id, task2_submission_id, started_at
+       FROM writing_full_tests
+      WHERE status = 'in_progress'
+        AND started_at < now() - make_interval(hours => $1)
+      ORDER BY started_at ASC`,
+    [cutoffHours]
+  );
+  return result.rows;
+}
+
+/**
+ * Most recent in_progress run for a user — powers the "resume Full Test"
+ * banner. Returns null when the user has nothing pending.
+ */
+async function getInProgressForUser(userId) {
+  const result = await query(
+    `SELECT ft.*,
+            s1.id AS task1_submission_present,
+            s2.id AS task2_submission_present
+       FROM writing_full_tests ft
+       LEFT JOIN writing_submissions s1 ON s1.id = ft.task1_submission_id
+       LEFT JOIN writing_submissions s2 ON s2.id = ft.task2_submission_id
+      WHERE ft.user_id = $1 AND ft.status = 'in_progress'
+      ORDER BY ft.started_at DESC
+      LIMIT 1`,
+    [userId]
+  );
+  return result.rows[0] ?? null;
+}
+
 async function listForUser(userId, limit = 10, offset = 0) {
   const result = await query(
     `SELECT ft.id, ft.status, ft.started_at, ft.submitted_at,
@@ -98,4 +136,6 @@ module.exports = {
   finalizeRun,
   markExpired,
   listForUser,
+  listOverdueInProgress,
+  getInProgressForUser,
 };

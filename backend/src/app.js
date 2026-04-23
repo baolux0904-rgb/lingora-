@@ -154,6 +154,10 @@ function createApp() {
   if (process.env.NODE_ENV !== "test") {
     const { scheduleEviction } = require("./jobs/scoringCacheEviction");
     app._scoringCacheEvictionTask = scheduleEviction();
+
+    // ── Writing Full Test expiry sweep (hourly at :05 UTC) ──
+    const { scheduleExpiry } = require("./jobs/fullTestExpiry");
+    app._fullTestExpiryTask = scheduleExpiry();
   }
 
   // ── Mock storage route (development only) ──
