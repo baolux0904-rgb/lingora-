@@ -45,6 +45,8 @@ RULES:
 - Limit feedback_cards to max 5 most important issues
 - Always include at least 1 strength card in feedback_cards
 - Keep top_3_priorities actionable and specific to THIS essay
+- For every sentence_corrections entry, tag error_type as one of: grammar (tense, agreement, articles, word form), vocabulary (wrong word choice, repetition, awkward collocation), coherence (transitions, referencing, paragraph flow)
+- For each paragraph, include 0-3 icons chosen from: coherence (transition/flow issue), band_upgrade (specific lift to push band up), good_structure (the paragraph is well-organised), task_response (directly addresses the task prompt), lexical_highlight (notable vocabulary use or misuse). One short note per icon.
 
 OUTPUT: Valid JSON only, no markdown, no extra text.
 {
@@ -60,7 +62,12 @@ OUTPUT: Valid JSON only, no markdown, no extra text.
   "weaknesses": ["string"],
   "improvements": ["string"],
   "sentence_corrections": [
-    { "original": "string", "corrected": "string", "explanation": "string" }
+    {
+      "original": "string (the exact sentence from the essay)",
+      "corrected": "string",
+      "explanation": "string",
+      "error_type": "grammar | vocabulary | coherence"
+    }
   ],
   "sample_essay": "string",
   "feedback_cards": [
@@ -89,7 +96,13 @@ OUTPUT: Valid JSON only, no markdown, no extra text.
       "type": "introduction|body|conclusion",
       "score": "strong|adequate|weak",
       "feedback": "specific feedback for this paragraph",
-      "highlight_phrase": "key phrase from this paragraph"
+      "highlight_phrase": "key phrase from this paragraph",
+      "icons": [
+        {
+          "type": "coherence | band_upgrade | good_structure | task_response | lexical_highlight",
+          "note": "one short sentence explaining why this icon applies here"
+        }
+      ]
     }
   ]
 }`;
