@@ -37,10 +37,36 @@ router.get("/questions/:id", verifyToken, writingController.getQuestion);
 // POST /api/v1/writing/questions/:id/attempt — mark a prompt as opened
 router.post("/questions/:id/attempt", verifyToken, writingController.recordAttempt);
 
-// GET /api/v1/writing/full-test/start — auto-assigned Task 1 + Task 2 pair
+// ---------------------------------------------------------------------------
+// Full Test (migration 0036)
+// ---------------------------------------------------------------------------
+
+// GET /api/v1/writing/full-test/start — auto-assigned pair + create run
 router.get("/full-test/start", verifyToken, writingController.startFullTest);
+
+// POST /api/v1/writing/full-test/:id/submit-task — score one task of the run
+router.post("/full-test/:id/submit-task", verifyToken, ...writingLimiters, writingController.submitFullTestTask);
+
+// POST /api/v1/writing/full-test/:id/finalize — compute weighted overall band
+router.post("/full-test/:id/finalize", verifyToken, writingController.finalizeFullTest);
+
+// GET /api/v1/writing/full-tests — list past runs
+router.get("/full-tests", verifyToken, writingController.listFullTests);
+
+// GET /api/v1/writing/full-tests/:id — full aggregated result
+router.get("/full-tests/:id", verifyToken, writingController.getFullTest);
+
+// ---------------------------------------------------------------------------
+// Progress + analytics
+// ---------------------------------------------------------------------------
 
 // GET /api/v1/writing/submissions/:id/progress-context — Style F feedback source
 router.get("/submissions/:id/progress-context", verifyToken, writingController.getProgressContext);
+
+// GET /api/v1/writing/analytics/trend?range=7d|30d|90d&breakdown=overall|criteria|by_task
+router.get("/analytics/trend", verifyToken, writingController.getTrend);
+
+// GET /api/v1/writing/analytics/self-compare — month-over-month diff
+router.get("/analytics/self-compare", verifyToken, writingController.getSelfCompare);
 
 module.exports = router;

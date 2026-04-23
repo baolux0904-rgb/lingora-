@@ -8,6 +8,7 @@
 const writingService = require("../services/writingService");
 const writingQuestionsService = require("../services/writingQuestionsService");
 const writingProgressService = require("../services/writingProgressService");
+const writingFullTestService = require("../services/writingFullTestService");
 const writingRepository = require("../repositories/writingRepository");
 const { sendSuccess, sendError } = require("../response");
 
@@ -212,8 +213,101 @@ async function recordAttempt(req, res, next) {
 
 async function startFullTest(req, res, next) {
   try {
-    const pair = await writingQuestionsService.startFullTest();
-    return sendSuccess(res, { data: pair });
+    const userId = req.user.id;
+    const run = await writingFullTestService.start(userId);
+    return sendSuccess(res, { data: run, status: 201, message: "Full test started" });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/writing/full-test/:id/submit-task
+// ---------------------------------------------------------------------------
+
+async function submitFullTestTask(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const role = req.user.role;
+    const isPro = req.user.is_pro === true;
+    const { id } = req.params;
+    if (!UUID_RE.test(id)) {
+      return sendError(res, { status: 400, message: "Valid full-test id (UUID) is required" });
+    }
+    const { taskType, questionText, essayText, writingQuestionId } = req.body;
+    if (!taskType || !["task1", "task2"].includes(taskType)) {
+      return sendError(res, { status: 400, message: "taskType must be 'task1' or 'task2'" });
+    }
+    if (!questionText || typeof questionText !== "string" || !questionText.trim()) {
+      return sendError(res, { status: 400, message: "questionText is required" });
+    }
+    if (!essayText || typeof essayText !== "string" || !essayText.trim()) {
+      return sendError(res, { status: 400, message: "essayText is required" });
+    }
+    if (writingQuestionId !== undefined && writingQuestionId !== null && !UUID_RE.test(writingQuestionId)) {
+      return sendError(res, { status: 400, message: "writingQuestionId must be a valid UUID" });
+    }
+    const result = await writingFullTestService.submitTask(userId, id, {
+      taskType,
+      questionText: questionText.trim(),
+      essayText: essayText.trim(),
+      writingQuestionId: writingQuestionId || null,
+      role,
+      isPro,
+    });
+    return sendSuccess(res, { data: result, status: 201 });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// POST /api/v1/writing/full-test/:id/finalize
+// ---------------------------------------------------------------------------
+
+async function finalizeFullTest(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    if (!UUID_RE.test(id)) {
+      return sendError(res, { status: 400, message: "Valid full-test id (UUID) is required" });
+    }
+    const run = await writingFullTestService.finalize(userId, id);
+    return sendSuccess(res, { data: { full_test: run } });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/writing/full-tests/:id
+// ---------------------------------------------------------------------------
+
+async function getFullTest(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    if (!UUID_RE.test(id)) {
+      return sendError(res, { status: 400, message: "Valid full-test id (UUID) is required" });
+    }
+    const run = await writingFullTestService.getRun(userId, id);
+    return sendSuccess(res, { data: run });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/writing/full-tests
+// ---------------------------------------------------------------------------
+
+async function listFullTests(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const data = await writingFullTestService.listRuns(userId, page, limit);
+    return sendSuccess(res, { data });
   } catch (err) {
     next(err);
   }
@@ -254,6 +348,42 @@ async function getProgressContext(req, res, next) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// GET /api/v1/writing/analytics/trend
+// ---------------------------------------------------------------------------
+
+async function getTrend(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const range = ["7d", "30d", "90d"].includes(req.query.range) ? req.query.range : "30d";
+    const breakdown = ["overall", "criteria", "by_task"].includes(req.query.breakdown)
+      ? req.query.breakdown
+      : "overall";
+    const writingAnalyticsService = require("../services/writingAnalyticsService");
+    const data = await writingAnalyticsService.getTrend(userId, range, breakdown);
+    res.set("Cache-Control", "private, max-age=600");
+    return sendSuccess(res, { data });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GET /api/v1/writing/analytics/self-compare
+// ---------------------------------------------------------------------------
+
+async function getSelfCompare(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const writingAnalyticsService = require("../services/writingAnalyticsService");
+    const data = await writingAnalyticsService.getSelfCompare(userId);
+    res.set("Cache-Control", "private, max-age=3600");
+    return sendSuccess(res, { data });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   submitEssay,
   getResult,
@@ -263,5 +393,11 @@ module.exports = {
   getQuestion,
   recordAttempt,
   startFullTest,
+  submitFullTestTask,
+  finalizeFullTest,
+  getFullTest,
+  listFullTests,
   getProgressContext,
+  getTrend,
+  getSelfCompare,
 };
