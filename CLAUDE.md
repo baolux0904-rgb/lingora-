@@ -353,6 +353,52 @@ Listening feature, Full Test Mode (all 4 skills), team Battle V2, Exam tab redes
 
 ---
 
+## 10.5. Adding npm packages to backend (Railway-safe workflow)
+
+Railway builds `backend/` in isolation. `npm ci` inside the Railway build context cannot see the workspace root `package-lock.json` — backend needs its OWN standalone lock file. A plain `npm install` from backend/ writes the tree into the ROOT lock (workspace behavior) and leaves `backend/package-lock.json` stale, so Railway fails with EUSAGE even though local tests pass.
+
+**Mandatory sequence when adding, upgrading, or removing any backend dep:**
+
+```bash
+# 1. Add/upgrade/remove dep normally
+cd backend
+npm install --save[-dev] <package>        # or: npm uninstall <package>
+
+# 2. Regenerate backend-only lock (CRITICAL — do not skip)
+rm -f package-lock.json
+npm install --package-lock-only --no-workspaces
+
+# 3. Verify dep in backend lock
+grep "<package>" package-lock.json | head -3
+
+# 4. Stage both root lock (if changed) AND backend lock
+cd ..
+git add package-lock.json backend/package-lock.json backend/package.json
+```
+
+**Silent-failure mode:** skip step 2 → local tests pass, workspace install succeeds, commit looks clean. Only Railway catches it:
+
+```
+npm error Missing: <package>@<version> from lock file
+npm error `npm ci` can only install packages when your package.json and
+         package-lock.json ... are in sync.
+Build Failed: build daemon returned an error
+```
+
+**When this rule applies**
+- Any `npm install` / `npm uninstall` touching `backend/package.json` (dependencies OR devDependencies — both break Railway `npm ci`).
+- Version bumps of existing backend deps.
+
+**When this rule does NOT apply**
+- Frontend-only changes (`frontend/package.json`).
+- Root workspace tooling (rare — ask first).
+- Reading/running existing scripts without modifying deps.
+
+**Historical incident**
+- 2026-04-24 commit `58a7dd1` added `socket.io-client` devDep for Socket.IO presence smoke test. Railway failed EUSAGE. Fixed by `fc994b0` generating `backend/package-lock.json` standalone with `--no-workspaces`.
+
+---
+
 ## 11. Folder Structure (top-level only)
 
 ```
