@@ -200,6 +200,44 @@ async function apiPostAuth<T>(path: string, body: unknown): Promise<T> {
 }
 
 /**
+ * Authenticated PATCH.
+ * Same 401-refresh dance as POST; added in PR8a for partial-update endpoints
+ * (e.g. /users/preferences).
+ */
+async function apiPatchAuth<T>(path: string, body: unknown): Promise<T> {
+  const makeReq = (token: string | null) =>
+    fetch(`${BASE_URL}${path}`, {
+      method:      "PATCH",
+      headers:     authHeaders(token),
+      body:        JSON.stringify(body),
+      credentials: "include",
+      cache:       "no-store",
+    });
+
+  const initialToken = useAuthStore.getState().accessToken;
+  let res = await makeReq(initialToken);
+
+  if (res.status === 401) {
+    const ok = await tryRefresh();
+    if (!ok) {
+      useAuthStore.getState().clearAuth();
+      throw new Error(
+        initialToken
+          ? "Your session timed out — let's pick up where you left off"
+          : "Please sign in to continue."
+      );
+    }
+    res = await makeReq(useAuthStore.getState().accessToken);
+  }
+
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((json as { message?: string }).message ?? `We couldn't complete that request. Give it another try?`);
+  }
+  return (json as { data: T }).data;
+}
+
+/**
  * Authenticated DELETE.
  * Attaches the current access token, retries once after a silent refresh on 401.
  */
@@ -507,6 +545,32 @@ export async function startProTrial(): Promise<{ trial_expires_at: string; is_pr
 
 export async function upgradeToPro(): Promise<{ is_pro: boolean }> {
   return apiPostAuth<{ is_pro: boolean }>("/users/upgrade", {});
+}
+
+// ---------------------------------------------------------------------------
+// PR8a — Subscription detail + preferences (settings page)
+// ---------------------------------------------------------------------------
+
+/** GET /users/subscription — full tier/expiry/auto-renew detail. */
+export async function getSubscription(): Promise<import("./types").UserSubscription> {
+  return apiFetchAuth<import("./types").UserSubscription>("/users/subscription");
+}
+
+/** POST /users/subscription/toggle-renew — flip auto_renew flag; returns updated subscription. */
+export async function toggleAutoRenew(): Promise<import("./types").UserSubscription> {
+  return apiPostAuth<import("./types").UserSubscription>("/users/subscription/toggle-renew", {});
+}
+
+/** GET /users/preferences — may return an empty object for new users. */
+export async function getPreferences(): Promise<import("./types").UserPreferences> {
+  return apiFetchAuth<import("./types").UserPreferences>("/users/preferences");
+}
+
+/** PATCH /users/preferences — partial merge; 400 on unknown keys / out-of-range values. */
+export async function updatePreferences(
+  patch: import("./types").UserPreferences,
+): Promise<import("./types").UserPreferences> {
+  return apiPatchAuth<import("./types").UserPreferences>("/users/preferences", patch);
 }
 
 /** GET /users/daily-limits — current usage vs limits */

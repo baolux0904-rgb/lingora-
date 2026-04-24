@@ -23,13 +23,23 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { logoutUser } from "@/lib/api";
+import {
+  logoutUser,
+  getSubscription,
+  toggleAutoRenew,
+  getPreferences,
+  updatePreferences,
+} from "@/lib/api";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Topbar from "@/components/Topbar";
 import Toggle from "@/components/ui/Toggle";
 import ProUpgradeModal from "@/components/Pro/ProUpgradeModal";
 import { useAppData } from "@/contexts/AppDataContext";
+import type { UserSubscription, UserPreferences } from "@/lib/types";
+
+// PR8a — promo code redemption endpoint returns 501 pre-launch; hide UI entirely.
+const PROMO_ENABLED = false;
 
 type SectionId = "account" | "subscription" | "learning" | "notifications" | "appearance";
 
@@ -97,56 +107,136 @@ function useFontSize(): [FontSize, (s: FontSize) => void] {
   return [size, update];
 }
 
-// ─── Learning preferences (localStorage) ───────────────────────────────────
-type LearningPrefs = { targetBand: number; examDate: string; dailyXp: number };
-const LEARNING_KEY = "lingona.settings.learning";
-const DEFAULT_LEARNING: LearningPrefs = { targetBand: 6.5, examDate: "", dailyXp: 50 };
+// ─── User preferences — PR8a backend-backed with localStorage cache ────────
+// Merged hook covers both learning (target_band / exam_date / daily_xp_goal)
+// and notifications (streak_reminder / push / battle_invite / email) since
+// the backend stores them in a single JSONB blob at /users/preferences.
+//
+// Cache: read localStorage for instant paint, then reconcile with the
+// authoritative server payload on mount. Writes are optimistic with
+// rollback if the PATCH fails (e.g. 400 on out-of-range values).
+const PREFS_CACHE_KEY = "lingona.settings.preferences";
 
-function useLearningPrefs() {
-  const [prefs, setPrefs] = useState<LearningPrefs>(DEFAULT_LEARNING);
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(LEARNING_KEY);
-      if (raw) setPrefs({ ...DEFAULT_LEARNING, ...JSON.parse(raw) });
-    } catch {}
-  }, []);
-  const update = (patch: Partial<LearningPrefs>) => {
-    setPrefs((prev) => {
-      const next = { ...prev, ...patch };
-      try { window.localStorage.setItem(LEARNING_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+const DEFAULT_PREFS: UserPreferences = {
+  target_band: 6.5,
+  exam_date: null,
+  daily_xp_goal: 50,
+  notifications: {
+    push: true,
+    email: false,
+    streak_reminder: true,
+    battle_invite: true,
+  },
+};
+
+function mergePrefs(base: UserPreferences, patch: UserPreferences): UserPreferences {
+  return {
+    ...base,
+    ...patch,
+    notifications: {
+      ...(base.notifications ?? {}),
+      ...(patch.notifications ?? {}),
+    },
   };
-  return [prefs, update] as const;
 }
 
-// ─── Notifications prefs (localStorage) ────────────────────────────────────
-type NotifPrefs = {
-  streak: boolean; daily: boolean; dailyTime: string;
-  friends: boolean; battle: boolean; newsletter: boolean;
-};
-const NOTIF_KEY = "lingona.settings.notifications";
-const DEFAULT_NOTIF: NotifPrefs = {
-  streak: true, daily: true, dailyTime: "20:00",
-  friends: true, battle: true, newsletter: false,
-};
+function usePrefs() {
+  const [prefs, setPrefs] = useState<UserPreferences>(DEFAULT_PREFS);
+  const [error, setError] = useState<string | null>(null);
 
-function useNotifPrefs() {
-  const [prefs, setPrefs] = useState<NotifPrefs>(DEFAULT_NOTIF);
+  // Hydrate from localStorage cache for instant paint.
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(NOTIF_KEY);
-      if (raw) setPrefs({ ...DEFAULT_NOTIF, ...JSON.parse(raw) });
+      const raw = window.localStorage.getItem(PREFS_CACHE_KEY);
+      if (raw) setPrefs((prev) => mergePrefs(prev, JSON.parse(raw)));
     } catch {}
   }, []);
-  const update = (patch: Partial<NotifPrefs>) => {
-    setPrefs((prev) => {
-      const next = { ...prev, ...patch };
-      try { window.localStorage.setItem(NOTIF_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+
+  // Reconcile with server (authoritative).
+  useEffect(() => {
+    let cancelled = false;
+    getPreferences()
+      .then((remote) => {
+        if (cancelled || !remote) return;
+        const merged = mergePrefs(DEFAULT_PREFS, remote);
+        setPrefs(merged);
+        try { window.localStorage.setItem(PREFS_CACHE_KEY, JSON.stringify(merged)); } catch {}
+      })
+      .catch(() => { /* silent — keep cached/default */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const update = async (patch: UserPreferences) => {
+    setError(null);
+    const previous = prefs;
+    const optimistic = mergePrefs(previous, patch);
+    setPrefs(optimistic);
+    try { window.localStorage.setItem(PREFS_CACHE_KEY, JSON.stringify(optimistic)); } catch {}
+
+    try {
+      const confirmed = await updatePreferences(patch);
+      const merged = mergePrefs(DEFAULT_PREFS, confirmed);
+      setPrefs(merged);
+      try { window.localStorage.setItem(PREFS_CACHE_KEY, JSON.stringify(merged)); } catch {}
+    } catch (err) {
+      // Rollback — keep localStorage consistent with UI state.
+      setPrefs(previous);
+      try { window.localStorage.setItem(PREFS_CACHE_KEY, JSON.stringify(previous)); } catch {}
+      setError(err instanceof Error ? err.message : "Không lưu được thay đổi, vui lòng thử lại.");
+    }
   };
-  return [prefs, update] as const;
+
+  return { prefs, update, error, clearError: () => setError(null) };
+}
+
+// ─── Subscription — PR8a /users/subscription GET + toggle-renew POST ───────
+function useSubscription() {
+  const [sub, setSub] = useState<UserSubscription | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSubscription()
+      .then((data) => { if (!cancelled) setSub(data); })
+      .catch(() => { /* silent — UI degrades to placeholder */ })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggleRenew = async () => {
+    const previous = sub;
+    // Optimistic — flip auto_renew locally, rollback on failure.
+    if (sub) setSub({ ...sub, auto_renew: !sub.auto_renew });
+    try {
+      const confirmed = await toggleAutoRenew();
+      setSub(confirmed);
+      return { ok: true as const };
+    } catch (err) {
+      setSub(previous);
+      return { ok: false as const, message: err instanceof Error ? err.message : "Không đổi được thiết lập." };
+    }
+  };
+
+  return { sub, loading, toggleRenew };
+}
+
+function formatVnDate(iso: string | null): string {
+  if (!iso) return "—";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  } catch {
+    return "—";
+  }
+}
+
+function daysUntil(iso: string | null): number | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const now = new Date();
+  const ms = d.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+  return days >= 0 ? days : null;
 }
 
 // ─── Info modal (generic "coming soon" + support contact) ──────────────────
@@ -231,11 +321,20 @@ export default function SettingsPage() {
   const [section, setSection] = useHashSection();
   const isMobile = useIsMobile();
   const [fontSize, setFontSize] = useFontSize();
-  const [learning, setLearning] = useLearningPrefs();
-  const [notif, setNotif] = useNotifPrefs();
+  const { prefs, update: updatePrefs } = usePrefs();
+  const { sub, toggleRenew: runToggleRenew } = useSubscription();
   const [showPro, setShowPro] = useState(false);
   const [info, setInfo] = useState<{ title: string; body: string } | null>(null);
+  const [confirmRenew, setConfirmRenew] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  // PR8a — derived prefs + notification helpers (replaces old learning/notif split).
+  const targetBand = prefs.target_band ?? 6.5;
+  const examDate = prefs.exam_date ?? "";
+  const dailyXp = prefs.daily_xp_goal ?? 50;
+  const notifs = prefs.notifications ?? {};
+  const updateNotif = (key: "push" | "email" | "streak_reminder" | "battle_invite", value: boolean) =>
+    updatePrefs({ notifications: { ...notifs, [key]: value } });
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -249,15 +348,8 @@ export default function SettingsPage() {
       body: `${body}\n\nLiên hệ hỗ trợ: ${SUPPORT_EMAIL}`,
     });
 
-  // Exam countdown
-  const daysToExam = (() => {
-    if (!learning.examDate) return null;
-    const d = new Date(learning.examDate);
-    const now = new Date();
-    const ms = d.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-    const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
-    return days >= 0 ? days : null;
-  })();
+  // Exam countdown — uses the backend-backed exam_date from prefs.
+  const daysToExam = daysUntil(examDate || null);
 
   // ─── Section content ─────────────────────────────────────────────────────
   const AccountSection = (
@@ -319,10 +411,16 @@ export default function SettingsPage() {
     </div>
   );
 
+  // PR8a — subscription state drives what we render. Prefer server payload;
+  // fall back to useDailyLimits().isPro only when the detail endpoint hasn't
+  // returned yet (keeps the pre-launch monetisation gate visible on slow nets).
+  const subTier = sub?.tier ?? (isPro ? "pro" : "free");
+
   const SubscriptionSection = (
     <div>
       <SectionHeader title="Gói Pro" sub="Trạng thái và quản lý đăng ký" />
-      {isPro ? (
+
+      {subTier === "pro" && sub && (
         <div
           className="rounded-2xl p-5 mb-5"
           style={{
@@ -339,10 +437,12 @@ export default function SettingsPage() {
             </span>
             <span style={{ color: "#F7F4EC", fontSize: 14, fontWeight: 600 }}>Bạn đang có Pro</span>
           </div>
-          <div className="text-sm" style={{ color: "rgba(247,244,236,0.72)", lineHeight: 1.55 }}>
-            Tier và ngày hết hạn sẽ hiển thị khi endpoint trả về thông tin chi tiết.
+          <div className="text-sm mb-1" style={{ color: "rgba(247,244,236,0.72)", lineHeight: 1.55 }}>
+            {sub.auto_renew
+              ? `Tự động gia hạn: ${formatVnDate(sub.next_billing_date)}`
+              : `Hết hạn: ${formatVnDate(sub.subscription_expires_at)}`}
           </div>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setShowPro(true)}
@@ -353,15 +453,52 @@ export default function SettingsPage() {
             </button>
             <button
               type="button"
-              onClick={() => openSupportInfo("Tắt tự động gia hạn", "Endpoint đang hoàn thiện.")}
+              onClick={() => setConfirmRenew(true)}
               className="px-4 py-2 rounded-full text-xs font-semibold"
-              style={{ color: "#F7F4EC", border: "1px solid rgba(247,244,236,0.3)" }}
+              style={{ color: "#F7F4EC", border: "1px solid rgba(247,244,236,0.3)", background: "transparent" }}
             >
-              Tắt tự động gia hạn
+              {sub.auto_renew ? "Tắt tự động gia hạn" : "Bật lại tự động gia hạn"}
             </button>
           </div>
         </div>
-      ) : (
+      )}
+
+      {subTier === "trial" && sub && (
+        <div
+          className="rounded-2xl p-5 mb-5"
+          style={{
+            background: "linear-gradient(135deg, var(--color-bg-navy), var(--color-bg-teal-surface))",
+            border: "1px solid var(--color-border-teal)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+              style={{ background: "var(--color-amber)", color: "var(--color-bg-navy)" }}
+            >
+              TRIAL
+            </span>
+            <span style={{ color: "#F7F4EC", fontSize: 14, fontWeight: 600 }}>
+              {daysUntil(sub.trial_expires_at) != null
+                ? `Còn ${daysUntil(sub.trial_expires_at)} ngày dùng thử`
+                : "Đang dùng thử Pro"}
+            </span>
+          </div>
+          <div className="text-sm mb-3" style={{ color: "rgba(247,244,236,0.72)", lineHeight: 1.55 }}>
+            Hết hạn: {formatVnDate(sub.trial_expires_at)}. Nâng cấp để giữ quyền lợi không giới hạn.
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowPro(true)}
+            className="px-4 py-2 rounded-full text-xs font-semibold"
+            style={{ background: "var(--color-teal)", color: "#fff" }}
+          >
+            Nâng cấp Pro
+          </button>
+        </div>
+      )}
+
+      {subTier === "free" && (
         <div
           className="rounded-2xl p-5 mb-5"
           style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
@@ -397,16 +534,20 @@ export default function SettingsPage() {
             Xem
           </button>
         </Row>
-        <Row label="Mã khuyến mãi" value="Nhập mã giảm giá cho lần nâng cấp kế tiếp">
-          <button
-            type="button"
-            onClick={() => openSupportInfo("Mã khuyến mãi", "Tính năng đang hoàn thiện.")}
-            className="text-xs font-semibold px-3 py-1.5 rounded-full"
-            style={{ color: "var(--color-teal-accent)", border: "1px solid var(--color-border-teal)" }}
-          >
-            Nhập mã
-          </button>
-        </Row>
+        {/* PR8a — promo code endpoint returns 501 pre-launch; hide the row
+            entirely until `PROMO_ENABLED` flips (post 2026-05-15). */}
+        {PROMO_ENABLED && (
+          <Row label="Mã khuyến mãi" value="Nhập mã giảm giá cho lần nâng cấp kế tiếp">
+            <button
+              type="button"
+              onClick={() => openSupportInfo("Mã khuyến mãi", "Tính năng đang hoàn thiện.")}
+              className="text-xs font-semibold px-3 py-1.5 rounded-full"
+              style={{ color: "var(--color-teal-accent)", border: "1px solid var(--color-border-teal)" }}
+            >
+              Nhập mã
+            </button>
+          </Row>
+        )}
         <Row label="Yêu cầu hoàn tiền" value="Gửi yêu cầu qua email hỗ trợ">
           <a
             href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Yêu cầu hoàn tiền Lingona")}`}
@@ -423,64 +564,55 @@ export default function SettingsPage() {
   const LearningSection = (
     <div>
       <SectionHeader title="Mục tiêu học" sub="Thiết lập mục tiêu để AI Study Coach gợi ý đúng lộ trình" />
-      <Row label="Band mục tiêu" value={`Hiện tại: ${learning.targetBand.toFixed(1)}`}>
+      <Row label="Band mục tiêu" value={`Hiện tại: ${targetBand.toFixed(1)}`}>
         <div className="w-full mt-2 md:w-auto md:mt-0">
           <ChipGroup
             options={[5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0].map((b) => ({ value: b, label: b.toFixed(1) }))}
-            value={learning.targetBand}
-            onChange={(v) => setLearning({ targetBand: v })}
+            value={targetBand}
+            onChange={(v) => updatePrefs({ target_band: v })}
           />
         </div>
       </Row>
       <Row label="Ngày thi dự kiến" value={daysToExam != null ? `Còn ~${daysToExam} ngày` : "Chưa đặt ngày thi"}>
         <input
           type="date"
-          value={learning.examDate}
-          onChange={(e) => setLearning({ examDate: e.target.value })}
+          value={examDate}
+          onChange={(e) => updatePrefs({ exam_date: e.target.value || null })}
           className="rounded-lg px-3 py-1.5 text-xs"
           style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
         />
       </Row>
-      <Row label="Mục tiêu XP / ngày" value={`Khoảng ${Math.round(learning.dailyXp * 1.2)} phút / ngày`}>
+      <Row label="Mục tiêu XP / ngày" value={`Khoảng ${Math.round(dailyXp * 1.2)} phút / ngày`}>
         <div className="w-full mt-2 md:w-auto md:mt-0">
           <ChipGroup
             options={[30, 50, 100, 200].map((xp) => ({ value: xp, label: `${xp} XP` }))}
-            value={learning.dailyXp}
-            onChange={(v) => setLearning({ dailyXp: v })}
+            value={dailyXp}
+            onChange={(v) => updatePrefs({ daily_xp_goal: v })}
           />
         </div>
       </Row>
     </div>
   );
 
+  // PR8a — Notifications now reflect the backend whitelist 1:1:
+  //   streak_reminder · push · battle_invite · email.
+  // Dropped PR6 labels "Lời mời kết bạn" and "Nhắc mục tiêu hàng ngày" (no
+  // matching server keys — keeping them localStorage-only would leak broken
+  // toggles once the UI looked wired).
   const NotificationsSection = (
     <div>
-      <SectionHeader title="Thông báo" sub="Chọn loại thông báo mày muốn nhận" />
+      <SectionHeader title="Thông báo" sub="Chọn loại thông báo bạn muốn nhận" />
       <Row label="Nhắc giữ streak" value="Nhận nhắc khi streak sắp mất">
-        <Toggle checked={notif.streak} onChange={(v) => setNotif({ streak: v })} aria-label="Streak reminder" />
+        <Toggle checked={notifs.streak_reminder ?? true} onChange={(v) => updateNotif("streak_reminder", v)} aria-label="Nhắc giữ streak" />
       </Row>
-      <Row label="Nhắc mục tiêu hàng ngày" value={notif.daily ? `Nhắc lúc ${notif.dailyTime}` : "Đang tắt"}>
-        <div className="flex items-center gap-2">
-          {notif.daily && (
-            <input
-              type="time"
-              value={notif.dailyTime}
-              onChange={(e) => setNotif({ dailyTime: e.target.value })}
-              className="rounded-lg px-2 py-1 text-xs"
-              style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
-            />
-          )}
-          <Toggle checked={notif.daily} onChange={(v) => setNotif({ daily: v })} aria-label="Daily reminder" />
-        </div>
+      <Row label="Push notifications" value="Nhắc học, kết quả chấm, sự kiện">
+        <Toggle checked={notifs.push ?? true} onChange={(v) => updateNotif("push", v)} aria-label="Push notifications" />
       </Row>
-      <Row label="Lời mời kết bạn" value="Nhận khi có người gửi lời mời kết bạn">
-        <Toggle checked={notif.friends} onChange={(v) => setNotif({ friends: v })} aria-label="Friend requests" />
-      </Row>
-      <Row label="Thách đấu Battle" value="Nhận khi có trận Battle mới">
-        <Toggle checked={notif.battle} onChange={(v) => setNotif({ battle: v })} aria-label="Battle challenges" />
+      <Row label="Lời mời thách đấu Battle" value="Nhận khi có trận Battle mới">
+        <Toggle checked={notifs.battle_invite ?? true} onChange={(v) => updateNotif("battle_invite", v)} aria-label="Lời mời thách đấu Battle" />
       </Row>
       <Row label="Email newsletter" value="Tin tức + mẹo học hàng tuần">
-        <Toggle checked={notif.newsletter} onChange={(v) => setNotif({ newsletter: v })} aria-label="Newsletter" />
+        <Toggle checked={notifs.email ?? false} onChange={(v) => updateNotif("email", v)} aria-label="Email newsletter" />
       </Row>
     </div>
   );
@@ -602,6 +734,54 @@ export default function SettingsPage() {
 
       <ProUpgradeModal isOpen={showPro} onClose={() => setShowPro(false)} onUpgraded={() => setShowPro(false)} />
       <InfoModal open={!!info} title={info?.title ?? ""} body={info?.body ?? ""} onClose={() => setInfo(null)} />
+
+      {/* PR8a — confirm auto-renew toggle. Wording flips based on current state. */}
+      {confirmRenew && sub && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+          style={{ background: "rgba(15,30,51,0.6)" }}
+          onClick={() => setConfirmRenew(false)}
+        >
+          <div
+            className="max-w-md w-full rounded-2xl p-6"
+            style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display font-bold mb-2" style={{ fontSize: 18, color: "var(--color-text)" }}>
+              {sub.auto_renew ? "Tắt tự động gia hạn?" : "Bật lại tự động gia hạn?"}
+            </h3>
+            <p className="text-sm" style={{ color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
+              {sub.auto_renew
+                ? `Sau khi tắt, gói Pro sẽ hết hạn vào ${formatVnDate(sub.subscription_expires_at)}. Bạn vẫn giữ Pro đến ngày đó.`
+                : `Bật lại để tự động tiếp tục Pro từ ${formatVnDate(sub.next_billing_date ?? sub.subscription_expires_at)}.`}
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmRenew(false)}
+                className="flex-1 px-4 py-2.5 rounded-full text-sm font-semibold"
+                style={{ color: "var(--color-text)", border: "1px solid var(--color-border)", background: "transparent" }}
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const result = await runToggleRenew();
+                  setConfirmRenew(false);
+                  if (!result.ok) {
+                    setInfo({ title: "Không đổi được thiết lập", body: result.message });
+                  }
+                }}
+                className="flex-1 px-4 py-2.5 rounded-full text-sm font-semibold"
+                style={{ background: "var(--color-teal)", color: "#fff" }}
+              >
+                {sub.auto_renew ? "Tắt" : "Bật"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

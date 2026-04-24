@@ -724,6 +724,34 @@ export interface ChatMessage {
   client_message_id?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// PR8a — Settings page wiring
+// ---------------------------------------------------------------------------
+
+export type SubscriptionTier = "pro" | "trial" | "free";
+
+export interface UserSubscription {
+  tier: SubscriptionTier;
+  is_pro: boolean;
+  is_trial: boolean;
+  trial_expires_at: string | null;
+  subscription_expires_at: string | null;
+  next_billing_date: string | null;
+  auto_renew: boolean;
+}
+
+export interface UserPreferences {
+  target_band?: number;
+  exam_date?: string | null;
+  daily_xp_goal?: number;
+  notifications?: {
+    push?: boolean;
+    email?: boolean;
+    streak_reminder?: boolean;
+    battle_invite?: boolean;
+  };
+}
+
 export interface Conversation {
   friend_id: string;
   friend_name: string;
