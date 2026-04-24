@@ -30,6 +30,8 @@ const FULL_TEST_LS_KEY = "lingona.writing.full_test_id";
 
 interface WritingTabProps {
   onClose: () => void;
+  /** Initial mode — used by Mode Selection routing (PR5a). Default "practice". */
+  initialMode?: "practice" | "full_test";
 }
 
 // ---------------------------------------------------------------------------
@@ -52,11 +54,11 @@ function countWords(text: string): number {
 type Phase = "intro" | "editor" | "pending" | "result" | "history" | "full_test_result";
 type WritingMode = "practice" | "full_test";
 
-export default function WritingTab({ onClose }: WritingTabProps) {
+export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
   // Phase management — starts with intro
   const [phase, setPhase] = useState<Phase>("intro");
   // Practice (default) is pauseable and forgiving; Full Test mimics the real exam.
-  const [mode, setMode] = useState<WritingMode>("practice");
+  const [mode, setMode] = useState<WritingMode>(initialMode ?? "practice");
   const limits = useDailyLimits();
   const [proModalOpen, setProModalOpen] = useState(false);
 

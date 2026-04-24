@@ -234,12 +234,31 @@ function AppHomeContent() {
     return <OnboardingFlow onComplete={() => setShowOnboarding(false)} />;
   }
 
-  // Full-screen overlays — render outside AppShell
+  // Full-screen overlays — render outside AppShell.
+  // PR5a — Mode Selection routes send ?mode=full_test|practice. Read once per
+  // mount so the overlay boots in the right mode; after that the user controls
+  // mode in-app.
+  const modeParam = searchParams.get("mode");
+  const writingInitialMode: "practice" | "full_test" | undefined =
+    modeParam === "full_test" ? "full_test" : modeParam === "practice" ? "practice" : undefined;
+  const readingInitialPhase =
+    modeParam === "full_test" ? ("full_test_select" as const) : undefined;
+
   if (readingActive) {
-    return <ReadingTab onClose={() => { setReadingActive(false); setActiveTab("home"); }} />;
+    return (
+      <ReadingTab
+        onClose={() => { setReadingActive(false); setActiveTab("home"); }}
+        initialPhase={readingInitialPhase}
+      />
+    );
   }
   if (writingActive) {
-    return <WritingTab onClose={() => { setWritingActive(false); setActiveTab("home"); }} />;
+    return (
+      <WritingTab
+        onClose={() => { setWritingActive(false); setActiveTab("home"); }}
+        initialMode={writingInitialMode}
+      />
+    );
   }
   if (ieltsScenario) {
     return (

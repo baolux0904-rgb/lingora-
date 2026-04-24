@@ -150,8 +150,15 @@ function PassageSelect({ onSelect, onBack }: { onSelect: (id: string) => void; o
 // Main ReadingTab
 // ---------------------------------------------------------------------------
 
-export default function ReadingTab({ onClose }: { onClose: () => void }) {
-  const [phase, setPhase] = useState<Phase>("home");
+export default function ReadingTab({
+  onClose,
+  initialPhase,
+}: {
+  onClose: () => void;
+  /** Initial phase — used by Mode Selection routing (PR5a). Default "home". */
+  initialPhase?: Phase;
+}) {
+  const [phase, setPhase] = useState<Phase>(initialPhase ?? "home");
   const [activePassageId, setActivePassageId] = useState<string | null>(null);
   const [activeTestId, setActiveTestId] = useState<string | null>(null);
   const [result, setResult] = useState<ReadingPracticeResult | null>(null);

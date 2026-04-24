@@ -1,33 +1,52 @@
 "use client";
 
-/**
- * Listening route placeholder — the IELTS Listening tab is "coming soon"
- * in the current build (no ListeningTab component exists yet). This page
- * mirrors the placeholder the legacy god-component shows under
- * /home-legacy?tab=listening, just lifted out of the tab switch.
- */
-
+import { useState } from "react";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Topbar from "@/components/Topbar";
+import ExamModeSelection from "@/components/ExamModeSelection/ExamModeSelection";
+import ComingSoonModal from "@/components/ExamModeSelection/ComingSoonModal";
 import { useAppData } from "@/contexts/AppDataContext";
 
 export default function ExamListeningPage() {
   const { displayStreak } = useAppData();
+  const [showComingSoon, setShowComingSoon] = useState(false);
+
+  const openComingSoon = () => setShowComingSoon(true);
+
   return (
     <div className="min-h-dvh relative bg-exam">
       <AnimatedBackground variant="minimal" />
       <div className="lg:hidden"><Topbar streak={displayStreak} /></div>
       <div className="mx-auto px-5 py-6 max-w-2xl lg:max-w-4xl animate-fadeSlideUp">
-        <div className="text-center py-20">
-          <div className="text-4xl mb-4">🎧</div>
-          <h2 className="text-xl font-display font-bold mb-2" style={{ color: "var(--color-text)" }}>
-            Listening Practice
-          </h2>
-          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-            Coming soon — practice IELTS listening with AI-scored comprehension
-          </p>
-        </div>
+        <ExamModeSelection
+          skill="listening"
+          skillLabel="Listening"
+          fullTestCopy={{
+            body: "Làm bài thi đầy đủ 4 sections trong 30 phút. Chấm điểm band cuối cùng như thi thật.",
+            meta: "30 phút · Band score chính thức",
+          }}
+          practiceCopy={{
+            body: "Luyện từng section riêng biệt. Xem transcript, phát lại chậm, highlight từ khó.",
+            meta: "Transcript · Slow playback · Không giới hạn",
+          }}
+          fullTestCTA={{
+            label: "Bắt đầu thi thật →",
+            comingSoon: true,
+            onClick: openComingSoon,
+          }}
+          practiceCTA={{
+            label: "Luyện tập ngay →",
+            comingSoon: true,
+            onClick: openComingSoon,
+          }}
+        />
       </div>
+      <ComingSoonModal
+        isOpen={showComingSoon}
+        onClose={() => setShowComingSoon(false)}
+        title="Luyện Listening sẽ ra mắt trong bản cập nhật tới"
+        body="Đội ngũ Lingona đang hoàn thiện bài nghe theo chuẩn IELTS. Bạn sẽ được nhận thông báo khi tính năng sẵn sàng."
+      />
     </div>
   );
 }
