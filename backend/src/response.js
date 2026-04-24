@@ -33,11 +33,10 @@ function sendSuccess(res, { data = null, message = "OK", status = 200 } = {}) {
  * @param {string} [options.message]  – error description
  * @param {number} [options.status]   – HTTP status code (default: 500)
  */
-function sendError(res, { message = "Something went wrong", status = 500 } = {}) {
-  return res.status(status).json({
-    success: false,
-    message,
-  });
+function sendError(res, { message = "Something went wrong", status = 500, code = null } = {}) {
+  const body = { success: false, message };
+  if (code) body.code = code;
+  return res.status(status).json(body);
 }
 
 module.exports = { sendSuccess, sendError };

@@ -255,7 +255,11 @@ async function handleChangePassword(req, res, next) {
   try {
     const { current_password, new_password } = req.body || {};
     if (typeof new_password !== "string") {
-      return sendError(res, { status: 400, message: "new_password required" });
+      return sendError(res, {
+        status: 400,
+        message: "Thiếu mật khẩu mới",
+        code: "NEW_PASSWORD_REQUIRED",
+      });
     }
     const result = await authService.changePassword(
       req.user.id,
@@ -264,7 +268,9 @@ async function handleChangePassword(req, res, next) {
     );
     return sendSuccess(res, { data: result, message: "Password updated" });
   } catch (err) {
-    if (err && err.status) return sendError(res, { status: err.status, message: err.message });
+    if (err && err.status) {
+      return sendError(res, { status: err.status, message: err.message, code: err.code });
+    }
     next(err);
   }
 }

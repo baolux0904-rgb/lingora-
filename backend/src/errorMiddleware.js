@@ -42,6 +42,14 @@ function errorHandler(err, req, res, next) {
       : (err.message || "Internal Server Error"),
   };
 
+  // Forward SCREAMING_SNAKE error code for frontend switch (4xx and 5xx).
+  // err.code is a self-defined enum, not infrastructure detail — safe to expose.
+  // Unlocks SPEAKING_LIMIT_REACHED / WRITING_LIMIT_REACHED / auth change-password
+  // codes already set in services, plus future 5xx codes like DB_CONNECTION_LOST.
+  if (err.code) {
+    payload.code = err.code;
+  }
+
   // Include stack trace only during development
   if (process.env.NODE_ENV === "development") {
     payload.stack = err.stack;

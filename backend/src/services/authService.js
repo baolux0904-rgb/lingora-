@@ -30,11 +30,13 @@ const COPPA_AGE_LIMIT = 13; // Years. Under this age triggers parental consent.
  * Create a standardised HTTP error.
  * @param {string} message
  * @param {number} status
+ * @param {string} [code] — optional SCREAMING_SNAKE discriminator for frontend switch
  * @returns {Error}
  */
-function httpError(message, status) {
+function httpError(message, status, code) {
   const err  = new Error(message);
   err.status = status;
+  if (code) err.code = code;
   return err;
 }
 
@@ -102,13 +104,19 @@ function generateRefreshToken(existingFamily) {
  * @returns {object}
  */
 function formatUser(row) {
+  // Fail-loud guard: every caller must SELECT password_hash. Catches regressions
+  // where a new query path forgets the column (has_password would silently lie).
+  if (!("password_hash" in row)) {
+    throw new Error("formatUser: row missing password_hash column");
+  }
   return {
-    id:         row.id,
-    email:      row.email,
-    name:       row.name,
-    role:       row.role,
-    avatar_url: row.avatar_url || null,
-    created_at: row.created_at,
+    id:           row.id,
+    email:        row.email,
+    name:         row.name,
+    role:         row.role,
+    avatar_url:   row.avatar_url || null,
+    has_password: row.password_hash !== null,
+    created_at:   row.created_at,
   };
 }
 
@@ -324,7 +332,7 @@ async function googleAuth({ googleId, email, name, avatarUrl }) {
       const { rows } = await db.query(
         `INSERT INTO users (email, name, google_id, avatar_url, role)
          VALUES ($1, $2, $3, $4, 'kid')
-         RETURNING id, email, name, role, avatar_url, created_at`,
+         RETURNING id, email, name, role, avatar_url, password_hash, created_at`,
         [email, name, googleId, avatarUrl || null]
       );
       userRow = rows[0];
@@ -365,7 +373,7 @@ async function googleAuth({ googleId, email, name, avatarUrl }) {
  */
 async function changePassword(userId, currentPassword, newPassword) {
   if (typeof newPassword !== "string" || newPassword.length < 8) {
-    throw httpError("Mật khẩu mới phải có ít nhất 8 ký tự", 400);
+    throw httpError("Mật khẩu mới phải có ít nhất 8 ký tự", 400, "PASSWORD_TOO_SHORT");
   }
 
   const { query } = require("../config/db");
@@ -373,20 +381,28 @@ async function changePassword(userId, currentPassword, newPassword) {
     `SELECT password_hash FROM users WHERE id = $1 AND deleted_at IS NULL`,
     [userId]
   );
-  if (!userResult.rows[0]) throw httpError("User not found", 404);
+  if (!userResult.rows[0]) {
+    throw httpError("Không tìm thấy người dùng", 404, "USER_NOT_FOUND");
+  }
 
   const existingHash = userResult.rows[0].password_hash;
   const hasPassword = existingHash !== null;
 
   if (hasPassword && !currentPassword) {
-    throw httpError("Cần nhập mật khẩu hiện tại", 400);
+    throw httpError("Cần nhập mật khẩu hiện tại", 400, "CURRENT_PASSWORD_REQUIRED");
   }
   if (!hasPassword && currentPassword) {
-    throw httpError("Tài khoản chưa có mật khẩu, không cần điền mật khẩu hiện tại", 400);
+    throw httpError(
+      "Tài khoản chưa có mật khẩu, không cần điền mật khẩu hiện tại",
+      400,
+      "UNEXPECTED_CURRENT_PASSWORD"
+    );
   }
   if (hasPassword && currentPassword) {
     const ok = await bcrypt.compare(currentPassword, existingHash);
-    if (!ok) throw httpError("Mật khẩu hiện tại không đúng", 401);
+    if (!ok) {
+      throw httpError("Mật khẩu hiện tại không đúng", 401, "CURRENT_PASSWORD_WRONG");
+    }
   }
 
   const newHash = await hashPassword(newPassword);
@@ -405,4 +421,5 @@ module.exports = {
   logout,
   googleAuth,
   changePassword,
+  formatUser,
 };

@@ -23,7 +23,7 @@ const SQL_FIND_USER_BY_EMAIL = `
 `;
 
 const SQL_FIND_USER_BY_ID = `
-  SELECT id, email, name, role, avatar_url, created_at
+  SELECT id, email, name, role, avatar_url, password_hash, created_at
   FROM   users
   WHERE  id         = $1
     AND  deleted_at IS NULL
@@ -33,7 +33,7 @@ const SQL_FIND_USER_BY_ID = `
 const SQL_CREATE_USER = `
   INSERT INTO users (email, name, password_hash, role, dob)
   VALUES ($1, $2, $3, $4, $5)
-  RETURNING id, email, name, role, dob, created_at;
+  RETURNING id, email, name, role, dob, password_hash, created_at;
 `;
 
 const SQL_EMAIL_EXISTS = `
