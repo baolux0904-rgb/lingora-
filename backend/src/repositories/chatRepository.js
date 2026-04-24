@@ -46,27 +46,53 @@ async function getConversations(userId) {
   return result.rows;
 }
 
-async function getMessages(userId, friendId, limit = 50, before = null) {
+async function getMessages(userId, friendId, limit = 50, before = null, after = null) {
   const params = [userId, friendId, limit];
   let sql = `SELECT * FROM messages
     WHERE deleted_at IS NULL
       AND ((sender_id = $1 AND receiver_id = $2) OR (sender_id = $2 AND receiver_id = $1))`;
   if (before) {
-    sql += ` AND created_at < $4`;
+    sql += ` AND created_at < $${params.length + 1}`;
     params.push(before);
   }
-  sql += ` ORDER BY created_at DESC LIMIT $3`;
+  if (after) {
+    sql += ` AND created_at > $${params.length + 1}`;
+    params.push(after);
+  }
+  // `after` = delta polling: ASC so caller sees new messages in chronological order.
+  // default/`before` = history pagination: DESC then reverse = oldest first for display.
+  sql += ` ORDER BY created_at ${after ? "ASC" : "DESC"} LIMIT $3`;
   const result = await query(sql, params);
-  return result.rows.reverse(); // oldest first for display
+  return after ? result.rows : result.rows.reverse();
 }
 
-async function createMessage(senderId, receiverId, type, content, audioUrl, audioDuration) {
-  const result = await query(
-    `INSERT INTO messages (sender_id, receiver_id, type, content, audio_url, audio_duration_seconds)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [senderId, receiverId, type, content || null, audioUrl || null, audioDuration || null]
-  );
-  return result.rows[0];
+async function createMessage(
+  senderId, receiverId, type, content, audioUrl, audioDuration, clientMessageId = null
+) {
+  try {
+    const result = await query(
+      `INSERT INTO messages
+         (sender_id, receiver_id, type, content, audio_url, audio_duration_seconds, client_message_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      [senderId, receiverId, type, content || null, audioUrl || null, audioDuration || null, clientMessageId]
+    );
+    return { message: result.rows[0], created: true };
+  } catch (err) {
+    // Idempotent retry: if the same client_message_id was already persisted, return it
+    // with created=false so callers can skip re-running side effects (e.g. socket emit).
+    if (
+      err.code === "23505" &&
+      err.constraint === "idx_messages_client_message_id" &&
+      clientMessageId
+    ) {
+      const existing = await query(
+        `SELECT * FROM messages WHERE client_message_id = $1`,
+        [clientMessageId]
+      );
+      if (existing.rows[0]) return { message: existing.rows[0], created: false };
+    }
+    throw err;
+  }
 }
 
 async function markSeen(userId, friendId) {

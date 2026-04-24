@@ -22,10 +22,22 @@ async function getMessages(req, res, next) {
   try {
     const { friendId } = req.params;
     if (!UUID_RE.test(friendId)) return sendError(res, { status: 400, message: "Valid friendId required" });
-    const { limit, before } = req.query;
+    const { limit, before, after } = req.query;
+
+    if (before && after) {
+      return sendError(res, { status: 400, message: "Cannot specify both before and after" });
+    }
+    if (before && isNaN(Date.parse(before))) {
+      return sendError(res, { status: 400, message: "Invalid before timestamp" });
+    }
+    if (after && isNaN(Date.parse(after))) {
+      return sendError(res, { status: 400, message: "Invalid after timestamp" });
+    }
+
     const result = await chatService.getMessages(req.user.id, friendId, {
       limit: limit ? parseInt(limit, 10) : 50,
       before: before || null,
+      after: after || null,
     });
     return sendSuccess(res, { data: result, message: "Messages retrieved" });
   } catch (err) { next(err); }
@@ -35,15 +47,22 @@ async function sendTextMessage(req, res, next) {
   try {
     const { friendId } = req.params;
     if (!UUID_RE.test(friendId)) return sendError(res, { status: 400, message: "Valid friendId required" });
-    const { content } = req.body;
+    const { content, client_message_id, clientMessageId } = req.body;
     if (!content || typeof content !== "string") return sendError(res, { status: 400, message: "content required" });
 
-    const message = await chatService.sendMessage(req.user.id, friendId, { type: "text", content });
+    const cid = client_message_id || clientMessageId || null;
+    if (cid && !UUID_RE.test(cid)) {
+      return sendError(res, { status: 400, message: "Invalid client_message_id" });
+    }
 
-    // Emit via Socket.IO if available
-    const io = req.app.get("io");
-    if (io) {
-      io.to(`user:${friendId}`).emit("new_message", message);
+    const { message, created } = await chatService.sendMessage(req.user.id, friendId, { type: "text", content, clientMessageId: cid });
+
+    // Only emit on first insert — idempotent retries would double-deliver the bubble.
+    if (created) {
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`user:${friendId}`).emit("new_message", message);
+      }
     }
 
     return sendSuccess(res, { data: message, status: 201, message: "Message sent" });
@@ -54,8 +73,13 @@ async function sendVoiceMessage(req, res, next) {
   try {
     const { friendId } = req.params;
     if (!UUID_RE.test(friendId)) return sendError(res, { status: 400, message: "Valid friendId required" });
-    const { audio, duration } = req.body;
+    const { audio, duration, client_message_id, clientMessageId } = req.body;
     if (!audio) return sendError(res, { status: 400, message: "audio (base64) required" });
+
+    const cid = client_message_id || clientMessageId || null;
+    if (cid && !UUID_RE.test(cid)) {
+      return sendError(res, { status: 400, message: "Invalid client_message_id" });
+    }
 
     // Save voice note
     const voiceDir = path.join(__dirname, "..", "..", "public", "voice-notes");
@@ -67,13 +91,15 @@ async function sendVoiceMessage(req, res, next) {
     fs.writeFileSync(path.join(voiceDir, filename), buffer);
 
     const audioUrl = `/voice-notes/${filename}`;
-    const message = await chatService.sendMessage(req.user.id, friendId, {
-      type: "voice", audioUrl, audioDuration: duration || 0,
+    const { message, created } = await chatService.sendMessage(req.user.id, friendId, {
+      type: "voice", audioUrl, audioDuration: duration || 0, clientMessageId: cid,
     });
 
-    const io = req.app.get("io");
-    if (io) {
-      io.to(`user:${friendId}`).emit("new_message", message);
+    if (created) {
+      const io = req.app.get("io");
+      if (io) {
+        io.to(`user:${friendId}`).emit("new_message", message);
+      }
     }
 
     return sendSuccess(res, { data: message, status: 201, message: "Voice note sent" });
