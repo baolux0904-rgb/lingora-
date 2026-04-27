@@ -7,8 +7,8 @@
 const chatService = require("../services/chatService");
 const { sendSuccess, sendError } = require("../response");
 const events = require("../socket/events");
-const path = require("path");
-const fs = require("fs");
+const { decodeBase64Loose, validateAudioBuffer, ValidationError } = require("../utils/mimeValidation");
+const { createStorageProvider } = require("../providers/storage/storageProvider");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -80,7 +80,7 @@ async function sendVoiceMessage(req, res, next) {
     const { friendId } = req.params;
     if (!UUID_RE.test(friendId)) return sendError(res, { status: 400, message: "Valid friendId required" });
     const { audio, duration, client_message_id, clientMessageId, waveform_peaks, waveformPeaks } = req.body;
-    if (!audio) return sendError(res, { status: 400, message: "audio (base64) required" });
+    if (!audio) return sendError(res, { status: 400, message: "audio (base64) required", code: "AUDIO_REQUIRED" });
 
     const cid = client_message_id || clientMessageId || null;
     if (cid && !UUID_RE.test(cid)) {
@@ -89,20 +89,61 @@ async function sendVoiceMessage(req, res, next) {
 
     const peaks = waveform_peaks ?? waveformPeaks ?? null;
 
-    // Save voice note
-    const voiceDir = path.join(__dirname, "..", "..", "public", "voice-notes");
-    if (!fs.existsSync(voiceDir)) fs.mkdirSync(voiceDir, { recursive: true });
+    // 1. Decode base64 → Buffer (null-safe; rejects bad payloads).
+    const buffer = decodeBase64Loose(audio);
+    if (!buffer) {
+      return sendError(res, { status: 400, message: "Invalid base64 audio payload.", code: "INVALID_AUDIO" });
+    }
 
-    const messageId = require("crypto").randomUUID();
-    const filename = `${messageId}.webm`;
-    const buffer = Buffer.from(audio.replace(/^data:audio\/\w+;base64,/, ""), "base64");
-    fs.writeFileSync(path.join(voiceDir, filename), buffer);
+    // 2. Magic-byte validation: rejects HTML / octet-stream payloads disguised
+    //    as audio (XSS vector if served via static / R2). 5 MB cap matches
+    //    Chat UI's 60s recorder ceiling at typical webm bitrate.
+    let detected;
+    try {
+      detected = await validateAudioBuffer(buffer, { maxSize: 5 * 1024 * 1024 });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return sendError(res, { status: err.status, message: err.message, code: err.code });
+      }
+      throw err;
+    }
 
-    const audioUrl = `/voice-notes/${filename}`;
-    const { message, created } = await chatService.sendMessage(req.user.id, friendId, {
-      type: "voice", audioUrl, audioDuration: duration || 0, clientMessageId: cid, waveformPeaks: peaks,
-    });
+    // 3. Upload to storage provider (R2 in prod, mock in dev).
+    //    storageKey uses a fresh UUID so DB delete cleans up its own row's
+    //    file; extension reflects detected MIME (not client-claimed).
+    const storage = createStorageProvider();
+    const storageId = require("crypto").randomUUID();
+    const ext = detected.ext === "mp3" ? "mp3" : detected.ext === "wav" ? "wav" : detected.ext === "ogg" ? "ogg" : detected.ext === "m4a" ? "m4a" : "webm";
+    const key = `voice-notes/${storageId}.${ext}`;
+    try {
+      await storage.uploadObject(key, buffer, detected.mime);
+    } catch (uploadErr) {
+      console.error(`[chat] voice upload failed user=${req.user.id} friend=${friendId}:`, uploadErr.message);
+      return sendError(res, { status: 503, message: "Voice upload failed. Please retry.", code: "STORAGE_UNAVAILABLE" });
+    }
 
+    const audioUrl = await storage.composePublicUrl(key);
+
+    // 4. Persist message row pointing at the stored object. If sendMessage
+    //    throws (e.g. DB hiccup), best-effort delete the orphan blob.
+    let result;
+    try {
+      result = await chatService.sendMessage(req.user.id, friendId, {
+        type: "voice",
+        audioUrl,
+        audioDuration: duration || 0,
+        clientMessageId: cid,
+        waveformPeaks: peaks,
+      });
+    } catch (dbErr) {
+      console.error(`[chat] sendMessage DB failure after upload — cleaning orphan blob ${key}:`, dbErr.message);
+      try { await storage.deleteObject(key); } catch (cleanupErr) {
+        console.error(`[chat] orphan blob cleanup failed for ${key}:`, cleanupErr.message);
+      }
+      throw dbErr;
+    }
+
+    const { message, created } = result;
     if (created) {
       const io = req.app.get("io");
       if (io) {

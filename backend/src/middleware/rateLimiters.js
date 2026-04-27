@@ -157,4 +157,37 @@ const socialLimiters = createLimiterPair({
     "Daily social limit reached. Please try again tomorrow.",
 });
 
-module.exports = { aiLimiters, ttsLimiters, pronLimiters, writingLimiters, battleLimiters, socialLimiters };
+/** Avatar upload (auth-only, low — image upload is rare per user) */
+const avatarUploadLimiters = createLimiterPair({
+  shortAuthMax: 5,        // 5 / 15 min — covers crop+retry experimentation
+  shortGuestMax: 0,
+  dailyAuthMax: 10,
+  dailyGuestMax: 0,
+  shortMessage:
+    "Avatar uploads too frequent. Please wait a few minutes.",
+  dailyMessage:
+    "Daily avatar upload limit reached.",
+});
+
+/** Voice note send (auth-only, moderate — chat-paced) */
+const voiceUploadLimiters = createLimiterPair({
+  shortAuthMax: 30,       // 30 / 15 min — natural conversation cap
+  shortGuestMax: 0,
+  dailyAuthMax: 200,
+  dailyGuestMax: 0,
+  shortMessage:
+    "Too many voice messages. Please slow down.",
+  dailyMessage:
+    "Daily voice message limit reached.",
+});
+
+module.exports = {
+  aiLimiters,
+  ttsLimiters,
+  pronLimiters,
+  writingLimiters,
+  battleLimiters,
+  socialLimiters,
+  avatarUploadLimiters,
+  voiceUploadLimiters,
+};

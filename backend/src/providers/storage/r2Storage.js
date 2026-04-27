@@ -145,9 +145,33 @@ async function uploadObject(key, body, contentType) {
   return { key };
 }
 
+/**
+ * Compose a stable, browser-loadable URL for an uploaded object.
+ *
+ * Contract:
+ *   - If R2_PUBLIC_URL env is set (recommended for prod with a Cloudflare
+ *     custom domain) → returns the unsigned permanent URL.
+ *   - Otherwise → returns a 7-day pre-signed GET URL. Refresh on read
+ *     (e.g. include in user/profile API response).
+ *
+ * Used by direct server-side upload paths (avatar, voice note) where
+ * we need a URL to persist in the DB row after `uploadObject`.
+ *
+ * @param {string} key
+ * @returns {Promise<string>}
+ */
+async function composePublicUrl(key) {
+  if (PUBLIC_URL) {
+    return `${PUBLIC_URL}/${key}`;
+  }
+  // 7 days is the AWS-style cap for SigV4 pre-signed GETs.
+  return generateDownloadUrl(key, 7 * 24 * 3600);
+}
+
 module.exports = {
   generateUploadUrl,
   generateDownloadUrl,
   deleteObject,
   uploadObject,
+  composePublicUrl,
 };

@@ -43,6 +43,31 @@ async function deleteObject(key) {
   store.delete(key);
 }
 
+/**
+ * Direct server-side upload (used by avatar/voice flows that buffer the
+ * payload at the API and persist after validation+re-encode).
+ *
+ * @param {string} key
+ * @param {Buffer|Uint8Array} body
+ * @param {string} _contentType
+ * @returns {Promise<{ key: string }>}
+ */
+async function uploadObject(key, body, _contentType) {
+  store.set(key, Buffer.isBuffer(body) ? body : Buffer.from(body));
+  return { key };
+}
+
+/**
+ * Stable URL pointing to the locally-served mock storage route.
+ * Used by avatars/voice notes so we don't have to refresh signed URLs.
+ *
+ * @param {string} key
+ * @returns {string}
+ */
+function composePublicUrl(key) {
+  return `${BASE_URL}/mock-storage/${encodeURIComponent(key)}`;
+}
+
 // ── Helpers for the mock Express routes ──
 
 /** Store a buffer for the given key. */
@@ -59,6 +84,8 @@ module.exports = {
   generateUploadUrl,
   generateDownloadUrl,
   deleteObject,
+  uploadObject,
+  composePublicUrl,
   _put,
   _get,
 };

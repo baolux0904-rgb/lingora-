@@ -6,8 +6,9 @@
 
 const { query } = require("../config/db");
 const { sendSuccess, sendError } = require("../response");
-const path = require("path");
-const fs = require("fs");
+const { decodeBase64Loose, validateImageBuffer, ValidationError } = require("../utils/mimeValidation");
+const { reEncodeImage } = require("../utils/imageReencode");
+const { createStorageProvider } = require("../providers/storage/storageProvider");
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/users/profile — update own profile
@@ -50,24 +51,57 @@ async function updateProfile(req, res, next) {
 async function uploadAvatar(req, res, next) {
   try {
     const userId = req.user.id;
-    const { image } = req.body; // base64 string
+    const { image } = req.body; // data URI or raw base64
 
     if (!image || typeof image !== "string") {
-      return sendError(res, { status: 400, message: "image (base64) is required" });
+      return sendError(res, { status: 400, message: "image (base64) is required", code: "IMAGE_REQUIRED" });
     }
 
-    // Save as file
-    const avatarsDir = path.join(__dirname, "..", "..", "public", "avatars");
-    if (!fs.existsSync(avatarsDir)) fs.mkdirSync(avatarsDir, { recursive: true });
+    // 1. Decode base64 → Buffer (null-safe)
+    const rawBuffer = decodeBase64Loose(image);
+    if (!rawBuffer) {
+      return sendError(res, { status: 400, message: "Invalid base64 payload.", code: "INVALID_IMAGE" });
+    }
 
-    const buffer = Buffer.from(image.replace(/^data:image\/\w+;base64,/, ""), "base64");
-    const filename = `${userId}.jpg`;
-    fs.writeFileSync(path.join(avatarsDir, filename), buffer);
+    // 2. Magic-byte validation: rejects SVG, octet-stream, polyglots-with-wrong-header.
+    //    Cap raw size 1.5MB BEFORE re-encode to bound memory/CPU.
+    let detected;
+    try {
+      detected = await validateImageBuffer(rawBuffer, { maxSize: 1.5 * 1024 * 1024 });
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return sendError(res, { status: err.status, message: err.message, code: err.code });
+      }
+      throw err;
+    }
 
-    const avatarUrl = `/avatars/${filename}`;
-    await query(`UPDATE users SET avatar_url = $2, updated_at = now() WHERE id = $1`, [userId, avatarUrl]);
+    // 3. Re-encode to canonical JPEG. Strips trailing-byte polyglots, EXIF,
+    //    and pixel-bombs (capped to 2048px longest side).
+    const encoded = await reEncodeImage(rawBuffer, { format: "jpeg", quality: 85 });
 
-    return sendSuccess(res, { data: { avatar_url: avatarUrl }, message: "Avatar uploaded" });
+    // 4. Upload to storage provider (R2 in prod, mock in dev). Deterministic
+    //    key per user — overwrites the previous avatar in place, so no
+    //    orphan-cleanup is required for re-uploads.
+    const storage = createStorageProvider();
+    const key = `avatars/${userId}.jpg`;
+    await storage.uploadObject(key, encoded.buffer, encoded.mime);
+
+    // 5. Persist a stable URL (R2_PUBLIC_URL or 7-day signed; mock URL in dev).
+    const avatarUrl = await storage.composePublicUrl(key);
+    await query(
+      `UPDATE users SET avatar_url = $2, updated_at = NOW() WHERE id = $1`,
+      [userId, avatarUrl],
+    );
+
+    return sendSuccess(res, {
+      data: {
+        avatar_url: avatarUrl,
+        width: encoded.width,
+        height: encoded.height,
+        original_mime: detected.mime,
+      },
+      message: "Avatar uploaded",
+    });
   } catch (err) { next(err); }
 }
 
