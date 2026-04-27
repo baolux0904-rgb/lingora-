@@ -111,6 +111,28 @@ const SQL_REVOKE_REFRESH_TOKEN_FAMILY = `
     AND  revoked_at IS NULL;
 `;
 
+// Find the most recent ACTIVE refresh token in a family (used by the
+// multi-tab race tolerance path: when an old token is presented within
+// the grace window, we look up the legitimate successor that the parallel
+// rotation just minted, and continue the chain from there.
+const SQL_FIND_ACTIVE_TOKEN_IN_FAMILY = `
+  SELECT id, user_id, family, issued_at, expires_at
+  FROM   refresh_tokens
+  WHERE  family     = $1
+    AND  revoked_at IS NULL
+    AND  expires_at > NOW()
+  ORDER  BY issued_at DESC
+  LIMIT  1;
+`;
+
+// Revoke a single refresh_tokens row by primary key (race-tolerance path).
+const SQL_REVOKE_REFRESH_TOKEN_BY_ID = `
+  UPDATE refresh_tokens
+  SET    revoked_at = NOW()
+  WHERE  id         = $1
+    AND  revoked_at IS NULL;
+`;
+
 // ─── Repository functions ─────────────────────────────────────────────────────
 
 /**
@@ -215,6 +237,29 @@ async function revokeRefreshTokenFamily(family) {
 }
 
 /**
+ * Look up the most recent active refresh token in a family. Used by the
+ * multi-tab refresh race tolerance path.
+ *
+ * @param {string} family – UUID
+ * @returns {Promise<object|undefined>} active token row, or undefined
+ */
+async function findActiveTokenInFamily(family) {
+  const { rows } = await db.query(SQL_FIND_ACTIVE_TOKEN_IN_FAMILY, [family]);
+  return rows[0];
+}
+
+/**
+ * Revoke a single refresh token by row id. Used by the race-tolerance path
+ * to atomically take over the family chain from a parallel rotation.
+ *
+ * @param {string} id – refresh_tokens.id (UUID)
+ * @returns {Promise<void>}
+ */
+async function revokeRefreshTokenById(id) {
+  await db.query(SQL_REVOKE_REFRESH_TOKEN_BY_ID, [id]);
+}
+
+/**
  * Cheap lookup used by the auth middleware to enforce password_version
  * binding on every authenticated request.
  *
@@ -272,6 +317,8 @@ module.exports = {
   findAnyRefreshToken,
   revokeRefreshToken,
   revokeRefreshTokenFamily,
+  findActiveTokenInFamily,
+  revokeRefreshTokenById,
   getPasswordVersion,
   rotatePasswordAndRevokeSessions,
 };

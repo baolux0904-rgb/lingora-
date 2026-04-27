@@ -260,8 +260,62 @@ async function refreshTokens(rawToken) {
   if (!activeToken) {
     // Check if the token exists but was already revoked (reuse detection)
     const revokedToken = await authRepository.findAnyRefreshToken(tokenHash);
-    if (revokedToken) {
-      // Reuse detected — revoke the entire family to protect the real user
+    if (revokedToken && revokedToken.revoked_at) {
+      // Multi-tab race tolerance: when two browser tabs of the same user
+      // refresh within milliseconds, the slower tab presents a token that
+      // was just rotated by the faster tab. Killing the entire family in
+      // that case kicks the legitimate user out of every tab — the symptom
+      // we hit in Wave 1.5b prod test.
+      //
+      // Grace window (5s): if the revocation happened recently AND the
+      // family has an active successor (the new token issued by the
+      // parallel rotation), treat this as a benign race. Take over the
+      // family chain — revoke the successor and mint a fresh pair so this
+      // tab gets clean tokens too. The other tab will, on its next
+      // refresh, hit the same path and get its own fresh pair, in a few
+      // hops both tabs settle.
+      //
+      // Outside the grace window OR with no active successor, this is
+      // either a genuine reuse attack or a stale leaked cookie — fall
+      // through to family-revoke as before.
+      const ageMs = Date.now() - new Date(revokedToken.revoked_at).getTime();
+      const RACE_TOLERANCE_MS = 5000;
+      if (ageMs >= 0 && ageMs < RACE_TOLERANCE_MS) {
+        const successor = await authRepository.findActiveTokenInFamily(revokedToken.family);
+        if (successor) {
+          console.warn(
+            `[refresh-race] tolerated user=${revokedToken.user_id} ` +
+            `family=${revokedToken.family.slice(0, 8)} delta_ms=${ageMs}`,
+          );
+          // Take over the chain: revoke the successor (rotation), mint a new
+          // pair in the same family.
+          await authRepository.revokeRefreshTokenById(successor.id);
+          const userRow = await authRepository.findById(revokedToken.user_id);
+          if (!userRow) {
+            throw httpError("User account not found.", 401);
+          }
+          const accessToken = generateAccessToken(userRow);
+          const refreshData = generateRefreshToken(revokedToken.family);
+          await authRepository.storeRefreshToken({
+            userId:    userRow.id,
+            tokenHash: refreshData.hash,
+            family:    refreshData.family,
+            expiresAt: refreshData.expiresAt,
+          });
+          return {
+            user:             formatUser(userRow),
+            accessToken,
+            refreshToken:     refreshData.token,
+            refreshExpiresAt: refreshData.expiresAt,
+          };
+        }
+      }
+      // Real reuse attack OR >grace window OR family already dead — protect
+      // the user by revoking every active token in the family.
+      console.error(
+        `[reuse-detection] family revoked user=${revokedToken.user_id} ` +
+        `family=${revokedToken.family.slice(0, 8)} delta_ms=${ageMs}`,
+      );
       await authRepository.revokeRefreshTokenFamily(revokedToken.family);
     }
     throw httpError("Refresh token is invalid or expired. Please log in again.", 401);
