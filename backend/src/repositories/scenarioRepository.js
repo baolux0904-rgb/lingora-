@@ -113,10 +113,13 @@ async function findSessionById(id) {
  * @returns {Promise<object[]>}
  */
 async function findSessionsByUser(userId, limit = 20) {
+  // Column names match migration 0012 rename (coach_feedback → feedback_summary,
+  // turn_count → total_turns, word_count → total_user_words). The pre-0012
+  // alias form was throwing "column ss.turn_count does not exist" on prod.
   const result = await query(
     `SELECT ss.id, ss.scenario_id, ss.status, ss.overall_score,
             ss.fluency_score, ss.vocabulary_score, ss.grammar_score,
-            ss.turn_count AS total_turns, ss.word_count AS total_user_words, ss.duration_ms,
+            ss.total_turns, ss.total_user_words, ss.duration_ms,
             ss.started_at, ss.completed_at,
             s.title, s.emoji, s.category, s.difficulty
        FROM scenario_sessions ss
@@ -145,6 +148,8 @@ async function findSessionsByUser(userId, limit = 20) {
  * @returns {Promise<object>}
  */
 async function completeSession(id, scores) {
+  // Column names match migration 0012 rename. The pre-0012 form was throwing
+  // "column coach_feedback does not exist" on every endSession call in prod.
   const result = await query(
     `UPDATE scenario_sessions
         SET status = 'completed',
@@ -152,9 +157,9 @@ async function completeSession(id, scores) {
             fluency_score = $3,
             vocabulary_score = $4,
             grammar_score = $5,
-            coach_feedback = $6,
-            turn_count = $7,
-            word_count = $8,
+            feedback_summary = $6,
+            total_turns = $7,
+            total_user_words = $8,
             duration_ms = $9,
             completed_at = NOW()
       WHERE id = $1

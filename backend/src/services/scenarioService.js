@@ -1443,9 +1443,10 @@ async function getSessionDetail(sessionId, userId) {
     fluencyScore: session.fluency_score,
     vocabularyScore: session.vocabulary_score,
     grammarScore: session.grammar_score,
-    coachFeedback: session.coach_feedback,
-    turnCount: session.turn_count,
-    wordCount: session.word_count,
+    // DB columns renamed by migration 0012 — read from new names.
+    coachFeedback: session.feedback_summary,
+    turnCount: session.total_turns,
+    wordCount: session.total_user_words,
     durationMs: session.duration_ms,
     startedAt: session.started_at,
     completedAt: session.completed_at,
