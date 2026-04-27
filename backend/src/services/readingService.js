@@ -38,7 +38,8 @@ async function listPassages(userId, filters = {}) {
 }
 
 async function getPassage(passageId) {
-  const data = await readingRepo.getPassageWithQuestions(passageId);
+  // Pre-submit client response — must NOT include answer keys.
+  const data = await readingRepo.getPassageWithQuestionsForExam(passageId);
   if (!data.passage) {
     const err = new Error("Passage not found");
     err.status = 404;
@@ -136,8 +137,9 @@ async function startFullTest(userId, testId = null) {
     passageIds = picked.map((p) => p.id);
   }
 
+  // Pre-submit client response — strip answer keys from all 3 passages.
   const passages = await Promise.all(
-    passageIds.map((id) => readingRepo.getPassageWithQuestions(id))
+    passageIds.map((id) => readingRepo.getPassageWithQuestionsForExam(id))
   );
 
   return {

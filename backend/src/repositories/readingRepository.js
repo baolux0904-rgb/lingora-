@@ -6,6 +6,7 @@
 
 const { query } = require("../config/db");
 const { scoreSubmission } = require("../services/readingScoring");
+const { sanitizeQuestionsForExam } = require("../utils/sanitize");
 
 async function listPassages({ difficulty, topic, limit = 20 } = {}) {
   let sql = `SELECT id, topic, difficulty, estimated_minutes, passage_title, created_at
@@ -31,12 +32,30 @@ async function listPassages({ difficulty, topic, limit = 20 } = {}) {
   }
 }
 
+/**
+ * getPassageWithQuestions — RAW data including answer keys.
+ * Server-side use only. Do NOT return directly to clients.
+ * Use getPassageWithQuestionsForExam for any pre-submit response.
+ */
 async function getPassageWithQuestions(passageId) {
   const [passage, questions] = await Promise.all([
     query(`SELECT * FROM reading_passages WHERE id = $1`, [passageId]),
     query(`SELECT * FROM reading_questions WHERE passage_id = $1 ORDER BY order_index`, [passageId]),
   ]);
   return { passage: passage.rows[0] || null, questions: questions.rows };
+}
+
+/**
+ * getPassageWithQuestionsForExam — SAFE for pre-submit client responses.
+ * Strips correct_answer, explanation, acceptable_answers, and any nested
+ * correct_* fields (e.g. options.correct_mapping, blanks[].correct_answers).
+ */
+async function getPassageWithQuestionsForExam(passageId) {
+  const data = await getPassageWithQuestions(passageId);
+  return {
+    passage: data.passage,
+    questions: sanitizeQuestionsForExam(data.questions),
+  };
 }
 
 async function getPassagesByDifficulties(difficulties, countPerDifficulty = 1) {
@@ -99,6 +118,7 @@ async function getReadingTestById(testId) {
 module.exports = {
   listPassages,
   getPassageWithQuestions,
+  getPassageWithQuestionsForExam,
   getPassagesByDifficulties,
   scoreAnswers,
   listReadingTests,

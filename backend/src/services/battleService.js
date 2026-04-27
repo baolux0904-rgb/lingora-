@@ -54,8 +54,9 @@ async function joinQueue(userId, mode = "ranked") {
     });
 
     const match = await repo.getMatchById(waitingMatch.id);
+    // Pre-submit client payload — strip answer keys.
     const content = match.question_set_id
-      ? await repo.getPassageWithQuestions(match.question_set_id)
+      ? await repo.getPassageWithQuestionsForBattle(match.question_set_id)
       : null;
 
     return { status: "matched", match, content };
@@ -290,8 +291,9 @@ async function getMatchStatus(userId, matchId) {
   const participant = await repo.getParticipant(matchId, userId);
   if (!participant) { const e = new Error("Not a participant"); e.status = 403; throw e; }
 
+  // Pre-submit client payload — strip answer keys.
   const content = match.question_set_id
-    ? await repo.getPassageWithQuestions(match.question_set_id)
+    ? await repo.getPassageWithQuestionsForBattle(match.question_set_id)
     : null;
 
   return { match, participant, content };
@@ -397,8 +399,9 @@ async function acceptChallenge(userId, matchId) {
   });
 
   const updatedMatch = await repo.getMatchById(match.id);
+  // Pre-submit client payload — strip answer keys.
   const content = updatedMatch.question_set_id
-    ? await repo.getPassageWithQuestions(updatedMatch.question_set_id)
+    ? await repo.getPassageWithQuestionsForBattle(updatedMatch.question_set_id)
     : null;
 
   return { match: updatedMatch, content, status: "accepted" };

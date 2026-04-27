@@ -6,6 +6,7 @@
  */
 
 const { query, pool } = require("../config/db");
+const { sanitizeQuestionsForExam } = require("../utils/sanitize");
 
 // ---------------------------------------------------------------------------
 // Rank tier helpers
@@ -348,6 +349,11 @@ async function getRandomPassage() {
 // Questions for a passage
 // ---------------------------------------------------------------------------
 
+/**
+ * getPassageWithQuestions — RAW data including answer keys.
+ * Server-side scoring use only (battleService.scoreSubmission).
+ * Do NOT return directly to clients.
+ */
 async function getPassageWithQuestions(passageId) {
   const [passage, questions] = await Promise.all([
     query(`SELECT * FROM reading_passages WHERE id = $1`, [passageId]),
@@ -356,6 +362,20 @@ async function getPassageWithQuestions(passageId) {
   return {
     passage: passage.rows[0] || null,
     questions: questions.rows,
+  };
+}
+
+/**
+ * getPassageWithQuestionsForBattle — SAFE for pre-submit match payloads.
+ * Strips correct_answer, explanation, acceptable_answers, and any nested
+ * correct_* fields. Used by joinQueue (matched), getMatchStatus,
+ * acceptChallenge — endpoints that ship a passage to the active player.
+ */
+async function getPassageWithQuestionsForBattle(passageId) {
+  const data = await getPassageWithQuestions(passageId);
+  return {
+    passage: data.passage,
+    questions: sanitizeQuestionsForExam(data.questions),
   };
 }
 
@@ -401,5 +421,6 @@ module.exports = {
   getPassageForUser,
   getRandomPassage,
   getPassageWithQuestions,
+  getPassageWithQuestionsForBattle,
   cancelQueuedMatchForUser,
 };
