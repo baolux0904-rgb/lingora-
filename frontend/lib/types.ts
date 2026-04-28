@@ -82,9 +82,11 @@ export interface XpSummary {
 }
 
 export interface StreakSummary {
-  currentStreak:  number;
-  longestStreak:  number;
-  lastActivityAt: string | null;
+  currentStreak:           number;
+  longestStreak:           number;
+  lastActivityAt:          string | null;
+  todayVn:                 string;
+  secondsUntilVnMidnight:  number;
 }
 
 export interface GamificationData {

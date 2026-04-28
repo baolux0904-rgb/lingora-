@@ -11,25 +11,13 @@
  * - NOT a modal — inline banner on Home dashboard
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { StreakSummary } from "@/lib/types";
 
 interface StreakWarningBannerProps {
   streak: StreakSummary | undefined;
   onNavigate: (tab: string) => void;
-}
-
-function getTimeToMidnight(): { hours: number; minutes: number; total: number } {
-  const now = new Date();
-  const midnight = new Date(now);
-  midnight.setHours(24, 0, 0, 0);
-  const diff = midnight.getTime() - now.getTime();
-  return {
-    hours: Math.floor(diff / 3600000),
-    minutes: Math.floor((diff % 3600000) / 60000),
-    total: diff,
-  };
 }
 
 function isDismissed(): boolean {
@@ -42,8 +30,10 @@ function isDismissed(): boolean {
 export default function StreakWarningBanner({ streak, onNavigate }: StreakWarningBannerProps) {
   const [visible, setVisible] = useState(false);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0 });
+  const mountedAt = useRef(Date.now());
 
   useEffect(() => {
+    mountedAt.current = Date.now();
     function check() {
       // Don't show if no streak to protect
       if (!streak || streak.currentStreak === 0) return;
@@ -51,26 +41,26 @@ export default function StreakWarningBanner({ streak, onNavigate }: StreakWarnin
       // Don't show if dismissed recently
       if (isDismissed()) return;
 
-      // Check if last activity was today
-      if (streak.lastActivityAt) {
-        const lastActivity = new Date(streak.lastActivityAt);
-        const today = new Date();
-        if (
-          lastActivity.getDate() === today.getDate() &&
-          lastActivity.getMonth() === today.getMonth() &&
-          lastActivity.getFullYear() === today.getFullYear()
-        ) {
-          // Already practiced today — no warning
-          setVisible(false);
-          return;
-        }
+      // Compare BE-supplied VN dates — browser TZ may not be Asia/Ho_Chi_Minh
+      // (user travelling, VPN, etc.). Single source of truth = backend.
+      if (streak.lastActivityAt && streak.lastActivityAt === streak.todayVn) {
+        setVisible(false);
+        return;
       }
 
-      // Only show within 8h of midnight (after 4pm local)
-      const { hours, minutes, total } = getTimeToMidnight();
-      if (total > 8 * 3600000) return; // more than 8h to midnight
+      // Decay the BE-issued countdown locally between fetches so the banner
+      // stays accurate without re-polling every minute. Drift is bounded by
+      // the parent hook's refetch cadence.
+      const elapsedMs = Date.now() - mountedAt.current;
+      const remainingSec = Math.max(0, streak.secondsUntilVnMidnight - Math.floor(elapsedMs / 1000));
 
-      setTimeLeft({ hours, minutes });
+      // Only show within 8h of VN midnight (after 4pm VN)
+      if (remainingSec > 8 * 3600) return;
+
+      setTimeLeft({
+        hours:   Math.floor(remainingSec / 3600),
+        minutes: Math.floor((remainingSec % 3600) / 60),
+      });
       setVisible(true);
     }
 
