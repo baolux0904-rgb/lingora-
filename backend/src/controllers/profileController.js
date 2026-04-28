@@ -9,6 +9,12 @@ const { sendSuccess, sendError } = require("../response");
 const { decodeBase64Loose, validateImageBuffer, ValidationError } = require("../utils/mimeValidation");
 const { reEncodeImage } = require("../utils/imageReencode");
 const { createStorageProvider } = require("../providers/storage/storageProvider");
+const {
+  shouldServeProfile,
+  filterProfileFields,
+  VISIBILITIES,
+} = require("../domain/profileVisibility");
+const socialRepository = require("../repositories/socialRepository");
 
 // ---------------------------------------------------------------------------
 // POST /api/v1/users/profile — update own profile
@@ -133,7 +139,7 @@ async function getProfileStats(req, res, next) {
     // 2. Try to fetch optional user columns added by migrations 0013-0024.
     //    If columns don't exist yet, safe() returns empty and we use defaults.
     const optionalUserRow = await safe(query(
-      `SELECT username, bio, location, target_band, estimated_band, band_history, is_pro, friend_count FROM users WHERE id = $1`, [userId]
+      `SELECT username, bio, location, target_band, estimated_band, band_history, is_pro, friend_count, profile_visibility FROM users WHERE id = $1`, [userId]
     ));
     const optUser = optionalUserRow.rows[0] || {};
 
@@ -181,6 +187,7 @@ async function getProfileStats(req, res, next) {
           band_history: optUser.band_history || [],
           is_pro: optUser.is_pro ?? false,
           joined_at: user.created_at,
+          profile_visibility: optUser.profile_visibility ?? "friends",
         },
         gamification: {
           totalXp, level,
@@ -207,16 +214,45 @@ async function getProfileStats(req, res, next) {
 // GET /api/v1/profile/:username — public profile
 // ---------------------------------------------------------------------------
 
+/**
+ * Resolve the relation between the authenticated viewer (or anonymous)
+ * and the requested profile. Trust ONLY req.user.id (set by optionalAuth
+ * after JWT verify). Query string / body / header field claims are
+ * IGNORED — visibility decisions never read client-supplied "viewer"
+ * data. Adversarial inputs collapse safely to 'unauth' or 'stranger'.
+ *
+ * @param {object|null} viewer - req.user (null when anonymous)
+ * @param {string} profileUserId - the looked-up profile's UUID
+ * @returns {Promise<'self'|'friend'|'stranger'|'unauth'>}
+ */
+async function resolveViewerRelation(viewer, profileUserId) {
+  if (!viewer || typeof viewer.id !== "string") return "unauth";
+  if (viewer.id === profileUserId) return "self";
+  const friend = await socialRepository.isFriend(viewer.id, profileUserId);
+  return friend ? "friend" : "stranger";
+}
+
 async function getPublicProfile(req, res, next) {
   try {
     const { username } = req.params;
     const result = await query(
-      `SELECT id, name, username, bio, location, avatar_url, target_band, estimated_band, is_pro, created_at
+      `SELECT id, name, username, bio, location, avatar_url, target_band,
+              estimated_band, is_pro, created_at, profile_visibility
          FROM users WHERE username = $1 AND deleted_at IS NULL`,
       [username]
     );
     const user = result.rows[0];
     if (!user) return sendError(res, { status: 404, message: "User not found" });
+
+    // Resolve the viewer relation BEFORE deciding to serve. Strangers/
+    // unauth viewers of a private/friends profile see the same 404 the
+    // non-existent username path returns — zero info leak.
+    const viewer = req.user ?? null;
+    const viewerRelation = await resolveViewerRelation(viewer, user.id);
+
+    if (!shouldServeProfile(user.profile_visibility, viewerRelation)) {
+      return sendError(res, { status: 404, message: "User not found" });
+    }
 
     const [xpRow, streakRow, badgesRow, battleRow] = await Promise.all([
       query(`SELECT COALESCE(SUM(delta), 0)::int AS total_xp FROM xp_ledger WHERE user_id = $1`, [user.id]),
@@ -232,25 +268,55 @@ async function getPublicProfile(req, res, next) {
       if (totalXp >= THRESHOLDS[i]) { level = i + 1; break; }
     }
 
-    return sendSuccess(res, {
-      data: {
-        name: user.name, username: user.username, bio: user.bio, location: user.location,
-        avatar_url: user.avatar_url,
-        target_band: user.target_band ? Number(user.target_band) : null,
-        estimated_band: user.estimated_band ? Number(user.estimated_band) : null,
-        is_pro: user.is_pro, joined_at: user.created_at,
-        totalXp, level,
-        streak: streakRow.rows[0]?.current_streak ?? 0,
-        badges: badgesRow.rows,
-        battle: {
-          rank_tier: battleRow.rows[0]?.current_rank_tier ?? "iron",
-          rank_points: battleRow.rows[0]?.current_rank_points ?? 0,
-          wins: battleRow.rows[0]?.wins ?? 0,
-        },
+    const fullProfile = {
+      name: user.name, username: user.username, bio: user.bio, location: user.location,
+      avatar_url: user.avatar_url,
+      target_band: user.target_band ? Number(user.target_band) : null,
+      estimated_band: user.estimated_band ? Number(user.estimated_band) : null,
+      is_pro: user.is_pro, joined_at: user.created_at,
+      totalXp, level,
+      streak: streakRow.rows[0]?.current_streak ?? 0,
+      badges: badgesRow.rows,
+      battle: {
+        rank_tier: battleRow.rows[0]?.current_rank_tier ?? "iron",
+        rank_points: battleRow.rows[0]?.current_rank_points ?? 0,
+        wins: battleRow.rows[0]?.wins ?? 0,
       },
+    };
+
+    return sendSuccess(res, {
+      data:    filterProfileFields(fullProfile, viewerRelation),
       message: "Public profile",
     });
   } catch (err) { next(err); }
 }
 
-module.exports = { updateProfile, uploadAvatar, getProfileStats, getPublicProfile };
+/**
+ * PATCH /api/v1/users/me/visibility
+ *
+ * Body: { visibility: 'public' | 'friends' | 'private' }. Server-side
+ * enum validation — never trust the client to constrain values.
+ */
+async function updateVisibility(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const { visibility } = req.body || {};
+
+    if (!VISIBILITIES.includes(visibility)) {
+      return sendError(res, {
+        status:  400,
+        message: `visibility must be one of: ${VISIBILITIES.join(", ")}.`,
+        code:    "INVALID_VISIBILITY",
+      });
+    }
+
+    await query(
+      `UPDATE users SET profile_visibility = $2, updated_at = now() WHERE id = $1`,
+      [userId, visibility],
+    );
+
+    return sendSuccess(res, { data: { visibility }, message: "Visibility updated" });
+  } catch (err) { next(err); }
+}
+
+module.exports = { updateProfile, uploadAvatar, getProfileStats, getPublicProfile, updateVisibility };

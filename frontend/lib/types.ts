@@ -888,6 +888,8 @@ export interface BandProgressData {
 // Profile types
 // ---------------------------------------------------------------------------
 
+export type ProfileVisibility = "public" | "friends" | "private";
+
 export interface ProfileStats {
   user: {
     name: string;
@@ -900,6 +902,7 @@ export interface ProfileStats {
     band_history: BandHistoryEntry[];
     is_pro: boolean;
     joined_at: string;
+    profile_visibility: ProfileVisibility;
   };
   gamification: {
     totalXp: number;
@@ -921,19 +924,22 @@ export interface ProfileStats {
 }
 
 export interface PublicProfile {
+  // Always-tier fields (visible to anyone the profile is served to).
   name: string;
   username: string;
-  bio: string | null;
-  location: string | null;
   avatar_url: string | null;
-  target_band: number | null;
-  estimated_band: number | null;
   is_pro: boolean;
-  joined_at: string;
   totalXp: number;
   level: number;
   streak: number;
   badges: Array<{ slug: string; name: string }>;
+  // Friends-only fields — present only when viewer is self/friend.
+  // Wave 2.8 strips them from stranger/unauth responses.
+  bio?: string | null;
+  location?: string | null;
+  target_band?: number | null;
+  estimated_band?: number | null;
+  joined_at?: string;
   battle: { rank_tier: string; rank_points: number; wins: number };
 }
 

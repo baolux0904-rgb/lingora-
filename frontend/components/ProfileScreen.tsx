@@ -12,8 +12,8 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Skeleton from "@/components/ui/Skeleton";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { logoutUser, getProfileStats, updateProfile, uploadAvatar } from "@/lib/api";
-import type { SpeakingMetricsData, GamificationData, ProfileStats } from "@/lib/types";
+import { logoutUser, getProfileStats, updateProfile, uploadAvatar, updateProfileVisibility } from "@/lib/api";
+import type { SpeakingMetricsData, GamificationData, ProfileStats, ProfileVisibility } from "@/lib/types";
 
 const ShareCardModal = dynamic(() => import("./Social/ShareCardModal"), { ssr: false });
 const AchievementsSection = dynamic(() => import("./AchievementsSection"), { ssr: false });
@@ -46,6 +46,7 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
   const [bio, setBio] = useState(stats.user.bio || "");
   const [location, setLocation] = useState(stats.user.location || "");
   const [targetBand, setTargetBand] = useState(stats.user.target_band?.toString() || "6.5");
+  const [visibility, setVisibility] = useState<ProfileVisibility>(stats.user.profile_visibility ?? "friends");
   const [saving, setSaving] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -70,6 +71,13 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
       }
 
       await updateProfile({ name: name.trim(), bio: bio.trim(), location: location.trim(), target_band: Number(targetBand) });
+
+      // Persist visibility separately — it lives on its own endpoint so
+      // a future refactor (e.g. moving privacy into a dedicated Settings
+      // page) doesn't have to touch updateProfile.
+      if (visibility !== stats.user.profile_visibility) {
+        try { await updateProfileVisibility(visibility); } catch { /* silent — keep UX */ }
+      }
 
       // Patch the auth store so Topbar, Sidebar, etc. show the new avatar immediately
       // without waiting for a full page refresh / token refresh cycle.
@@ -124,6 +132,41 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
           className="rounded-lg px-3 py-2.5 text-sm" style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}>
           {[5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0].map(b => <option key={b} value={b}>Target: Band {b.toFixed(1)}</option>)}
         </select>
+
+        {/* Privacy (Wave 2.8) */}
+        <div className="flex flex-col gap-2 pt-1">
+          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-secondary)" }}>
+            Riêng tư
+          </div>
+          {([
+            { v: "public",  title: "Công khai", desc: "Ai cũng xem được profile" },
+            { v: "friends", title: "Bạn bè",    desc: "Chỉ bạn bè xem được band, vị trí" },
+            { v: "private", title: "Riêng tư",  desc: "Không ai xem được profile (chỉ tôi)" },
+          ] as const).map((opt) => (
+            <label key={opt.v}
+              className="flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all"
+              style={{
+                background: visibility === opt.v ? "rgba(0,168,150,0.08)" : "var(--color-bg-secondary)",
+                border: `1px solid ${visibility === opt.v ? "rgba(0,168,150,0.4)" : "var(--color-border)"}`,
+              }}>
+              <input
+                type="radio"
+                name="profile-visibility"
+                value={opt.v}
+                checked={visibility === opt.v}
+                onChange={() => setVisibility(opt.v)}
+                className="mt-1 cursor-pointer"
+              />
+              <div className="flex-1">
+                <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>{opt.title}</div>
+                <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>{opt.desc}</div>
+              </div>
+            </label>
+          ))}
+          <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
+            ℹ Một số thông tin (bio, vị trí, band) luôn chỉ hiển thị với bạn bè, kể cả khi profile công khai.
+          </p>
+        </div>
 
         <div className="flex gap-2 mt-1">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-lg text-sm font-medium" style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}>Hủy</button>

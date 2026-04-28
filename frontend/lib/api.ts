@@ -610,6 +610,16 @@ export async function getBattleEligibility(): Promise<import("./types").BattleEl
   return apiFetchAuth<import("./types").BattleEligibility>("/battle/eligibility");
 }
 
+/** PATCH /users/me/visibility — update profile_visibility (Wave 2.8). */
+export async function updateProfileVisibility(
+  visibility: import("./types").ProfileVisibility,
+): Promise<{ visibility: import("./types").ProfileVisibility }> {
+  return apiPatchAuth<{ visibility: import("./types").ProfileVisibility }>(
+    "/users/me/visibility",
+    { visibility },
+  );
+}
+
 /** GET /users/achievements — all badges, earned, progress */
 export async function getAchievements(): Promise<import("./types").AchievementsData> {
   return apiFetchAuth<import("./types").AchievementsData>("/users/achievements");

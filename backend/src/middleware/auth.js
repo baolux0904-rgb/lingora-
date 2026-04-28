@@ -185,4 +185,43 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = { verifyToken, requireRole, logOwnership };
+/**
+ * optionalAuth middleware
+ *
+ * For routes that serve both authenticated and unauthenticated visitors
+ * (e.g. public profile, where logged-in friends see more fields).
+ *
+ *   - No Authorization header → req.user = null, next().
+ *   - Valid Bearer token → req.user populated like verifyToken.
+ *   - Invalid/expired token → req.user = null, next() (fail-soft).
+ *     Rationale: a stranger sending a forged token must NEVER be
+ *     promoted to "friend" — the downstream relation check is
+ *     server-side and only trusts req.user.id.
+ *
+ * Does NOT enforce password_version like verifyToken: optional auth
+ * is read-only and the worst-case (stale token still works for
+ * profile read) is bounded by the access-token TTL (~15 min).
+ */
+async function optionalAuth(req, _res, next) {
+  const token = extractBearerToken(req.headers.authorization);
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    const payload = jwt.verify(token, config.jwt.accessSecret);
+    req.user = {
+      id:   payload.sub,
+      role: payload.role,
+      name: payload.name,
+    };
+  } catch {
+    // Forged / expired / wrong-secret → treat as anonymous. We
+    // intentionally do NOT 401 here; this is a public endpoint.
+    req.user = null;
+  }
+  return next();
+}
+
+module.exports = { verifyToken, requireRole, logOwnership, optionalAuth };

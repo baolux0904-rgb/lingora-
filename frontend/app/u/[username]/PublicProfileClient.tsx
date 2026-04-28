@@ -49,7 +49,11 @@ export default function PublicProfileClient({ username }: Props) {
   }
 
   const initials = profile.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const joinDate = new Date(profile.joined_at).toLocaleDateString("vi-VN", { month: "short", year: "numeric" });
+  // joined_at is friends-only (Wave 2.8) — only render the badge when BE
+  // included it (i.e. viewer is self/friend). Same for bio/location/bands.
+  const joinDate = profile.joined_at
+    ? new Date(profile.joined_at).toLocaleDateString("vi-VN", { month: "short", year: "numeric" })
+    : null;
   const rankEmoji = RANK_EMOJI[profile.battle.rank_tier] || "🪨";
 
   return (
@@ -68,7 +72,7 @@ export default function PublicProfileClient({ username }: Props) {
             {profile.estimated_band && <span>📊 Band {profile.estimated_band.toFixed(1)}</span>}
             {profile.target_band && <span>🎯 Target {profile.target_band.toFixed(1)}</span>}
             {profile.location && <span>📍 {profile.location}</span>}
-            <span>Since {joinDate}</span>
+            {joinDate && <span>Since {joinDate}</span>}
           </div>
           {profile.is_pro && (
             <span className="inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: "rgba(139,113,234,0.15)", color: "#A5B4FC" }}>PRO</span>
