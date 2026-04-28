@@ -6,6 +6,7 @@
 
 import { useState, useEffect } from "react";
 import { getBattleResult } from "@/lib/api";
+import Mascot from "@/components/ui/Mascot";
 import type { BattleResult as BattleResultType, BattleRankTier } from "@/lib/types";
 
 interface BattleResultProps {
@@ -48,6 +49,9 @@ export default function BattleResultScreen({ matchId, onClose, onPlayAgain }: Ba
   return (
     <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto" style={{ background: "var(--color-bg)" }}>
       <div className="max-w-xl mx-auto w-full px-5 py-8 flex flex-col items-center gap-6">
+        {/* Lintopus presence — Soul §1: stand next to every result, win or loss. */}
+        <Mascot size={100} mood={isWinner ? "happy" : "default"} alt="Lintopus" />
+
         {/* Hero */}
         <div className="text-center">
           <div className="text-5xl mb-3">{heroEmoji}</div>

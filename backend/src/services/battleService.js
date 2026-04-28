@@ -8,6 +8,7 @@
 "use strict";
 
 const repo = require("../repositories/battleRepository");
+const { BATTLE_PRACTICE_GATE, BATTLE_GATE_ERROR_CODE } = require("../domain/battleGate");
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -21,6 +22,53 @@ const RANK_NO_SUBMIT = -30;
 const SUBMISSION_DEADLINE_MINUTES = 30;
 
 // ---------------------------------------------------------------------------
+// Battle entry gate (Wave 2.5 — Soul §1)
+// ---------------------------------------------------------------------------
+
+/**
+ * Count of distinct Reading practice passages a user has completed.
+ * Source: xp_ledger rows with reason='reading_practice_complete' — the
+ * partial UNIQUE on (user_id, reason, ref_id) (Wave 1 commit aa672e0)
+ * means each row is a unique passage completion. Failed attempts never
+ * award XP, so no extra "score > 0" filter is needed.
+ *
+ * @param {string} userId
+ * @returns {Promise<{ eligible: boolean, completed: number, required: number }>}
+ */
+async function checkBattleEligibility(userId) {
+  const { query } = require("../config/db");
+  const r = await query(
+    `SELECT COUNT(*)::int AS completed
+       FROM xp_ledger
+      WHERE user_id = $1
+        AND reason  = 'reading_practice_complete'`,
+    [userId],
+  );
+  const completed = r.rows[0]?.completed ?? 0;
+  return {
+    eligible: completed >= BATTLE_PRACTICE_GATE,
+    completed,
+    required: BATTLE_PRACTICE_GATE,
+  };
+}
+
+/**
+ * Throw a 403 with a structured payload when the user is not eligible.
+ * Soul §1: honest copy — we say what's gated and how to unlock it.
+ */
+async function assertBattleEligible(userId) {
+  const status = await checkBattleEligibility(userId);
+  if (status.eligible) return;
+  const err = new Error(
+    `Hoàn thành ${status.required} lượt Reading practice trước khi vào Battle (đã hoàn thành: ${status.completed}/${status.required}).`,
+  );
+  err.status = 403;
+  err.code = BATTLE_GATE_ERROR_CODE;
+  err.data = { completed: status.completed, required: status.required };
+  throw err;
+}
+
+// ---------------------------------------------------------------------------
 // Matchmaking
 // ---------------------------------------------------------------------------
 
@@ -28,6 +76,8 @@ const SUBMISSION_DEADLINE_MINUTES = 30;
  * Join the queue: find an existing queued match in same tier, or create one.
  */
 async function joinQueue(userId, mode = "ranked") {
+  await assertBattleEligible(userId);
+
   const profile = await repo.getOrCreatePlayerProfile(userId);
   const tier = profile.current_rank_tier;
   const season = await repo.getCurrentSeason();
@@ -358,6 +408,8 @@ async function createDirectChallenge(userId, targetUserId) {
     const e = new Error("Cannot challenge yourself"); e.status = 400; throw e;
   }
 
+  await assertBattleEligible(userId);
+
   const passageId = await repo.getPassageForUser(userId);
   if (!passageId) { const e = new Error("No passages available"); e.status = 503; throw e; }
 
@@ -388,6 +440,8 @@ async function acceptChallenge(userId, matchId) {
   const match = await repo.getMatchById(matchId);
   if (!match) { const e = new Error("Match not found"); e.status = 404; throw e; }
   if (match.status !== "queued") { const e = new Error("Challenge no longer available"); e.status = 400; throw e; }
+
+  await assertBattleEligible(userId);
 
   const profile = await repo.getOrCreatePlayerProfile(userId);
   await repo.addParticipant(match.id, userId, profile.current_rank_points);
@@ -483,6 +537,7 @@ async function expireOverdueMatches() {
 }
 
 module.exports = {
+  checkBattleEligibility,
   joinQueue,
   leaveQueue,
   submitBattle,

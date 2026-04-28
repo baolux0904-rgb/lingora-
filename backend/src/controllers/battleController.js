@@ -102,7 +102,15 @@ async function getHome(req, res, next) {
   } catch (err) { next(err); }
 }
 
+async function getEligibility(req, res, next) {
+  try {
+    const result = await battleService.checkBattleEligibility(req.user.id);
+    return sendSuccess(res, { data: result, message: "Battle eligibility" });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   joinQueue, leaveQueue, getMatch, submitMatch, getResult,
   getProfile, getLeaderboard, createChallenge, acceptChallenge, getHome,
+  getEligibility,
 };

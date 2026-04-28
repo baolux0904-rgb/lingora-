@@ -9,10 +9,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
-import { getBattleHome } from "@/lib/api";
+import { useRouter } from "next/navigation";
+import { getBattleHome, getBattleEligibility } from "@/lib/api";
 import Skeleton from "@/components/ui/Skeleton";
 import Mascot from "@/components/ui/Mascot";
-import type { BattleHome, BattleRankTier } from "@/lib/types";
+import type { BattleHome, BattleRankTier, BattleEligibility } from "@/lib/types";
 
 const BattleQueue = dynamic(() => import("./BattleQueue"), { ssr: false });
 const BattleMatch = dynamic(() => import("./BattleMatch"), { ssr: false });
@@ -36,10 +37,12 @@ const RANK_CONFIG: Record<BattleRankTier, { label: string; emoji: string; color:
 type Screen = "home" | "queue" | "match" | "result" | "leaderboard";
 
 export default function BattleTab() {
+  const router = useRouter();
   const [screen, setScreen] = useState<Screen>("home");
   const [data, setData] = useState<BattleHome | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeMatchId, setActiveMatchId] = useState<string | null>(null);
+  const [eligibility, setEligibility] = useState<BattleEligibility | null>(null);
 
   const loadHome = useCallback(async () => {
     setLoading(true);
@@ -51,6 +54,50 @@ export default function BattleTab() {
   }, []);
 
   useEffect(() => { loadHome(); }, [loadHome]);
+  useEffect(() => {
+    let cancelled = false;
+    getBattleEligibility()
+      .then((e) => { if (!cancelled) setEligibility(e); })
+      .catch(() => { /* fail open — gate is enforced server-side anyway */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Gate screen — locked Battle with honest unlock copy (Soul §1).
+  if (eligibility && !eligibility.eligible && screen === "home") {
+    return (
+      <div className="max-w-md mx-auto px-5 py-12 flex flex-col items-center text-center gap-5">
+        <Mascot size={120} />
+        <h2 className="text-2xl font-display font-bold" style={{ color: "var(--color-text)" }}>
+          Mở khóa Battle
+        </h2>
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          Hoàn thành {eligibility.required} lượt Reading practice trước khi vào Battle. Lintopus sẽ đợi bạn ở đây.
+        </p>
+        <div
+          className="w-full rounded-xl px-4 py-3"
+          style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}
+        >
+          <div className="text-xs uppercase tracking-wider mb-1" style={{ color: "var(--color-text-tertiary)" }}>
+            Tiến độ
+          </div>
+          <div className="text-lg font-semibold" style={{ color: "var(--color-text)" }}>
+            {eligibility.completed}/{eligibility.required}
+          </div>
+        </div>
+        <button
+          onClick={() => router.push("/home-legacy?tab=reading&mode=practice")}
+          className="w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer"
+          style={{
+            background: "linear-gradient(135deg, #00A896, #00C4B0)",
+            color: "#fff",
+            boxShadow: "0 4px 16px rgba(0,168,150,0.25)",
+          }}
+        >
+          Luyện Reading ngay
+        </button>
+      </div>
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // Overlay screens
@@ -287,19 +334,6 @@ export default function BattleTab() {
             </button>
           </div>
 
-          {/* Queue info */}
-          <div className="flex items-center gap-6 text-center">
-            <div>
-              <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>1,234</div>
-              <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Online</div>
-            </div>
-            <div className="w-px h-6" style={{ backgroundColor: "var(--color-border)" }} />
-            <div>
-              <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>~12s</div>
-              <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Avg Queue</div>
-            </div>
-          </div>
-
           {/* OR divider */}
           <div className="flex items-center gap-3 w-full max-w-xs">
             <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
@@ -432,26 +466,6 @@ export default function BattleTab() {
               <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Play matches to see the leaderboard</p>
             </div>
           )}
-
-          {/* Season countdown */}
-          <div
-            className="rounded-2xl p-4 text-center"
-            style={{
-              backgroundColor: "var(--surface-primary)",
-              border: "1px solid var(--surface-border)",
-              boxShadow: "var(--surface-shadow)",
-            }}
-          >
-            <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
-              Season 1
-            </div>
-            <div className="text-lg font-display font-bold" style={{ color: "var(--color-text)" }}>
-              28 days left
-            </div>
-            <div className="text-xs mt-1" style={{ color: "var(--color-text-tertiary)" }}>
-              Climb the ranks before reset
-            </div>
-          </div>
 
           {/* Recent matches (desktop) */}
           <div className="hidden lg:block">

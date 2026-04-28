@@ -970,6 +970,13 @@ export interface DailyLimitsStatus {
   writing: { used: number; limit: number | null; allowed: boolean };
 }
 
+/** GET /battles/eligibility — Wave 2.5 gate (5-practice precondition). */
+export interface BattleEligibility {
+  eligible:  boolean;
+  completed: number;
+  required:  number;
+}
+
 /** Public, unauthenticated limit surface (GET /public/limits). Drives marketing copy. */
 export interface PublicLimits {
   free: { speaking: number | null; writing: number | null; grammar: number | null; reading: number | null };

@@ -31,4 +31,7 @@ router.post("/challenges/:id/accept", verifyToken, ...battleLimiters, c.acceptCh
 // Home (profile + recent + leaderboard preview)
 router.get("/home", verifyToken, c.getHome);
 
+// Eligibility — does this user clear the 5-practice gate? (Wave 2.5)
+router.get("/eligibility", verifyToken, c.getEligibility);
+
 module.exports = router;
