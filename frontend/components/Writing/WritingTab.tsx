@@ -390,11 +390,11 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             IELTS Writing
           </div>
           <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            {phase === "intro" && "Preparing..."}
-            {phase === "editor" && "Write your essay"}
-            {phase === "pending" && "Analyzing your essay..."}
-            {phase === "result" && "Your results"}
-            {phase === "history" && "Past submissions"}
+            {phase === "intro" && "Đang chuẩn bị..."}
+            {phase === "editor" && "Viết bài luận"}
+            {phase === "pending" && "Đang phân tích bài viết..."}
+            {phase === "result" && "Kết quả của bạn"}
+            {phase === "history" && "Lịch sử bài viết"}
           </div>
         </div>
 
@@ -428,7 +428,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
               color: "var(--color-text-secondary)",
             }}
           >
-            History
+            Lịch sử
           </button>
         )}
         {(phase === "history" || phase === "result") && (

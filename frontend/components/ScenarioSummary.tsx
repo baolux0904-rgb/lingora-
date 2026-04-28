@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import FeedbackSheet from "@/components/FeedbackSheet";
 import { scoreColor } from "@/lib/bandColors";
@@ -19,6 +20,7 @@ function formatDuration(ms: number): string {
 }
 
 export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProps) {
+  const router = useRouter();
   const [animatedScore, setAnimatedScore] = useState(0);
   const [showFeedback, setShowFeedback] = useState(false);
 
@@ -414,15 +416,26 @@ export default function ScenarioSummary({ result, onClose }: ScenarioSummaryProp
           </details>
         )}
 
-        {/* Done button */}
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          onClick={onClose}
-        >
-          Done
-        </Button>
+        {/* Wave 1.5b: Done + visible "Xem lịch sử" entry point — was hidden
+            in /profile, users couldn't find their past sessions. */}
+        <div className="flex flex-col gap-2">
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
+            onClick={onClose}
+          >
+            Hoàn tất
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            fullWidth
+            onClick={() => router.push("/profile")}
+          >
+            Xem lịch sử Speaking
+          </Button>
+        </div>
       </div>
 
       <FeedbackSheet
