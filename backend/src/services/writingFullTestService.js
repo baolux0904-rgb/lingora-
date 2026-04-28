@@ -93,6 +93,7 @@ async function submitTask(userId, runId, { taskType, questionText, essayText, wr
     questionText,
     essayText,
     writingQuestionId: writingQuestionId ?? null,
+    source: "full_test",
   });
 
   await writingFullTestRepository.linkSubmission(runId, taskType, submitResult.submissionId);

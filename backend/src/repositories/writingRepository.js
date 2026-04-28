@@ -20,14 +20,14 @@ const { query } = require("../config/db");
  * @param {number} wordCount
  * @returns {Promise<object>} – the created row
  */
-async function createSubmission(userId, taskType, questionText, essayText, wordCount, writingQuestionId = null) {
+async function createSubmission(userId, taskType, questionText, essayText, wordCount, writingQuestionId = null, source = "practice") {
   const result = await query(
     `INSERT INTO writing_submissions
-       (user_id, task_type, question_text, essay_text, word_count, writing_question_id)
-     VALUES ($1, $2, $3, $4, $5, $6)
+       (user_id, task_type, question_text, essay_text, word_count, writing_question_id, source)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id, user_id, task_type, question_text, essay_text, word_count,
-               writing_question_id, status, created_at`,
-    [userId, taskType, questionText, essayText, wordCount, writingQuestionId]
+               writing_question_id, source, status, created_at`,
+    [userId, taskType, questionText, essayText, wordCount, writingQuestionId, source]
   );
   return result.rows[0];
 }
@@ -130,17 +130,21 @@ async function getRecentCompletedWithFeedback(userId, limit = 30) {
 }
 
 /**
- * Find an existing non-failed submission for this user + task type today.
+ * Find an existing non-failed submission for this user + task type + source today.
  * Used for idempotency — prevents duplicate submissions on double-click.
+ *
+ * `source` is required (no default) so callers can't accidentally collapse
+ * Practice and Full Test into the same idempotency slot — that collapse was
+ * the content-theft bug fixed in migration 0045.
  */
-async function findTodaySubmission(userId, taskType) {
+async function findTodaySubmission(userId, taskType, source) {
   const result = await query(
     `SELECT id, status FROM writing_submissions
-      WHERE user_id = $1 AND task_type = $2
+      WHERE user_id = $1 AND task_type = $2 AND source = $3
         AND created_at::date = CURRENT_DATE
         AND status != 'failed'
       ORDER BY created_at DESC LIMIT 1`,
-    [userId, taskType]
+    [userId, taskType, source]
   );
   return result.rows[0] || null;
 }

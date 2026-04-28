@@ -75,7 +75,7 @@ describe("writingService.submitEssay — question link", () => {
     expect(res).toEqual({ submissionId: SUBMISSION_ID, status: "pending" });
 
     expect(writingRepo.createSubmission).toHaveBeenCalledWith(
-      USER_ID, "task2", "Some Task 2 question", VALID_ESSAY_TASK2, expect.any(Number), QUESTION_ID
+      USER_ID, "task2", "Some Task 2 question", VALID_ESSAY_TASK2, expect.any(Number), QUESTION_ID, "practice"
     );
 
     expect(writingQuestionsRepo.upsertAttempt).toHaveBeenCalledWith(
@@ -90,9 +90,9 @@ describe("writingService.submitEssay — question link", () => {
       essayText: VALID_ESSAY_TASK2,
     });
 
-    // createSubmission called with the 6th param as null
+    // createSubmission called with the 6th param as null and source='practice'
     expect(writingRepo.createSubmission).toHaveBeenCalledWith(
-      USER_ID, "task2", "Paste-your-own question", VALID_ESSAY_TASK2, expect.any(Number), null
+      USER_ID, "task2", "Paste-your-own question", VALID_ESSAY_TASK2, expect.any(Number), null, "practice"
     );
 
     expect(writingQuestionsRepo.upsertAttempt).not.toHaveBeenCalled();

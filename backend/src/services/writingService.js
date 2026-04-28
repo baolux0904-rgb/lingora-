@@ -58,7 +58,12 @@ function countWords(text) {
  * @param {string}  input.essayText
  * @returns {Promise<{ submissionId: string, status: string }>}
  */
-async function submitEssay(userId, role, isPro, { taskType, questionText, essayText, writingQuestionId = null }) {
+async function submitEssay(userId, role, isPro, { taskType, questionText, essayText, writingQuestionId = null, source = "practice" }) {
+  if (source !== "practice" && source !== "full_test") {
+    const err = new Error(`Invalid source '${source}' — must be 'practice' or 'full_test'`);
+    err.status = 400;
+    throw err;
+  }
   // 1. Word count validation
   const wordCount = countWords(essayText);
   const minRequired = MIN_WORDS_BY_TASK[taskType];
@@ -96,15 +101,18 @@ async function submitEssay(userId, role, isPro, { taskType, questionText, essayT
     }
   }
 
-  // 3. Check for existing submission today (idempotency guard)
-  const existing = await writingRepository.findTodaySubmission(userId, taskType);
+  // 3. Check for existing submission today (idempotency guard).
+  //    Scoped to (user, taskType, source) — Practice and Full Test occupy
+  //    distinct slots so a Practice morning submission cannot return its
+  //    score for an afternoon Full Test attempt with different content.
+  const existing = await writingRepository.findTodaySubmission(userId, taskType, source);
   if (existing) {
     return { submissionId: existing.id, status: existing.status };
   }
 
   // 4. Create submission + increment usage
   const submission = await writingRepository.createSubmission(
-    userId, taskType, questionText, essayText, wordCount, writingQuestionId
+    userId, taskType, questionText, essayText, wordCount, writingQuestionId, source
   );
   await writingRepository.incrementUsageCount(userId);
 
