@@ -6,8 +6,10 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { startProTrial, upgradeToPro, getBandProgress, ApiError } from "@/lib/api";
+import { startProTrial, upgradeToPro, getBandProgress, getPublicLimits, ApiError } from "@/lib/api";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
+import { PUBLIC_LIMITS_FALLBACK, formatPerDay } from "@/lib/limits";
+import type { PublicLimits } from "@/lib/types";
 import Mascot from "@/components/ui/Mascot";
 
 interface ProUpgradeModalProps {
@@ -24,13 +26,15 @@ const FEATURES = [
   "Hỗ trợ ưu tiên 24/7",
 ];
 
-const COMPARISON = [
-  { feature: "Speaking AI", free: "3 lần/ngày", pro: "Không giới hạn" },
-  { feature: "Writing AI", free: "1 bài/ngày", pro: "Không giới hạn" },
-  { feature: "Phân tích", free: "Cơ bản", pro: "Chi tiết" },
-  { feature: "Lộ trình", free: "—", pro: "✔" },
-  { feature: "Hỗ trợ", free: "—", pro: "Ưu tiên" },
-];
+function buildComparison(limits: PublicLimits) {
+  return [
+    { feature: "Speaking AI", free: formatPerDay(limits.free.speaking), pro: "Không giới hạn" },
+    { feature: "Writing AI",  free: formatPerDay(limits.free.writing),  pro: "Không giới hạn" },
+    { feature: "Phân tích", free: "Cơ bản", pro: "Chi tiết" },
+    { feature: "Lộ trình",  free: "—",      pro: "✔" },
+    { feature: "Hỗ trợ",    free: "—",      pro: "Ưu tiên" },
+  ];
+}
 
 // ─── Pricing tiers (safe pricing) ───────────────────────────────────────────
 const MONTHLY_BASE = 179_000;
@@ -72,6 +76,19 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgraded }: ProUpgr
     if (!isOpen || !userId) return;
     getBandProgress(userId).then((d) => setEstimatedBand(d.estimated_band)).catch(() => {});
   }, [isOpen, userId]);
+
+  // Comparison table copy sourced from /public/limits — single source of
+  // truth for "X lần/ngày" so we cannot drift from BE enforcement.
+  const [limits, setLimits] = useState<PublicLimits>(PUBLIC_LIMITS_FALLBACK);
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    getPublicLimits()
+      .then((d) => { if (!cancelled) setLimits(d); })
+      .catch(() => { /* keep fallback */ });
+    return () => { cancelled = true; };
+  }, [isOpen]);
+  const COMPARISON = buildComparison(limits);
 
   // Wave 1.6: surfaces error from /users/upgrade (currently always 503
   // PRO_UPGRADE_NOT_AVAILABLE pending MoMo integration). Was a silent

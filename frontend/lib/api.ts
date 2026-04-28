@@ -600,6 +600,11 @@ export async function getDailyLimits(): Promise<import("./types").DailyLimitsSta
   return apiFetchAuth<import("./types").DailyLimitsStatus>("/users/daily-limits");
 }
 
+/** GET /public/limits — unauthenticated marketing surface for landing/upgrade copy */
+export async function getPublicLimits(): Promise<import("./types").PublicLimits> {
+  return apiFetch<import("./types").PublicLimits>("/public/limits");
+}
+
 /** GET /users/achievements — all badges, earned, progress */
 export async function getAchievements(): Promise<import("./types").AchievementsData> {
   return apiFetchAuth<import("./types").AchievementsData>("/users/achievements");

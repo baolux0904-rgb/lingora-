@@ -75,6 +75,11 @@ function createApp() {
   // -------------------------------------------------------------------------
   app.use("/health", healthRouter);
 
+  // Public, unauthenticated endpoints (e.g. /api/v1/public/limits for the
+  // landing PricingSection). Anything added here is served to anonymous
+  // visitors — never expose per-user data.
+  app.use("/api/v1/public",  require("./routes/publicRoutes"));
+
   // Auth (register, login, refresh, logout)
   app.use("/api/v1/auth",    require("./routes/authRoutes"));
 

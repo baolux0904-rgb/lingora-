@@ -1,18 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { getPublicLimits } from "@/lib/api";
+import { PUBLIC_LIMITS_FALLBACK, formatPerDay } from "@/lib/limits";
+import type { PublicLimits } from "@/lib/types";
 
-const FREE_FEATURES = [
-  "Speaking AI (3 lần/ngày)",
-  "Writing AI (1 lần/ngày)",
-  "Grammar Journey đầy đủ",
-  "Reading & Listening không giới hạn",
-  "Streak, XP, Leaderboard đầy đủ",
-  "IELTS Battle & Rank đầy đủ",
-  "Streak Shield (1 lần/tuần)",
-];
+function buildFreeFeatures(limits: PublicLimits): string[] {
+  return [
+    `Speaking AI (${formatPerDay(limits.free.speaking)})`,
+    `Writing AI (${formatPerDay(limits.free.writing)})`,
+    "Grammar Journey đầy đủ",
+    "Reading & Listening không giới hạn",
+    "Streak, XP, Leaderboard đầy đủ",
+    "IELTS Battle & Rank đầy đủ",
+    "Streak Shield (1 lần/tuần)",
+  ];
+}
 
 const PRO_FEATURES = [
   "Tất cả tính năng Free",
@@ -56,6 +61,18 @@ export default function PricingSection() {
   const [planId, setPlanId] = useState<PlanId>("m12"); // default: 1 năm
   const plan = PLANS.find((p) => p.id === planId) ?? PLANS[3];
   const originalPrice = MONTHLY_BASE * plan.months;
+
+  // Marketing copy ("Speaking AI 1 lần/ngày") sourced from /public/limits.
+  // Fallback ensures correct first paint during SSR / before fetch resolves.
+  const [limits, setLimits] = useState<PublicLimits>(PUBLIC_LIMITS_FALLBACK);
+  useEffect(() => {
+    let cancelled = false;
+    getPublicLimits()
+      .then((data) => { if (!cancelled) setLimits(data); })
+      .catch(() => { /* keep fallback — fail open for marketing copy */ });
+    return () => { cancelled = true; };
+  }, []);
+  const freeFeatures = buildFreeFeatures(limits);
 
   return (
     <section id="pricing" className="relative py-24">
@@ -116,7 +133,7 @@ export default function PricingSection() {
             <p className="text-sm text-gray-400 mb-6">Mãi mãi</p>
 
             <ul className="space-y-3 mb-8">
-              {FREE_FEATURES.map((feature) => (
+              {freeFeatures.map((feature) => (
                 <li key={feature} className="flex items-start gap-3 text-sm text-gray-300">
                   <svg className="w-4 h-4 mt-0.5 text-teal flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="20 6 9 17 4 12" />

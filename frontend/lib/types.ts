@@ -970,6 +970,12 @@ export interface DailyLimitsStatus {
   writing: { used: number; limit: number | null; allowed: boolean };
 }
 
+/** Public, unauthenticated limit surface (GET /public/limits). Drives marketing copy. */
+export interface PublicLimits {
+  free: { speaking: number | null; writing: number | null; grammar: number | null; reading: number | null };
+  pro:  { speaking: number | null; writing: number | null; grammar: number | null; reading: number | null };
+}
+
 // ---------------------------------------------------------------------------
 // Onboarding types
 // ---------------------------------------------------------------------------

@@ -6,9 +6,13 @@
 
 const { query } = require("../config/db");
 const { sendSuccess, sendError } = require("../response");
+const { getLimit } = require("../domain/limits");
 
-const FREE_SPEAKING_LIMIT = 3;
-const FREE_WRITING_LIMIT = 1;
+// Limits come from domain/limits.js so the value advertised here can never
+// drift from what gets enforced. Pre-Wave 2.4 these were `const = 3` and
+// `const = 1`, while the actual gate enforced 1 + 1.
+const FREE_SPEAKING_LIMIT = getLimit("free", "speaking").perDay;
+const FREE_WRITING_LIMIT  = getLimit("free", "writing").perDay;
 
 async function getProStatus(req, res, next) {
   try {

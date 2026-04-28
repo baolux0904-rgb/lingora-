@@ -50,8 +50,16 @@ module.exports = {
   // Free period: all users get unlimited access for launch period.
   // Flip to false after 88 days to enforce daily limits.
   freePeriod: process.env.FREE_PERIOD === "false" ? false : true,
-  speakingDailyLimit: parseInt(process.env.SPEAKING_DAILY_LIMIT, 10) || 1,
-  writingDailyLimit: parseInt(process.env.WRITING_DAILY_LIMIT, 10) || 1,
+
+  // Daily quota — single source of truth lives in domain/limits.js. The env
+  // vars stay as ops escape hatches (e.g. tightening to 0 for an emergency
+  // gate). When unset, the value comes straight from the domain module so
+  // there is no second number to keep in sync. Wave 5 cleanup will collapse
+  // the 5 limitService.js read sites onto getLimit() directly.
+  speakingDailyLimit: parseInt(process.env.SPEAKING_DAILY_LIMIT, 10)
+    || require("./../domain/limits").getLimit("free", "speaking").perDay,
+  writingDailyLimit: parseInt(process.env.WRITING_DAILY_LIMIT, 10)
+    || require("./../domain/limits").getLimit("free", "writing").perDay,
 
   cookie: {
     // httpOnly cookies are never accessible via JavaScript — safest for a kids app.
