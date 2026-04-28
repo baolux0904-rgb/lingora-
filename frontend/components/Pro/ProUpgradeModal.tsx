@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { startProTrial, upgradeToPro, getBandProgress } from "@/lib/api";
+import { startProTrial, upgradeToPro, getBandProgress, ApiError } from "@/lib/api";
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import Mascot from "@/components/ui/Mascot";
 
@@ -73,12 +73,27 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgraded }: ProUpgr
     getBandProgress(userId).then((d) => setEstimatedBand(d.estimated_band)).catch(() => {});
   }, [isOpen, userId]);
 
+  // Wave 1.6: surfaces error from /users/upgrade (currently always 503
+  // PRO_UPGRADE_NOT_AVAILABLE pending MoMo integration). Was a silent
+  // catch — Batch 1 audit flagged it; we fix both at once.
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
   const handleUpgrade = useCallback(async () => {
     setLoading(true);
+    setUpgradeError(null);
     try {
       await upgradeToPro();
       onUpgraded();
-    } catch { /* silent */ }
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "PRO_UPGRADE_NOT_AVAILABLE") {
+        setUpgradeError("Tính năng đang được phát triển. Theo dõi fanpage để cập nhật.");
+      } else {
+        setUpgradeError(
+          err instanceof ApiError && err.message
+            ? err.message
+            : "Không thể nâng cấp lúc này. Vui lòng thử lại sau.",
+        );
+      }
+    }
     setLoading(false);
   }, [onUpgraded]);
 
@@ -202,6 +217,19 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgraded }: ProUpgr
             }}>
             {loading ? "Đang xử lý..." : "Bắt đầu Pro ngay"}
           </button>
+          {upgradeError && (
+            <p
+              role="alert"
+              className="text-xs text-center rounded-lg px-3 py-2"
+              style={{
+                background: "rgba(245,158,11,0.10)",
+                color: "#FBBF24",
+                border: "1px solid rgba(245,158,11,0.25)",
+              }}
+            >
+              {upgradeError}
+            </p>
+          )}
 
           {/* Trial */}
           <button onClick={handleTrial} disabled={trialLoading}

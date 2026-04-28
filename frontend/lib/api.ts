@@ -544,7 +544,29 @@ export async function startProTrial(): Promise<{ trial_expires_at: string; is_pr
 }
 
 export async function upgradeToPro(): Promise<{ is_pro: boolean }> {
-  return apiPostAuth<{ is_pro: boolean }>("/users/upgrade", {});
+  // Direct fetch (not apiPostAuth) so the structured error code from the
+  // 503 PRO_UPGRADE_NOT_AVAILABLE response surfaces to the caller as an
+  // ApiError. Lets the modal switch to a friendly "coming soon" UI
+  // instead of a generic toast.
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${BASE_URL}/users/upgrade`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({}),
+    credentials: "include",
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new ApiError(
+      res.status,
+      (json as { code?: string }).code ?? "UPGRADE_FAILED",
+      (json as { message?: string }).message ?? "Không thể nâng cấp lúc này.",
+    );
+  }
+  return (json as { data: { is_pro: boolean } }).data;
 }
 
 // ---------------------------------------------------------------------------

@@ -78,16 +78,31 @@ async function startTrial(req, res, next) {
   } catch (err) { next(err); }
 }
 
+/**
+ * upgradePlaceholder — DISABLED until MoMo integration ships.
+ *
+ * Pre-Wave-1.6 this endpoint flipped users.is_pro = true with no payment
+ * verification — anyone could become Pro by POSTing to /users/upgrade.
+ * That was a placeholder waiting on MoMo. We close the window now (with
+ * the launch deadline approaching) by returning 503; the legitimate
+ * 3-day trial via /start-trial is unaffected.
+ *
+ * When MoMo lands (Wave 2 / pre-launch), replace this body with the
+ * real flow: validate MoMo confirmation → INSERT payment_orders row
+ * → UPDATE users.is_pro + subscription_expires_at.
+ *
+ * Closes 1 P0 (Audit Batch 1): proController upgrade bypass.
+ */
 async function upgradePlaceholder(req, res, next) {
   try {
-    const userId = req.user.id;
-
-    // Placeholder: just set is_pro = true
-    await query(`UPDATE users SET is_pro = true, updated_at = now() WHERE id = $1`, [userId]);
-
-    return sendSuccess(res, {
-      data: { is_pro: true },
-      message: "Upgrade successful (placeholder)",
+    const userId = req.user?.id;
+    console.warn(
+      `[pro-upgrade] attempt blocked user=${userId || "unknown"} ip=${req.ip || "unknown"}`,
+    );
+    return sendError(res, {
+      status: 503,
+      message: "Tính năng nâng cấp Pro sắp ra mắt. Vui lòng quay lại sau khi tích hợp thanh toán hoàn tất.",
+      code: "PRO_UPGRADE_NOT_AVAILABLE",
     });
   } catch (err) { next(err); }
 }
