@@ -705,6 +705,30 @@ export async function getOnboardingStatus(): Promise<OnboardingStatus> {
   return apiFetchAuth<OnboardingStatus>("/users/onboarding/status");
 }
 
+/**
+ * DELETE /users/me — Soft-delete the authenticated account (Wave 2.7).
+ * Body: { confirm_text: "XÓA" }. The exact-match string is server-enforced.
+ * After 200, the access token is dead (password_version bumped) — caller
+ * should clear local auth state and redirect to /login.
+ */
+export async function deleteMyAccount(confirmText: string): Promise<unknown> {
+  const url = `${BASE_URL}/users/me`;
+  const token = useAuthStore.getState().accessToken;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(url, {
+    method:  "DELETE",
+    headers,
+    body:    JSON.stringify({ confirm_text: confirmText }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const msg = (json as { message?: string }).message ?? "Không thể xóa tài khoản.";
+    throw new Error(msg);
+  }
+  return json;
+}
+
 export async function completeOnboarding(
   targetBand: number | null,
   selfReportedBand: number | null = null,

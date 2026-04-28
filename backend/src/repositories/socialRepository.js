@@ -71,12 +71,17 @@ async function createFriendRequest(senderUserId, receiverUserId) {
 }
 
 async function getFriendRequest(id) {
+  // deleted_at filter ensures we never expose names of users who have
+  // since deleted their accounts (Wave 2.7). The lifecycle hard-deletes
+  // friend_requests rows for the deleting user, so this should be
+  // unreachable for new requests, but historical rows + race conditions
+  // are defended at read time.
   const result = await query(
     `SELECT fr.*,
             s.name AS sender_name, r.name AS receiver_name
        FROM friend_requests fr
-       JOIN users s ON s.id = fr.sender_user_id
-       JOIN users r ON r.id = fr.receiver_user_id
+       JOIN users s ON s.id = fr.sender_user_id   AND s.deleted_at IS NULL
+       JOIN users r ON r.id = fr.receiver_user_id AND r.deleted_at IS NULL
       WHERE fr.id = $1`,
     [id]
   );
@@ -98,7 +103,7 @@ async function getPendingRequestsReceived(userId) {
   const result = await query(
     `SELECT fr.*, s.name AS sender_name, s.username AS sender_username
        FROM friend_requests fr
-       JOIN users s ON s.id = fr.sender_user_id
+       JOIN users s ON s.id = fr.sender_user_id AND s.deleted_at IS NULL
       WHERE fr.receiver_user_id = $1 AND fr.status = 'pending'
       ORDER BY fr.created_at DESC`,
     [userId]
@@ -110,7 +115,7 @@ async function getPendingRequestsSent(userId) {
   const result = await query(
     `SELECT fr.*, r.name AS receiver_name, r.username AS receiver_username
        FROM friend_requests fr
-       JOIN users r ON r.id = fr.receiver_user_id
+       JOIN users r ON r.id = fr.receiver_user_id AND r.deleted_at IS NULL
       WHERE fr.sender_user_id = $1 AND fr.status = 'pending'
       ORDER BY fr.created_at DESC`,
     [userId]
@@ -296,7 +301,7 @@ async function getPingsReceived(userId, limit = 20) {
   const result = await query(
     `SELECT ap.*, s.name AS sender_name
        FROM accountability_pings ap
-       JOIN users s ON s.id = ap.sender_user_id
+       JOIN users s ON s.id = ap.sender_user_id AND s.deleted_at IS NULL
       WHERE ap.receiver_user_id = $1
       ORDER BY ap.created_at DESC
       LIMIT $2`,

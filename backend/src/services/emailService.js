@@ -232,9 +232,80 @@ async function sendFeatureAnnouncementEmail(users, featureName, description) {
   console.log(`[email] Feature announcement sent to ${sent}/${users.length} users`);
 }
 
+/**
+ * Account-deletion confirmation email (Wave 2.7, PDPL VN).
+ *
+ * Sent AFTER the soft-delete transaction commits. Mirrors the FE modal
+ * copy so the user has a written record of what was deleted vs anonymized.
+ *
+ * IMPORTANT: pass the user's plaintext email + name BEFORE anonymizing
+ * the row. After anonymization the columns are NULL and we cannot
+ * recover the address.
+ *
+ * @param {{ email: string, name: string|null }} user — plaintext snapshot taken pre-delete
+ */
+async function sendAccountDeletedEmail(user) {
+  const resend = getResend();
+  if (!resend || !user?.email) return;
+
+  const deletedAt = new Date().toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+
+  const html = wrapHtml(`
+    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">Tài khoản Lingona đã được xóa</h2>
+    <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px;">
+      Xin chào ${safe(user.name) || "bạn"},
+    </p>
+    <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px;">
+      Yêu cầu xóa tài khoản của bạn đã được xử lý lúc <strong>${safe(deletedAt)}</strong> (giờ Việt Nam).
+      Hành động này không thể hoàn tác.
+    </p>
+
+    <div style="background:#FFF7E6;border-left:3px solid #F59E0B;padding:12px 16px;margin:16px 0;border-radius:4px;">
+      <strong style="color:#1A1A1A;font-size:14px;">Đã xóa hoàn toàn:</strong>
+      <ul style="margin:8px 0 0;padding-left:20px;color:#666;font-size:13px;line-height:1.6;">
+        <li>Tin nhắn với bạn bè</li>
+        <li>Voice notes</li>
+        <li>Lời mời kết bạn</li>
+        <li>Avatar và bio</li>
+        <li>Phiên đăng nhập (đã thoát mọi thiết bị)</li>
+      </ul>
+    </div>
+
+    <div style="background:#F0FAFA;border-left:3px solid ${BRAND_COLOR};padding:12px 16px;margin:16px 0;border-radius:4px;">
+      <strong style="color:#1A1A1A;font-size:14px;">Đã ẩn danh (giữ aggregate):</strong>
+      <ul style="margin:8px 0 0;padding-left:20px;color:#666;font-size:13px;line-height:1.6;">
+        <li>Điểm Battle (lịch sử trận đối thủ vẫn thấy)</li>
+        <li>XP và rank trên leaderboard</li>
+        <li>Badge đã đạt</li>
+      </ul>
+    </div>
+
+    <p style="color:#999;font-size:12px;line-height:1.6;margin:24px 0 0;">
+      Theo Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân, dữ liệu đã được
+      ẩn danh sẽ không thể liên kết ngược lại với bạn.
+    </p>
+    <p style="color:#999;font-size:12px;line-height:1.6;margin:8px 0 0;">
+      Email này gửi tự động, không trả lời.
+    </p>
+  `);
+
+  try {
+    await resend.emails.send({
+      from: `Lingona <${FROM_EMAIL}>`,
+      to: user.email,
+      subject: "Tài khoản Lingona đã được xóa",
+      html,
+    });
+    console.log(`[email] Account-deletion confirmation sent to ${user.email}`);
+  } catch (err) {
+    console.error("[email] Failed to send account-deletion confirmation:", err.message);
+  }
+}
+
 module.exports = {
   sendWelcomeEmail,
   sendPromoEmail,
   sendStreakReminderEmail,
   sendFeatureAnnouncementEmail,
+  sendAccountDeletedEmail,
 };

@@ -208,6 +208,25 @@ const voiceUploadLimiters = createLimiterPair({
     "Daily voice message limit reached.",
 });
 
+/** Account deletion (Wave 2.7 — PDPL VN).
+ *
+ * Tightest cap in the system. The endpoint is irreversible at the domain
+ * level (soft-anonymize on first call, no-op on retries) but the BE has
+ * no way to distinguish a panicked second click from a malicious replay,
+ * so we throttle hard. 2 per hour leaves headroom for one accidental
+ * second tap; daily 5 covers the genuine "I changed my mind, signed up
+ * again with new email, want to delete that one too" scenario.
+ */
+const accountDeletionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 2,
+  keyGenerator,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Yêu cầu xóa tài khoản quá nhiều lần. Vui lòng thử lại sau." },
+  validate: false,
+});
+
 module.exports = {
   aiLimiters,
   ttsLimiters,
@@ -219,4 +238,5 @@ module.exports = {
   voiceUploadLimiters,
   adminWriteLimiters,
   adminReadLimiters,
+  accountDeletionLimiter,
 };

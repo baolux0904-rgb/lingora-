@@ -120,6 +120,9 @@ function createApp() {
   // Onboarding: status, complete, skip
   app.use("/api/v1/users", require("./routes/onboardingRoutes"));
 
+  // Account self-management — DELETE /me (Wave 2.7, PDPL VN compliance).
+  app.use("/api/v1/users", require("./routes/accountRoutes"));
+
   // Profile: update, avatar, stats, public view
   app.use("/api/v1", require("./routes/profileRoutes"));
 

@@ -462,6 +462,130 @@ async function acceptChallenge(userId, matchId) {
 }
 
 // ---------------------------------------------------------------------------
+// Account-deletion forfeit (Wave 2.7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Forfeit any pending/active matches the user is in. Called from inside the
+ * account-deletion transaction so it shares the same atomic boundary —
+ * either the user is deleted AND every battle they were in is resolved,
+ * or both roll back.
+ *
+ * Rules (locked B):
+ *   - Match in 'queued' with no opponent yet → DELETE the match. The user
+ *     is the only participant; nothing to award.
+ *   - Match 'active' or 'awaiting_opponent' with an opponent → opponent
+ *     auto-wins. The deleting user's score (if any) is preserved as-is —
+ *     not reset to 0. Opponent gets normal win XP + rank delta in ranked.
+ *
+ * Does NOT touch already-completed/expired matches: history is retained
+ * (the winner_user_id FK becomes SET NULL on a future hard purge per
+ * migration 0046).
+ *
+ * @param {string} userId
+ * @param {import('pg').PoolClient} client - DB client running the outer transaction
+ * @returns {Promise<{ forfeited: number, queueCancelled: number }>}
+ */
+async function forfeitActiveMatchesForUser(userId, client) {
+  const xpService = require("./xpService");
+
+  const { rows: matches } = await client.query(
+    `SELECT bm.id, bm.mode, bm.status
+       FROM battle_matches bm
+       JOIN battle_match_participants bmp ON bmp.match_id = bm.id
+      WHERE bmp.user_id = $1
+        AND bm.status IN ('queued', 'active', 'awaiting_opponent')`,
+    [userId],
+  );
+
+  let forfeited = 0;
+  let queueCancelled = 0;
+
+  for (const match of matches) {
+    const { rows: participants } = await client.query(
+      `SELECT id, user_id, individual_score, rank_points_before, status
+         FROM battle_match_participants
+        WHERE match_id = $1`,
+      [match.id],
+    );
+
+    if (participants.length <= 1) {
+      // Solo queue entry — no opponent yet. Just clean up.
+      await client.query(`DELETE FROM battle_match_participants WHERE match_id = $1`, [match.id]);
+      await client.query(`DELETE FROM battle_matches WHERE id = $1`, [match.id]);
+      queueCancelled++;
+      continue;
+    }
+
+    // Opponent exists — they auto-win.
+    const opponent = participants.find((p) => p.user_id !== userId);
+    const me       = participants.find((p) => p.user_id === userId);
+
+    // Mark the deleter as forfeited (custom no_submit equivalent).
+    await client.query(
+      `UPDATE battle_match_participants
+          SET status = 'no_submit'
+        WHERE id = $1`,
+      [me.id],
+    );
+
+    let rankDelta = 0;
+    let newPoints = opponent.rank_points_before || 0;
+    if (match.mode === "ranked") {
+      rankDelta = RANK_WIN_BASE;
+      newPoints = Math.max(0, (opponent.rank_points_before || 0) + rankDelta);
+
+      const newTier = repo.tierFromPoints(newPoints);
+      const profile = await client.query(
+        `SELECT wins FROM battle_player_profiles WHERE user_id = $1`,
+        [opponent.user_id],
+      );
+      const wins = (profile.rows[0]?.wins || 0) + 1;
+
+      await client.query(
+        `UPDATE battle_match_participants
+            SET rank_points_after = $2, rank_delta = $3, xp_reward = $4
+          WHERE id = $1`,
+        [opponent.id, newPoints, rankDelta, XP_WIN],
+      );
+      await client.query(
+        `INSERT INTO battle_rank_transactions (user_id, match_id, delta, reason)
+         VALUES ($1, $2, $3, 'forfeit_opponent_deleted')`,
+        [opponent.user_id, match.id, rankDelta],
+      );
+      await client.query(
+        `UPDATE battle_player_profiles
+            SET rank_points = $2, current_rank_tier = $3, wins = $4
+          WHERE user_id = $1`,
+        [opponent.user_id, newPoints, newTier, wins],
+      );
+    }
+
+    await client.query(
+      `UPDATE battle_matches
+          SET status = 'completed',
+              completed_at = now(),
+              winner_user_id = $2
+        WHERE id = $1`,
+      [match.id, opponent.user_id],
+    );
+
+    // Award XP via the public service so xp_ledger idempotency is honored.
+    // Outside the transaction client, but xp_ledger has its own partial
+    // UNIQUE — replay-safe.
+    try {
+      await xpService.awardXp(opponent.user_id, XP_WIN, "battle_result", match.id);
+    } catch (err) {
+      console.error(`[battle-forfeit] XP award failed match=${match.id}:`, err.message);
+    }
+
+    forfeited++;
+  }
+
+  return { forfeited, queueCancelled };
+}
+
+// ---------------------------------------------------------------------------
 // Auto-expiry job
 // ---------------------------------------------------------------------------
 
@@ -549,4 +673,5 @@ module.exports = {
   createDirectChallenge,
   acceptChallenge,
   expireOverdueMatches,
+  forfeitActiveMatchesForUser,
 };

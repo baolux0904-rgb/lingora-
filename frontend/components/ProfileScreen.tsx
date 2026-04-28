@@ -17,6 +17,7 @@ import type { SpeakingMetricsData, GamificationData, ProfileStats } from "@/lib/
 
 const ShareCardModal = dynamic(() => import("./Social/ShareCardModal"), { ssr: false });
 const AchievementsSection = dynamic(() => import("./AchievementsSection"), { ssr: false });
+const DeleteAccountModal = dynamic(() => import("./Profile/DeleteAccountModal"), { ssr: false });
 
 interface ProfileScreenProps {
   userId: string | null;
@@ -146,6 +147,7 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
   const [loggingOut, setLoggingOut] = useState(false);
   const [showShareCard, setShowShareCard] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState(false);
@@ -335,9 +337,36 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
         {loggingOut ? "Logging out..." : "Log out"}
       </button>
 
+      {/* Danger zone (Wave 2.7 — PDPL VN) */}
+      <div className="rounded-lg p-4" style={{ background: "rgba(239,68,68,0.04)", border: "1px solid rgba(239,68,68,0.15)" }}>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#EF4444" }}>
+          Vùng nguy hiểm
+        </div>
+        <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
+          Xóa tài khoản sẽ xóa vĩnh viễn dữ liệu cá nhân. Hành động không thể hoàn tác.
+        </p>
+        <button
+          onClick={() => setShowDelete(true)}
+          className="text-xs font-semibold py-2 px-3 rounded-lg transition-all active:scale-[0.98]"
+          style={{ background: "transparent", color: "#EF4444", border: "1px solid rgba(239,68,68,0.3)" }}
+        >
+          Xóa tài khoản
+        </button>
+      </div>
+
       {/* Modals */}
       {showEdit && stats && <EditProfileModal stats={stats} onClose={() => setShowEdit(false)} onSaved={loadStats} />}
       <ShareCardModal isOpen={showShareCard} onClose={() => setShowShareCard(false)} />
+      <DeleteAccountModal
+        isOpen={showDelete}
+        onClose={() => setShowDelete(false)}
+        onDeleted={async () => {
+          // Token already invalidated server-side via password_version bump.
+          // Best-effort logout to clear local Zustand state, then redirect.
+          try { await logoutUser(); } catch { /* token already dead — expected */ }
+          router.push("/login?deleted=1");
+        }}
+      />
     </div>
   );
 }
