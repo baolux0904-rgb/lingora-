@@ -7,6 +7,8 @@
 
 const { Router } = require("express");
 const { verifyToken, requireRole } = require("../middleware/auth");
+const { adminWriteLimiters } = require("../middleware/rateLimiters");
+const { auditAdminAction } = require("../middleware/adminAudit");
 const { sendSuccess, sendError } = require("../response");
 const { query } = require("../config/db");
 const { sendPromoEmail, sendFeatureAnnouncementEmail } = require("../services/emailService");
@@ -15,6 +17,10 @@ const router = Router();
 
 router.use(verifyToken);
 router.use(requireRole("admin"));
+// Wave 1.7: every admin action is rate-limited (compromise = mass-spam
+// vector reaching every user) and audited (compliance + reversibility).
+router.use(...adminWriteLimiters);
+router.use(auditAdminAction);
 
 /**
  * POST /api/v1/admin/send-promo

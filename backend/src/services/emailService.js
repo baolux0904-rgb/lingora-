@@ -11,9 +11,35 @@
  * Fails silently (logs error, never throws) — email must not block auth flow.
  */
 
+const escapeHtml = require("escape-html");
+
 const FROM_EMAIL = process.env.FROM_EMAIL || "noreply@lingona.app";
 const BRAND_COLOR = "#00A896";
 const APP_URL = process.env.FRONTEND_URL || "https://lingona.app";
+
+/**
+ * Defensive coercion + HTML-escape for any user/admin-supplied value
+ * that gets interpolated into an email body. Email clients are wildly
+ * inconsistent about sandboxing — Outlook desktop renders inline
+ * <script>, some Vietnamese ISPs proxy emails through preview engines
+ * that execute JS. We escape at every interpolation boundary; the
+ * brand color, fixed URLs, and template chrome are safe constants.
+ *
+ * Numbers are coerced to Number then String to drop any tagged input
+ * without throwing on missing fields.
+ *
+ * @param {string|number|null|undefined} v
+ * @returns {string}
+ */
+function safe(v) {
+  if (v === null || v === undefined) return "";
+  return escapeHtml(String(v));
+}
+
+function safeNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? String(n) : "";
+}
 
 // ─── Resend client (lazy init) ───────────────────────────────────────────────
 
@@ -71,7 +97,7 @@ async function sendWelcomeEmail(user) {
   if (!resend) return;
 
   const html = wrapHtml(`
-    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">Chào ${user.name}! 👋</h2>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">Chào ${safe(user.name)}! 👋</h2>
     <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px;">
       Chào mừng bạn đến với <strong>Lingona</strong> — gia sư IELTS AI của bạn.
       Luyện Speaking, Writing và Grammar mọi lúc, mọi nơi.
@@ -86,7 +112,7 @@ async function sendWelcomeEmail(user) {
     await resend.emails.send({
       from: `Lingona <${FROM_EMAIL}>`,
       to: user.email,
-      subject: `Chào ${user.name}, chào mừng đến Lingona! 🎉`,
+      subject: `Chào ${String(user.name || "").replace(/[\r\n<>]/g, "")}, chào mừng đến Lingona! 🎉`,
       html,
     });
     console.log(`[email] Welcome email sent to ${user.email}`);
@@ -103,23 +129,25 @@ async function sendPromoEmail(user, discountCode, discountPercent) {
   if (!resend) return;
 
   const html = wrapHtml(`
-    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">🎉 ${user.name} ơi, quà dành cho bạn!</h2>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">🎉 ${safe(user.name)} ơi, quà dành cho bạn!</h2>
     <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px;">
-      Bạn nhận được <strong style="color:${BRAND_COLOR};font-size:18px;">${discountPercent}% giảm giá</strong> cho gói Pro!
+      Bạn nhận được <strong style="color:${BRAND_COLOR};font-size:18px;">${safeNumber(discountPercent)}% giảm giá</strong> cho gói Pro!
     </p>
     <div style="background:#F0FAFA;border:1px dashed ${BRAND_COLOR};border-radius:8px;padding:16px;text-align:center;margin:16px 0;">
       <span style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px;">Mã giảm giá</span>
-      <div style="font-size:24px;font-weight:700;color:${BRAND_COLOR};margin-top:4px;letter-spacing:2px;">${discountCode}</div>
+      <div style="font-size:24px;font-weight:700;color:${BRAND_COLOR};margin-top:4px;letter-spacing:2px;">${safe(discountCode)}</div>
     </div>
     <p style="color:#999;font-size:12px;margin:0 0 16px;">⏰ Hết hạn sau 7 ngày. Không thể kết hợp với ưu đãi khác.</p>
     ${ctaButton("Nâng cấp Pro ngay →", `${APP_URL}/home`)}
   `);
 
   try {
+    const safeName = String(user.name || "").replace(/[\r\n<>]/g, "");
+    const safePct = safeNumber(discountPercent);
     await resend.emails.send({
       from: `Lingona <${FROM_EMAIL}>`,
       to: user.email,
-      subject: `🎉 ${user.name} ơi, bạn nhận được ${discountPercent}% discount!`,
+      subject: `🎉 ${safeName} ơi, bạn nhận được ${safePct}% discount!`,
       html,
     });
     console.log(`[email] Promo email sent to ${user.email}`);
@@ -136,10 +164,10 @@ async function sendStreakReminderEmail(user, streakCount) {
   if (!resend) return;
 
   const html = wrapHtml(`
-    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">🔥 Streak ${streakCount} ngày sắp mất!</h2>
+    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">🔥 Streak ${safeNumber(streakCount)} ngày sắp mất!</h2>
     <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px;">
-      ${user.name} ơi, bạn chưa luyện hôm nay.
-      Đừng để chuỗi <strong>${streakCount} ngày</strong> bị phá vỡ!
+      ${safe(user.name)} ơi, bạn chưa luyện hôm nay.
+      Đừng để chuỗi <strong>${safeNumber(streakCount)} ngày</strong> bị phá vỡ!
     </p>
     <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 24px;">
       Chỉ cần 1 buổi luyện Speaking ngắn — 5 phút là đủ để giữ streak.
@@ -148,10 +176,12 @@ async function sendStreakReminderEmail(user, streakCount) {
   `);
 
   try {
+    const safeName = String(user.name || "").replace(/[\r\n<>]/g, "");
+    const safeStreak = safeNumber(streakCount);
     await resend.emails.send({
       from: `Lingona <${FROM_EMAIL}>`,
       to: user.email,
-      subject: `🔥 ${user.name}, streak ${streakCount} ngày của bạn sắp mất!`,
+      subject: `🔥 ${safeName}, streak ${safeStreak} ngày của bạn sắp mất!`,
       html,
     });
     console.log(`[email] Streak reminder sent to ${user.email}`);
@@ -167,13 +197,19 @@ async function sendFeatureAnnouncementEmail(users, featureName, description) {
   const resend = getResend();
   if (!resend) return;
 
+  // Hoist invariant escapes — admin-supplied strings only need escaping
+  // once for the whole batch.
+  const safeFeature = safe(featureName);
+  const safeDesc = safe(description);
+  const safeFeatureSubj = String(featureName || "").replace(/[\r\n<>]/g, "");
+
   let sent = 0;
   for (const user of users) {
     const html = wrapHtml(`
-      <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">✨ Tính năng mới: ${featureName}</h2>
+      <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">✨ Tính năng mới: ${safeFeature}</h2>
       <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 24px;">
-        ${user.name} ơi, Lingona vừa ra mắt tính năng mới:
-        <strong>${description}</strong>
+        ${safe(user.name)} ơi, Lingona vừa ra mắt tính năng mới:
+        <strong>${safeDesc}</strong>
       </p>
       ${ctaButton("Thử ngay →", `${APP_URL}/home`)}
     `);
@@ -182,7 +218,7 @@ async function sendFeatureAnnouncementEmail(users, featureName, description) {
       await resend.emails.send({
         from: `Lingona <${FROM_EMAIL}>`,
         to: user.email,
-        subject: `✨ Tính năng mới: ${featureName}`,
+        subject: `✨ Tính năng mới: ${safeFeatureSubj}`,
         html,
       });
       sent++;

@@ -169,6 +169,33 @@ const avatarUploadLimiters = createLimiterPair({
     "Daily avatar upload limit reached.",
 });
 
+/** Admin write actions (mass-mail blasts, user mutations).
+ *  Tight cap because compromise = mass-spam vector reaching every user. */
+const adminWriteLimiters = createLimiterPair({
+  shortAuthMax: 5,        // 5 / 15 min — admin issues a campaign, then waits
+  shortGuestMax: 0,
+  dailyAuthMax: 30,
+  dailyGuestMax: 0,
+  shortMessage:
+    "Admin write rate limit reached. Please wait before issuing another action.",
+  dailyMessage:
+    "Daily admin write limit reached.",
+});
+
+/** Admin read actions (list/inspect endpoints — looser).
+ *  Currently unused (no read endpoints in adminRoutes) but reserved
+ *  for future admin dashboard. */
+const adminReadLimiters = createLimiterPair({
+  shortAuthMax: 50,
+  shortGuestMax: 0,
+  dailyAuthMax: 500,
+  dailyGuestMax: 0,
+  shortMessage:
+    "Admin read rate limit reached. Please slow down.",
+  dailyMessage:
+    "Daily admin read limit reached.",
+});
+
 /** Voice note send (auth-only, moderate — chat-paced) */
 const voiceUploadLimiters = createLimiterPair({
   shortAuthMax: 30,       // 30 / 15 min — natural conversation cap
@@ -190,4 +217,6 @@ module.exports = {
   socialLimiters,
   avatarUploadLimiters,
   voiceUploadLimiters,
+  adminWriteLimiters,
+  adminReadLimiters,
 };
