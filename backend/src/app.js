@@ -80,6 +80,10 @@ function createApp() {
   // visitors — never expose per-user data.
   app.use("/api/v1/public",  require("./routes/publicRoutes"));
 
+  // Self-host analytics ingest — public (optional auth), PII-guarded,
+  // 100 events/IP/min rate limit. Wave 4.13.
+  app.use("/api/v1/analytics", require("./routes/analyticsRoutes"));
+
   // Auth (register, login, refresh, logout)
   app.use("/api/v1/auth",    require("./routes/authRoutes"));
 
