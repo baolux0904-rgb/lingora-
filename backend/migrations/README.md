@@ -113,25 +113,50 @@ silently no-op'd — investigate before pushing.
 
 ---
 
-## Production safety gate
-
-Two layers protect against migration drift, both added after the
-April 2026 incident:
+## Production safety gate (THREE layers — defense in depth)
 
 1. **`scripts/release.sh`** — Railway's `releaseCommand`. Sets
    `set -euo pipefail` so a non-zero exit from `node-pg-migrate up`
    propagates to Railway, which should refuse to cut traffic to the
-   new container.
+   new container. **Railway-specific.**
 
 2. **`GET /health/schema`** — schema-aware readiness check. Reads the
    latest filename from this directory (in the deployed image) and
    compares to the latest row in `pgmigrations`. Returns 500 with a
    `{drift, expected, applied}` payload when they diverge. Railway's
    `healthcheckPath` is wired to this endpoint, so cutover blocks
-   even if Layer 1 doesn't.
+   even if Layer 1 doesn't. **Railway-specific.**
+
+3. **`package.json` `prestart` hook** — runs `node-pg-migrate up`
+   immediately before `node src/server.js`. npm's prestart MUST
+   succeed before start; non-zero exit kills the start cycle. Works
+   on any platform that runs `npm start`. **Platform-neutral.**
+   Added Wave 2.10 hotfix 2/2 after L1 was discovered to be silently
+   skipped because `railway.toml` was at the wrong path.
 
 The plain `/health` endpoint stays as a hardcoded liveness probe for
 external uptime monitoring.
+
+### Railway config-as-code resolution (Wave 2.10 hotfix 2/2 lesson)
+
+`railway.toml` MUST live at the **service's Root Directory**, not the
+repo root. The Lingona backend service has `Root Directory = backend`
+in its Railway dashboard, so the live config is at
+`backend/railway.toml`. A file at `./railway.toml` is silently
+ignored. Verify with:
+
+```bash
+ls backend/railway.toml      # MUST exist
+ls railway.toml              # MUST NOT exist
+```
+
+When changing Railway service settings (especially Root Directory),
+re-verify by deploying a no-op commit and reading deploy logs for the
+`[release] ...` lines from `scripts/release.sh`. Absence of those
+lines means Layer 1 is dark again — Layer 3 (`prestart`) will keep
+the schema safe but the system is degraded.
+
+See `backend/docs/POSTMORTEM-INFRA-001.md` for the full incident.
 
 ---
 

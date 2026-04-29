@@ -5,6 +5,7 @@
   "description": "Lingora backend – Node.js + Express REST API",
   "main": "src/server.js",
   "scripts": {
+    "prestart": "node-pg-migrate up --migrations-dir migrations --database-url-var DATABASE_URL",
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "lint": "eslint src/**/*.js",
