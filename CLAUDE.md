@@ -172,7 +172,7 @@ Every rule in Lingona falls into one of the categories below. When implementing 
 
 | Type | Answers | Lingona example |
 |---|---|---|
-| Validation | Is the input valid? | Essay ≥ 150 words before accepting Task 1; MoMo amount ∈ {179000, 1199000} |
+| Validation | Is the input valid? | Essay ≥ 150 words before accepting Task 1; MoMo amount ∈ {179000, 499000, 929000, 1490000} |
 | Authorization | Is the user allowed? | Free user past daily Speaking/Writing limit → 403 PRO_REQUIRED; only post owner can delete their comment |
 | Calculation | What's the computed value? | Band = avg of 4 skills, IELTS rounding rule; rank ±25/−18 per win/loss |
 | State transition | Is A → B valid? | Order: `pending → paid → completed`; no skipping, no rewinding |

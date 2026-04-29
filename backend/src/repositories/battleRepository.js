@@ -7,24 +7,15 @@
 
 const { query, pool } = require("../config/db");
 const { sanitizeQuestionsForExam } = require("../utils/sanitize");
+const { RANK_TIERS } = require("../domain/battleConfig");
 
 // ---------------------------------------------------------------------------
 // Rank tier helpers
 // ---------------------------------------------------------------------------
 
-const RANK_TIERS = [
-  { tier: "iron",       min: 0,    max: 199 },
-  { tier: "bronze",     min: 200,  max: 399 },
-  { tier: "silver",     min: 400,  max: 699 },
-  { tier: "gold",       min: 700,  max: 999 },
-  { tier: "platinum",   min: 1000, max: 1399 },
-  { tier: "diamond",    min: 1400, max: 1799 },
-  { tier: "challenger", min: 1800, max: Infinity },
-];
-
 function tierFromPoints(points) {
   for (let i = RANK_TIERS.length - 1; i >= 0; i--) {
-    if (points >= RANK_TIERS[i].min) return RANK_TIERS[i].tier;
+    if (points >= RANK_TIERS[i].minPoints) return RANK_TIERS[i].name;
   }
   return "iron";
 }

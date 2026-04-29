@@ -7,6 +7,7 @@
 const { query } = require("../config/db");
 const { sendSuccess, sendError } = require("../response");
 const { getLimit } = require("../domain/limits");
+const { FREE_TRIAL_DAYS, FREE_TRIAL_MS } = require("../domain/freeTrial");
 
 // Limits come from domain/limits.js so the value advertised here can never
 // drift from what gets enforced. Pre-Wave 2.4 these were `const = 3` and
@@ -67,8 +68,7 @@ async function startTrial(req, res, next) {
     if (user.is_pro) return sendError(res, { status: 409, message: "Already a Pro user" });
     if (user.trial_expires_at) return sendError(res, { status: 409, message: "Trial already used" });
 
-    // Start 3-day trial
-    const trialEnd = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    const trialEnd = new Date(Date.now() + FREE_TRIAL_MS);
     await query(
       `UPDATE users SET trial_expires_at = $2, updated_at = now() WHERE id = $1`,
       [userId, trialEnd]
@@ -77,7 +77,7 @@ async function startTrial(req, res, next) {
     return sendSuccess(res, {
       data: { trial_expires_at: trialEnd.toISOString(), is_pro: true, is_trial: true },
       status: 201,
-      message: "Trial started — 3 days free",
+      message: `Trial started — ${FREE_TRIAL_DAYS} days free`,
     });
   } catch (err) { next(err); }
 }

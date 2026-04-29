@@ -19,7 +19,7 @@ const XP_LOSS = 30;
 const RANK_WIN_BASE = 25;
 const RANK_LOSS_BASE = -20;
 const RANK_NO_SUBMIT = -30;
-const SUBMISSION_DEADLINE_MINUTES = 30;
+const { SUBMISSION_DEADLINE_MINUTES } = require("../domain/battleConfig");
 
 // ---------------------------------------------------------------------------
 // Battle entry gate (Wave 2.5 — Soul §1)

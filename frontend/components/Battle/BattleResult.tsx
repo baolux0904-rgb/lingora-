@@ -8,20 +8,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getBattleResult } from "@/lib/api";
 import Mascot from "@/components/ui/Mascot";
-import type { BattleResult as BattleResultType, BattleRankTier } from "@/lib/types";
+import type { BattleResult as BattleResultType } from "@/lib/types";
+import { RANK_CONFIG } from "@/lib/domain/battleConfig";
 
 interface BattleResultProps {
   matchId: string;
   onClose: () => void;
   onPlayAgain: () => void;
 }
-
-const RANK_CONFIG: Record<BattleRankTier, { emoji: string; color: string }> = {
-  iron: { emoji: "🪨", color: "#9CA3AF" }, bronze: { emoji: "🥉", color: "#CD7F32" },
-  silver: { emoji: "🥈", color: "#C0C0C0" }, gold: { emoji: "🥇", color: "#FFD700" },
-  platinum: { emoji: "💎", color: "#00CED1" }, diamond: { emoji: "💠", color: "#B9F2FF" },
-  challenger: { emoji: "👑", color: "#FF4500" },
-};
 
 export default function BattleResultScreen({ matchId, onClose, onPlayAgain }: BattleResultProps) {
   const router = useRouter();

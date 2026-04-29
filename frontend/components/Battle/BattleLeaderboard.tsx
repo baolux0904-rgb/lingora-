@@ -10,20 +10,11 @@ import { useAuthStore } from "@/lib/stores/authStore";
 import Skeleton from "@/components/ui/Skeleton";
 import Mascot from "@/components/ui/Mascot";
 import type { BattleLeaderboardEntry, BattleRankTier } from "@/lib/types";
+import { RANK_CONFIG } from "@/lib/domain/battleConfig";
 
 interface BattleLeaderboardProps {
   onClose: () => void;
 }
-
-const RANK_CONFIG: Record<BattleRankTier, { label: string; emoji: string; color: string }> = {
-  iron: { label: "Iron", emoji: "🪨", color: "#9CA3AF" },
-  bronze: { label: "Bronze", emoji: "🥉", color: "#CD7F32" },
-  silver: { label: "Silver", emoji: "🥈", color: "#C0C0C0" },
-  gold: { label: "Gold", emoji: "🥇", color: "#FFD700" },
-  platinum: { label: "Platinum", emoji: "💎", color: "#00CED1" },
-  diamond: { label: "Diamond", emoji: "💠", color: "#B9F2FF" },
-  challenger: { label: "Challenger", emoji: "👑", color: "#FF4500" },
-};
 
 export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
   const [entries, setEntries] = useState<BattleLeaderboardEntry[]>([]);
