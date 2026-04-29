@@ -37,7 +37,6 @@ import type {
   IeltsDiagnosticData,
   CriterionDiagnostic,
   BandRange,
-  FeedbackAccuracy,
   ExaminerPersona,
 } from "@/lib/types";
 import IeltsDiagnosticReport from "./IeltsDiagnosticReport";
@@ -1454,16 +1453,6 @@ export default function IeltsConversationV2({
     return () => { cancelled = true; };
   }, [retryingTopic]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // V2: Accuracy feedback handler
-  const handleAccuracyFeedback = useCallback((accuracy: FeedbackAccuracy) => {
-    // Store in localStorage for now — can be sent to backend later
-    const key = `ielts_accuracy_${sessionId}`;
-    try {
-      localStorage.setItem(key, JSON.stringify({ accuracy, timestamp: Date.now() }));
-    } catch { /* localStorage might be full — ignore */ }
-    if (process.env.NODE_ENV === "development") console.log(`[ielts-v2] Accuracy feedback: ${accuracy} for session ${sessionId}`);
-  }, [sessionId]);
-
   if (phase === "summary" && diagnosticData) {
     return (
       <IeltsDiagnosticReport
@@ -1471,7 +1460,6 @@ export default function IeltsConversationV2({
         onRetrySameTopic={handleRetrySameTopic}
         onNewTopic={handleNewTopic}
         onClose={onClose}
-        onAccuracyFeedback={handleAccuracyFeedback}
       />
     );
   }
