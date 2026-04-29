@@ -289,45 +289,6 @@ export interface ApiLesson {
   speaking_count: number;
 }
 
-// --- Lesson detail ---
-
-export interface ApiVocabItem {
-  id:               string;
-  word:             string;
-  meaning:          string;
-  example_sentence: string | null;
-  pronunciation:    string | null;
-}
-
-export interface ApiQuizItem {
-  id:             string;
-  question:       string;
-  question_type:  "multiple_choice" | "fill_in_blank";
-  options:        { a: string; b: string; c: string; d: string } | null;
-  correct_option: "a" | "b" | "c" | "d" | null;
-  correct_answer: string | null; // populated on fill_in_blank, null on multiple_choice
-}
-
-export interface ApiSpeakingPrompt {
-  id:            string;
-  prompt_text:   string;
-  sample_answer: string | null;
-  hint:          string | null;
-}
-
-export interface ApiLessonDetail {
-  lesson: {
-    id:          string;
-    title:       string;
-    description: string | null;
-    level:       string;
-    order_index: number;
-  };
-  vocab:    ApiVocabItem[];
-  quiz:     ApiQuizItem[];
-  speaking: ApiSpeakingPrompt[];
-}
-
 // --- Courses ---
 
 export interface ApiCourse {
@@ -379,25 +340,6 @@ export interface ApiCompleteBadge {
   xp_reward:   number;
 }
 
-export interface ApiCompleteResult {
-  // Core progress
-  userId:       string;
-  lessonId:     string;
-  score:        number;
-  completed:    boolean;
-  completedAt:  string;
-  // Gamification enrichment
-  xpEarned:     number;
-  totalXp:      number;
-  level:        number;
-  xpInLevel:    number;
-  xpToNextLevel: number;
-  leveledUp:    boolean;
-  streak:       number;
-  longestStreak: number;
-  newBadges:    ApiCompleteBadge[];
-}
-
 // --- Auth ---
 
 export interface ApiAuthData {
@@ -432,11 +374,6 @@ export async function getLessons(): Promise<ApiLesson[]> {
   return data.lessons;
 }
 
-/** GET /api/v1/lessons/:id — full lesson detail with vocab, quiz, speaking. */
-export async function getLessonDetail(lessonId: string): Promise<ApiLessonDetail> {
-  return apiFetch<ApiLessonDetail>(`/lessons/${lessonId}`);
-}
-
 // ---------------------------------------------------------------------------
 // API functions — Courses
 // ---------------------------------------------------------------------------
@@ -454,24 +391,6 @@ export async function getCourseById(id: number): Promise<ApiCourseDetail> {
 // ---------------------------------------------------------------------------
 // API functions — Progress  (protected — requires valid JWT)
 // ---------------------------------------------------------------------------
-
-/**
- * POST /api/v1/lessons/:lessonId/complete
- * Upserts a user_progress row and runs gamification side-effects.
- * Returns enriched result with XP, level, streak, and any new badges.
- * Non-critical: caller should handle failure gracefully.
- */
-export async function completeLesson(
-  lessonId:    string,
-  userId:      string,
-  score:       number,
-  timeTakenMs?: number,
-): Promise<ApiCompleteResult> {
-  return apiPostAuth<ApiCompleteResult>(
-    `/lessons/${lessonId}/complete`,
-    { userId, score, ...(timeTakenMs != null ? { timeTakenMs } : {}) },
-  );
-}
 
 /**
  * GET /api/v1/users/:userId/progress
