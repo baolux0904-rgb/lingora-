@@ -12,7 +12,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Skeleton from "@/components/ui/Skeleton";
 import { useAuthStore } from "@/lib/stores/authStore";
-import { logoutUser, getProfileStats, updateProfile, uploadAvatar, updateProfileVisibility } from "@/lib/api";
+import { logoutUser, getProfileStats, updateProfile, uploadAvatar, updateProfileVisibility, changeUsername } from "@/lib/api";
 import type { SpeakingMetricsData, GamificationData, ProfileStats, ProfileVisibility } from "@/lib/types";
 
 const ShareCardModal = dynamic(() => import("./Social/ShareCardModal"), { ssr: false });
@@ -38,6 +38,118 @@ function StatCard({ icon, value, label }: { icon: string; value: string | number
       <span className="text-base">{icon}</span>
       <span className="text-xl font-display font-bold" style={{ color: "var(--color-text)" }}>{value}</span>
       <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>{label}</span>
+    </div>
+  );
+}
+
+/**
+ * UsernameSection — username-change mini-form (Wave 2.11).
+ *
+ * Lives inside <EditProfileModal> but is a standalone widget because
+ * username change has different semantics from the rest of the profile
+ * edits: it has a 30-day cooldown gate, a 7-day redirect grace, and
+ * is rejected by a server-side reserved list. Bundling it into the
+ * modal's bulk "Save" button would silently ignore the gate failures.
+ *
+ * Surface: read-only display of the current username + an inline
+ * "Đổi" toggle that reveals an input + submit. Server-side errors
+ * (cooldown, reserved, collision, rate limit) surface verbatim per
+ * the secure-code-guardian generic-error contract.
+ */
+function UsernameSection({ currentUsername, onChanged }: { currentUsername: string | null; onChanged: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(currentUsername ?? "");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Client-side mirror of the BE validator. Pure UX hint — server is
+  // still the authority. Matches usernameValidation.js: 3-30 chars,
+  // [a-zA-Z0-9_], leading-digit allowed, no underscore-position rules.
+  const trimmed = draft.trim();
+  const localValid =
+    trimmed.length >= 3 && trimmed.length <= 30 && /^[a-zA-Z0-9_]+$/.test(trimmed);
+  const unchanged = currentUsername != null && trimmed.toLowerCase() === currentUsername.toLowerCase();
+
+  const handleSubmit = async () => {
+    if (!localValid || unchanged || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const result = await changeUsername(trimmed);
+      setSuccess(`Đã đổi sang @${result.username}.${result.redirect_expires_at ? " URL cũ vẫn redirect 7 ngày." : ""}`);
+      setEditing(false);
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể đổi username.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <div
+        className="flex items-center justify-between rounded-lg px-3 py-2.5"
+        style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)" }}
+      >
+        <div className="flex flex-col">
+          <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Username</span>
+          <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>
+            {currentUsername ? `@${currentUsername}` : "Chưa đặt"}
+          </span>
+          {success && (
+            <span className="text-xs mt-0.5" style={{ color: "#22C55E" }}>{success}</span>
+          )}
+        </div>
+        <button
+          onClick={() => { setEditing(true); setSuccess(null); setError(null); }}
+          className="text-xs font-semibold px-3 py-1.5 rounded-md"
+          style={{ background: "transparent", color: "#00A896", border: "1px solid rgba(0,168,150,0.3)" }}
+        >
+          {currentUsername ? "Đổi" : "Đặt"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg px-3 py-2.5"
+      style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)" }}>
+      <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>Username mới</span>
+      <input
+        value={draft}
+        onChange={(e) => { setDraft(e.target.value); setError(null); }}
+        placeholder="username"
+        maxLength={30}
+        autoComplete="off"
+        spellCheck={false}
+        className="rounded-md px-2.5 py-2 text-sm"
+        style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
+      />
+      <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
+        URL profile: lingona.app/u/<strong style={{ color: "var(--color-text)" }}>{trimmed || "..."}</strong> · 30 ngày mới đổi được lần kế.
+      </p>
+      {error && <p className="text-xs" style={{ color: "#EF4444" }}>{error}</p>}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setEditing(false); setDraft(currentUsername ?? ""); setError(null); }}
+          disabled={submitting}
+          className="flex-1 py-2 rounded-md text-xs font-medium disabled:opacity-50"
+          style={{ background: "transparent", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+        >
+          Hủy
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={!localValid || unchanged || submitting}
+          className="flex-1 py-2 rounded-md text-xs font-semibold transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          style={{ background: localValid && !unchanged && !submitting ? "#00A896" : "rgba(0,168,150,0.3)", color: "#fff" }}
+        >
+          {submitting ? "Đang đổi..." : "Xác nhận"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -119,6 +231,9 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
 
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" maxLength={50}
           className="rounded-lg px-3 py-2.5 text-sm" style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }} />
+
+        {/* Username change (Wave 2.11) — separate mini-form with its own cooldown gate */}
+        <UsernameSection currentUsername={stats.user.username} onChanged={onSaved} />
 
         <div className="relative">
           <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="Bio (optional)" maxLength={100} rows={2}

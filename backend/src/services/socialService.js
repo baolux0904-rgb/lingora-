@@ -8,7 +8,12 @@
 "use strict";
 
 const repo = require("../repositories/socialRepository");
+const { validateUsername } = require("../domain/usernameValidation");
+const { canChangeUsername, redirectExpiresAt } = require("../domain/usernameChange");
 
+// Legacy regex kept only for the auto-generator below (3–20 was the
+// pre-Wave 2.11 first-time cap). New writes go through validateUsername
+// from domain/usernameValidation.js (3–30 + reserved + prefix block).
 const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
 
 // ---------------------------------------------------------------------------
@@ -200,22 +205,66 @@ async function getOrCreateUsername(userId) {
   return username;
 }
 
+/**
+ * Username write path (Wave 2.11 — extended).
+ *
+ * Single endpoint that handles both first-time set and subsequent
+ * change. The cooldown only fires when last_username_change_at is
+ * non-NULL, so the user's first claim never trips the gate even if
+ * the column was populated by the auto-generator (which leaves it
+ * NULL on purpose).
+ *
+ * Validation order is important:
+ *   1. Format + reserved (cheap, no DB).
+ *   2. Cooldown (one DB read of the user row).
+ *   3. Atomic write — collision check + UPDATE + redirect insert
+ *      run in a single transaction inside the repository.
+ *
+ * Threat-model notes (secure-code-guardian):
+ *   - Reserved match is case-insensitive — "ADMIN" rejected.
+ *   - Generic "Username không khả dụng" on collision so an attacker
+ *     can't enumerate which usernames are taken vs reserved vs in
+ *     redirect grace.
+ *   - SQL is parameterized end-to-end; LOWER() comparisons happen
+ *     server-side.
+ *
+ * @param {string} userId
+ * @param {string} username — raw input from the client
+ * @returns {Promise<{ username, is_first_set, redirect_expires_at }>}
+ */
 async function setUsernameValidated(userId, username) {
-  if (!USERNAME_RE.test(username)) {
-    const err = new Error("Username must be 3-20 characters, alphanumeric and underscore only");
+  // 1. Format + reserved-list gate (pure, no DB).
+  const v = validateUsername(username);
+  if (!v.valid) {
+    const err = new Error(v.errorMsg);
     err.status = 400;
+    err.code = v.errorCode;
     throw err;
   }
 
-  // Check taken
-  const existing = await repo.findUserByUsername(username);
-  if (existing && existing.id !== userId) {
-    const err = new Error("Username already taken");
-    err.status = 409;
+  // 2. Cooldown check — fetch the user's last_username_change_at.
+  const { query } = require("../config/db");
+  const userRow = await query(
+    `SELECT username, last_username_change_at
+       FROM users WHERE id = $1 AND deleted_at IS NULL`,
+    [userId],
+  );
+  if (userRow.rows.length === 0) {
+    const err = new Error("Không tìm thấy tài khoản.");
+    err.status = 404;
+    throw err;
+  }
+  const cooldown = canChangeUsername(userRow.rows[0]);
+  if (!cooldown.allowed) {
+    const err = new Error(`Bạn cần đợi ${cooldown.retryAfterDays} ngày mới đổi được username tiếp theo.`);
+    err.status = 429;
+    err.code = "USERNAME_COOLDOWN";
+    err.data = { retry_after_days: cooldown.retryAfterDays };
     throw err;
   }
 
-  return repo.setUsername(userId, username);
+  // 3. Atomic write (collision check + UPDATE + redirect insert).
+  return repo.changeUsernameAtomic(userId, username, redirectExpiresAt());
 }
 
 async function getOrCreateQrToken(userId) {

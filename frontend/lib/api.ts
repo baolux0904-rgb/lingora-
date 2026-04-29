@@ -653,6 +653,19 @@ export async function getEmailChangeUndo(token: string): Promise<{ ok: true }> {
   return (json as { data: { ok: true } }).data;
 }
 
+/**
+ * POST /social/profile/username — set or change username (Wave 2.11).
+ * Server validates length/charset/reserved/cooldown/collision. On 429
+ * the server payload includes `data.retry_after_days` (cooldown remainder).
+ */
+export async function changeUsername(newUsername: string): Promise<{
+  username:               string;
+  is_first_set:           boolean;
+  redirect_expires_at:    string | null;
+}> {
+  return apiPostAuth("/social/profile/username", { username: newUsername });
+}
+
 /** PATCH /users/me/visibility — update profile_visibility (Wave 2.8). */
 export async function updateProfileVisibility(
   visibility: import("./types").ProfileVisibility,

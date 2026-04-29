@@ -5,7 +5,7 @@
  * friendships, notifications, and accountability pings.
  */
 
-const { query } = require("../config/db");
+const { query, pool } = require("../config/db");
 const crypto = require("crypto");
 
 // ---------------------------------------------------------------------------
@@ -46,6 +46,142 @@ async function setUsername(userId, username) {
   );
   return result.rows[0];
 }
+
+/**
+ * Atomic username change (Wave 2.11). Inside one transaction:
+ *   1. Lock the user row + read CURRENT username.
+ *   2. Collision check against active users (case-insensitive) AND
+ *      active redirect entries (still inside grace).
+ *   3. If a previous username exists → INSERT it into username_redirects
+ *      with the supplied expiry. First-time setters skip the INSERT.
+ *   4. UPDATE users.username + last_username_change_at = now().
+ *
+ * Generic 400 EMAIL/USERNAME_UNAVAILABLE on collision — secure-code-
+ * guardian rule, no enumeration leak.
+ *
+ * @param {string} userId
+ * @param {string} newUsername — already format/reserved-validated by caller
+ * @param {Date}   redirectExpiresAt — when to retire the OLD username's redirect
+ * @returns {Promise<{ username, is_first_set, redirect_expires_at }>}
+ */
+async function changeUsernameAtomic(userId, newUsername, redirectExpiresAt) {
+  const newLower = newUsername.toLowerCase();
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Lock the user row to serialize concurrent change attempts.
+    const userRow = await client.query(
+      `SELECT username FROM users
+        WHERE id = $1 AND deleted_at IS NULL FOR UPDATE`,
+      [userId],
+    );
+    if (userRow.rows.length === 0) {
+      await client.query("ROLLBACK");
+      const err = new Error("Không tìm thấy tài khoản.");
+      err.status = 404;
+      throw err;
+    }
+    const oldUsername = userRow.rows[0].username; // may be NULL on first set
+
+    // Same-as-current is a no-op (avoid a needless redirect row).
+    if (oldUsername && oldUsername.toLowerCase() === newLower) {
+      await client.query("ROLLBACK");
+      const err = new Error("Username mới phải khác username hiện tại.");
+      err.status = 400;
+      err.code = "USERNAME_UNCHANGED";
+      throw err;
+    }
+
+    // Collision: another active user already owns this username.
+    const collideUser = await client.query(
+      `SELECT 1 FROM users
+        WHERE LOWER(username) = $1 AND deleted_at IS NULL AND id <> $2 LIMIT 1`,
+      [newLower, userId],
+    );
+    if (collideUser.rowCount > 0) {
+      await client.query("ROLLBACK");
+      const err = new Error("Username không khả dụng.");
+      err.status = 400;
+      err.code = "USERNAME_UNAVAILABLE";
+      throw err;
+    }
+
+    // Collision: another user's old username is still in redirect grace.
+    const collideRedirect = await client.query(
+      `SELECT 1 FROM username_redirects
+        WHERE old_username = $1 AND user_id <> $2 AND expires_at > now() LIMIT 1`,
+      [newLower, userId],
+    );
+    if (collideRedirect.rowCount > 0) {
+      await client.query("ROLLBACK");
+      const err = new Error("Username không khả dụng.");
+      err.status = 400;
+      err.code = "USERNAME_UNAVAILABLE";
+      throw err;
+    }
+
+    // Insert redirect for the OLD username if there is one.
+    let redirectRecorded = null;
+    if (oldUsername) {
+      // ON CONFLICT covers the rare case where THIS user reclaims their
+      // OWN previous redirect — we just bump the expiry forward.
+      await client.query(
+        `INSERT INTO username_redirects (old_username, user_id, expires_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (old_username) DO UPDATE
+           SET user_id = EXCLUDED.user_id, expires_at = EXCLUDED.expires_at`,
+        [oldUsername.toLowerCase(), userId, redirectExpiresAt],
+      );
+      redirectRecorded = redirectExpiresAt;
+    }
+
+    // Apply the change. Parameter binding ensures no SQL injection.
+    const upd = await client.query(
+      `UPDATE users
+          SET username                = $2,
+              last_username_change_at = now(),
+              updated_at              = now()
+        WHERE id = $1
+        RETURNING username`,
+      [userId, newUsername],
+    );
+
+    await client.query("COMMIT");
+
+    return {
+      username:            upd.rows[0].username,
+      is_first_set:        oldUsername == null,
+      redirect_expires_at: redirectRecorded,
+    };
+  } catch (err) {
+    try { await client.query("ROLLBACK"); } catch { /* ignore */ }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Look up an active redirect for a (lowercased) old username. Returns
+ * null when no row matches, the row is past expires_at, or the linked
+ * user has been soft-deleted (Wave 2.7).
+ *
+ * @param {string} oldUsernameLower
+ * @returns {Promise<{ id: string }|null>}
+ */
+async function findRedirectTarget(oldUsernameLower) {
+  const r = await query(
+    `SELECT u.id
+       FROM username_redirects r
+       JOIN users u ON u.id = r.user_id AND u.deleted_at IS NULL
+      WHERE r.old_username = $1 AND r.expires_at > now()
+      LIMIT 1`,
+    [oldUsernameLower],
+  );
+  return r.rows[0] ?? null;
+}
+
 
 async function generateQrToken(userId) {
   const token = crypto.randomUUID();
@@ -315,6 +451,8 @@ module.exports = {
   findUserByQrToken,
   getUserById,
   setUsername,
+  changeUsernameAtomic,
+  findRedirectTarget,
   generateQrToken,
   createFriendRequest,
   getFriendRequest,

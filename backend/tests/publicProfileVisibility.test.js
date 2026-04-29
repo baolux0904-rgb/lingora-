@@ -103,7 +103,8 @@ describe("GET /profile/:username — visibility matrix", () => {
 
   it("404 when username does not exist (no info leak)", async () => {
     query.mockReset();
-    query.mockResolvedValueOnce({ rows: [] });
+    query.mockResolvedValueOnce({ rows: [] }); // primary user lookup → none
+    query.mockResolvedValueOnce({ rows: [] }); // Wave 2.11: redirect-grace fallback → none
 
     const res = await request(buildApp()).get("/api/v1/profile/ghost");
     expect(res.status).toBe(404);

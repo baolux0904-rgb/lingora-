@@ -235,13 +235,43 @@ async function resolveViewerRelation(viewer, profileUserId) {
 async function getPublicProfile(req, res, next) {
   try {
     const { username } = req.params;
-    const result = await query(
+    const lookupLower = username.toLowerCase();
+
+    // Wave 2.11: case-insensitive username match. The 7 prod users
+    // signed up before this normalization, so LOWER(stored) = LOWER(input)
+    // is the only reliable comparison; older direct-equality lookups
+    // would 404 on `Alice` vs `alice`.
+    let result = await query(
       `SELECT id, name, username, bio, location, avatar_url, target_band,
               estimated_band, is_pro, created_at, profile_visibility
-         FROM users WHERE username = $1 AND deleted_at IS NULL`,
-      [username]
+         FROM users
+        WHERE LOWER(username) = $1 AND deleted_at IS NULL`,
+      [lookupLower]
     );
-    const user = result.rows[0];
+    let user = result.rows[0];
+
+    // Wave 2.11: redirect-grace fallback. Active redirects (≤7 days
+    // since change) point the OLD username at the user's current
+    // canonical row. The FE uses the `canonical_username` field below
+    // to soft-replace the URL bar (history.replaceState) without a
+    // server-side 301 — keeps SEO simple and lets the API stay JSON-only.
+    let canonicalUsername = null;
+    if (!user) {
+      const socialRepo = require("../repositories/socialRepository");
+      const target = await socialRepo.findRedirectTarget(lookupLower);
+      if (target) {
+        result = await query(
+          `SELECT id, name, username, bio, location, avatar_url, target_band,
+                  estimated_band, is_pro, created_at, profile_visibility
+             FROM users
+            WHERE id = $1 AND deleted_at IS NULL`,
+          [target.id]
+        );
+        user = result.rows[0];
+        if (user) canonicalUsername = user.username;
+      }
+    }
+
     if (!user) return sendError(res, { status: 404, message: "User not found" });
 
     // Resolve the viewer relation BEFORE deciding to serve. Strangers/
@@ -284,8 +314,17 @@ async function getPublicProfile(req, res, next) {
       },
     };
 
+    // Wave 2.11: when the request hit a redirect (the requested
+    // username is the OLD one), expose `canonical_username` so the
+    // FE can softly update the URL bar via history.replaceState.
+    // Always-tier field — present regardless of viewer relation.
+    const filtered = filterProfileFields(fullProfile, viewerRelation);
+    if (canonicalUsername) {
+      filtered.canonical_username = canonicalUsername;
+    }
+
     return sendSuccess(res, {
-      data:    filterProfileFields(fullProfile, viewerRelation),
+      data:    filtered,
       message: "Public profile",
     });
   } catch (err) { next(err); }
