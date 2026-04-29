@@ -37,7 +37,7 @@ async function getConversations(userId) {
 
 async function sendMessage(
   senderId, receiverId,
-  { type, content, audioUrl, audioDuration, clientMessageId = null, waveformPeaks = null }
+  { type, content, audioUrl, audioDuration, clientMessageId = null, waveformPeaks = null, voiceFileSizeBytes = null }
 ) {
   // Verify friendship
   if (!(await isFriend(senderId, receiverId))) {
@@ -61,7 +61,8 @@ async function sendMessage(
     audioUrl || null,
     audioDuration || null,
     clientMessageId,
-    waveformPeaks
+    waveformPeaks,
+    type === "voice" ? voiceFileSizeBytes : null
   );
 }
 

@@ -5,6 +5,7 @@
  */
 
 const chatService = require("../services/chatService");
+const voiceQuotaService = require("../services/voiceQuotaService");
 const { sendSuccess, sendError } = require("../response");
 const events = require("../socket/events");
 const { decodeBase64Loose, validateAudioBuffer, ValidationError } = require("../utils/mimeValidation");
@@ -108,6 +109,26 @@ async function sendVoiceMessage(req, res, next) {
       throw err;
     }
 
+    // 2b. Daily voice quota — Free plan capped at 50 MB/day; Pro unlimited.
+    //     Checked AFTER magic-byte validation so we don't bill bandwidth
+    //     for a payload we'd reject anyway, and BEFORE R2 upload so we
+    //     never push a blob we can't bill against the user's day budget.
+    const fileSizeBytes = buffer.byteLength;
+    const quota = await voiceQuotaService.checkVoiceQuota(req.user.id, fileSizeBytes);
+    if (!quota.allowed) {
+      return sendError(res, {
+        status: 429,
+        message: "Hết quota voice hôm nay. Nâng cấp Pro để gửi không giới hạn.",
+        code: "VOICE_QUOTA_EXCEEDED",
+        details: {
+          plan: quota.plan,
+          usedBytes: quota.usedBytes,
+          limitBytes: quota.limitBytes,
+          remainingBytes: quota.remainingBytes,
+        },
+      });
+    }
+
     // 3. Upload to storage provider (R2 in prod, mock in dev).
     //    storageKey uses a fresh UUID so DB delete cleans up its own row's
     //    file; extension reflects detected MIME (not client-claimed).
@@ -134,6 +155,7 @@ async function sendVoiceMessage(req, res, next) {
         audioDuration: duration || 0,
         clientMessageId: cid,
         waveformPeaks: peaks,
+        voiceFileSizeBytes: fileSizeBytes,
       });
     } catch (dbErr) {
       console.error(`[chat] sendMessage DB failure after upload — cleaning orphan blob ${key}:`, dbErr.message);

@@ -47,6 +47,26 @@ const VALID_PLANS  = Object.freeze(["free", "pro"]);
 const VALID_SKILLS = Object.freeze(["speaking", "writing", "grammar", "reading", "listening"]);
 
 /**
+ * VOICE_QUOTA — daily upload byte budget for chat voice notes.
+ * Shape mirrors LIMITS but the unit is bytes/day instead of count/day,
+ * because voice abuse is bandwidth-shaped, not request-count-shaped.
+ *
+ * Free: 50 MB/day. At ~64 kbps webm (chat recorder default), this is
+ * ~110 minutes of audio per day — well above any honest chat use, low
+ * enough that a malicious script can't pin R2 egress.
+ * Pro: unlimited (perDayBytes: null).
+ */
+const VOICE_QUOTA = Object.freeze({
+  free: Object.freeze({ perDayBytes: 50 * 1024 * 1024 }),
+  pro:  Object.freeze({ perDayBytes: null }),
+});
+
+function getVoiceQuota(plan) {
+  if (!VALID_PLANS.includes(plan)) return null;
+  return VOICE_QUOTA[plan];
+}
+
+/**
  * Get the limit object for a (plan, skill) pair.
  * Returns null when either argument is unknown.
  *
@@ -93,6 +113,8 @@ module.exports = {
   PUBLIC_LIMITS,
   VALID_PLANS,
   VALID_SKILLS,
+  VOICE_QUOTA,
   getLimit,
+  getVoiceQuota,
   isUnlimited,
 };
