@@ -21,7 +21,6 @@ const BattleTab = dynamic(() => import("@/components/Battle/BattleTab"), { ssr: 
 const FriendsTab = dynamic(() => import("@/components/Social/FriendsTab"), { ssr: false });
 const ProfileScreen = dynamic(() => import("@/components/ProfileScreen"), { ssr: false });
 const SettingsScreen = dynamic(() => import("@/components/SettingsScreen"), { ssr: false });
-const Onboarding = dynamic(() => import("@/components/Onboarding"), { ssr: false });
 const OnboardingFlow = dynamic(() => import("@/components/Onboarding/OnboardingFlow"), { ssr: false });
 import { useCurrentUserId } from "@/hooks/useCurrentUserId";
 import { useProgress } from "@/hooks/useProgress";
@@ -369,7 +368,6 @@ function AppHomeContent() {
         </div>
       </div>
 
-      <Onboarding />
       <StreakMilestoneHandler streak={gamification?.streak} />
     </AppShell>
   );

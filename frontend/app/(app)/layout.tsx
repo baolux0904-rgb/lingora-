@@ -42,7 +42,6 @@ const OnboardingFlow = dynamic(
   () => import("@/components/Onboarding/OnboardingFlow"),
   { ssr: false },
 );
-const Onboarding = dynamic(() => import("@/components/Onboarding"), { ssr: false });
 
 function findNavItem(id: string, items: NavItem[] = NAV_ITEMS): NavItem | null {
   for (const item of items) {
@@ -92,7 +91,6 @@ function AppShellInner({ children }: { children: ReactNode }) {
       displayStreak={displayStreak}
     >
       {children}
-      <Onboarding />
       <StreakMilestoneHandler streak={gamification?.streak} />
     </AppShell>
   );
