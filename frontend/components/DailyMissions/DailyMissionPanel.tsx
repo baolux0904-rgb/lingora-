@@ -1,10 +1,39 @@
 "use client";
 
 /**
- * DailyMissionPanel.tsx — 3 daily missions with progress tracking.
+ * DailyMissionPanel.tsx — DECORATIVE pre-launch (Wave 5.4.3 audit).
  *
- * Progress stored in localStorage keyed by date. Completion fires +50 XP
- * via RewardContext when all 3 missions are done.
+ * Status today (verified by Phase 1 discovery):
+ *   - Panel renders the 3-mission catalog (hardcoded in DAILY_MISSIONS).
+ *   - `xp_50` progress is auto-derived from gamification.xp.xpInLevel.
+ *   - `speak_1` / `battle_1` progress is NEVER incremented in practice
+ *     — `incrementMission` is exported but has 0 callers in the
+ *     codebase. Speaking/Battle completion handlers do not wire it.
+ *   - `fireXP(50, "mission")` is a client-only animation via
+ *     RewardContext. It does NOT write to xp_ledger; per-mission
+ *     `rewardXp` (20/30/25) is decorative — no real XP is granted.
+ *
+ * No XP exploit exists: the localStorage flags (removed in 5.4.3)
+ * only gated repeat-animation, not any real XP grant.
+ *
+ * Wave 6 plan (when this is revived as a real feature):
+ *   - Migration: `daily_mission_claims` with
+ *     UNIQUE(user_id, mission_id, claim_date) where claim_date is
+ *     the Asia/Ho_Chi_Minh day boundary (Wave 2.1 pattern).
+ *   - BE: GET /daily-missions, POST /:missionId/progress (UPSERT),
+ *     POST /:missionId/claim (transactional + xp_ledger emit).
+ *   - Wire real progress sources: Speaking complete →
+ *     incrementMission('speak_1'); Battle complete →
+ *     incrementMission('battle_1'); XP delta hook for `xp_50`.
+ *   - xp_ledger emit on claim: awardXp(userId, rewardXp,
+ *     'daily_mission_complete', `${missionId}-${claimDate}`).
+ *     The UNIQUE (user_id, reason, ref_id) index from
+ *     migration 0041 makes retry/replay safe.
+ *   - FE refactor: API-backed state, no localStorage.
+ *
+ * Mission catalog, rotation rules, and reset semantics belong in the
+ * Wave 6 design conversation (cohesive with BRAND tokens + page
+ * redesign discussion).
  *
  * Mobile: collapsed accordion. Desktop: always visible.
  */
@@ -36,34 +65,6 @@ const TYPE_COLORS: Record<string, string> = {
   social: "#F59E0B",
 };
 
-// ─── localStorage helpers ────────────────────────────────────────────────────
-
-function getTodayKey(): string {
-  return `lingona_missions_${new Date().toISOString().slice(0, 10)}`;
-}
-
-function loadProgress(): Record<string, number> {
-  if (typeof window === "undefined") return {};
-  try {
-    return JSON.parse(localStorage.getItem(getTodayKey()) || "{}");
-  } catch { return {}; }
-}
-
-function saveProgress(progress: Record<string, number>) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(getTodayKey(), JSON.stringify(progress));
-}
-
-function loadDailyCompleted(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(`${getTodayKey()}_completed`) === "true";
-}
-
-function saveDailyCompleted() {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(`${getTodayKey()}_completed`, "true");
-}
-
 // ─── Component ───────────────────────────────────────────────────────────────
 
 interface DailyMissionPanelProps {
@@ -77,24 +78,16 @@ export default function DailyMissionPanel({ gamification }: DailyMissionPanelPro
   const [expanded, setExpanded] = useState(true); // mobile accordion
   const firedRef = useRef(false);
 
-  // Load progress on mount
-  useEffect(() => {
-    setProgress(loadProgress());
-    setDailyCompleted(loadDailyCompleted());
-  }, []);
-
-  // Derive XP progress from gamification data
+  // Derive XP progress from gamification data — in-memory only.
+  // Wave 6 will replace this with a server-side daily-XP read.
   useEffect(() => {
     if (!gamification) return;
-    const saved = loadProgress();
-    // Auto-track XP mission from total XP changes (approximate)
-    // In production, this would come from a daily XP API
     const currentXp = gamification.xp.xpInLevel;
-    if (currentXp > (saved.xp_50 ?? 0)) {
-      saved.xp_50 = Math.min(currentXp, 50);
-    }
-    setProgress(saved);
-    saveProgress(saved);
+    setProgress((prev) => {
+      const prevXp = prev.xp_50 ?? 0;
+      if (currentXp <= prevXp) return prev;
+      return { ...prev, xp_50: Math.min(currentXp, 50) };
+    });
   }, [gamification]);
 
   // Check if all missions complete
@@ -107,7 +100,6 @@ export default function DailyMissionPanel({ gamification }: DailyMissionPanelPro
     if (allComplete && !dailyCompleted && !firedRef.current) {
       firedRef.current = true;
       setDailyCompleted(true);
-      saveDailyCompleted();
       // Small delay so user sees the last mission check first
       setTimeout(() => {
         fireXP(50, "mission");
@@ -115,13 +107,11 @@ export default function DailyMissionPanel({ gamification }: DailyMissionPanelPro
     }
   }, [allComplete, dailyCompleted, fireXP]);
 
-  // Manual progress update (called from external events)
+  // Manual progress update — in-memory only. Currently 0 callers
+  // (Wave 5.4.3 audit confirmed); Wave 6 will wire Speaking/Battle
+  // completion handlers through this exported callback.
   const incrementMission = useCallback((missionId: string, amount = 1) => {
-    setProgress((prev) => {
-      const updated = { ...prev, [missionId]: (prev[missionId] ?? 0) + amount };
-      saveProgress(updated);
-      return updated;
-    });
+    setProgress((prev) => ({ ...prev, [missionId]: (prev[missionId] ?? 0) + amount }));
   }, []);
 
   const completedCount = DAILY_MISSIONS.filter(
