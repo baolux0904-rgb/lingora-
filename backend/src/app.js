@@ -94,6 +94,10 @@ function createApp() {
   // Progress: POST /api/v1/lessons/:id/complete  |  GET /api/v1/users/:id/progress
   app.use("/api/v1",         require("./routes/progressRoutes"));
 
+  // Grammar progress (Wave 5.4.5): GET /api/v1/grammar/progress,
+  // POST /progress/lesson, POST /progress/exam, POST /backfill.
+  app.use("/api/v1/grammar", require("./routes/grammarRoutes"));
+
   // Gamification: GET /api/v1/users/:userId/gamification
   app.use("/api/v1/users",   require("./routes/gamificationRoutes"));
 
