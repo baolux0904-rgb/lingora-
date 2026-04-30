@@ -1,19 +1,40 @@
 /**
  * useGrammarProgress.ts
  *
- * LocalStorage-backed grammar progression hook.
- * Tracks completed lessons, scores, exam results, XP, and level.
+ * Server-backed grammar progression hook (Wave 5.4.5 commit 2/3).
  *
  * Progression chain:
  *   English Tense (Present → Past → Future) → Passive Voice → Modal Verbs → Final Exam
  *
- * No backend changes — grammar progress is frontend-only.
+ * State source:
+ *   - On mount: GET /api/v1/grammar/progress hydrates lessonResults,
+ *     examResults, and totalXp.
+ *   - On completion: POST /grammar/progress/lesson | exam updates the
+ *     local state optimistically and writes through to the server.
+ *     The server emits xp_ledger via awardXp; replays are idempotent
+ *     by migration 0041's UNIQUE (user_id, reason, ref_id).
+ *
+ * The localStorage key 'lingona-grammar-progress' is left intact in
+ * this commit — Wave 5.4.5 commit 3/3 reads it once on the next
+ * authenticated load, POSTs to /grammar/backfill, and clears it on
+ * success. Until that commit lands, fresh users persist via the API
+ * and existing localStorage progress is dormant (still on disk, not
+ * read).
+ *
+ * Hook return shape preserved verbatim from the pre-Wave-5.4.5
+ * version so the 19 Grammar consumer components don't change.
  */
 
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { GRAMMAR_UNITS, GRAMMAR_TOPICS, TOTAL_GRAMMAR_LESSONS } from "./grammarData";
+import {
+  getGrammarProgress,
+  recordGrammarLesson,
+  recordGrammarExam,
+} from "@/lib/api";
+import { useAuthStore } from "@/lib/stores/authStore";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,34 +89,10 @@ export function computeLevel(xp: number): { level: number; currentXp: number; ne
 }
 
 // ---------------------------------------------------------------------------
-// Storage helpers
-// ---------------------------------------------------------------------------
-
-function loadProgress(): GrammarProgressData {
-  if (typeof window === "undefined") {
-    return { lessonResults: {}, examResults: {}, totalXp: 0 };
-  }
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { lessonResults: {}, examResults: {}, totalXp: 0 };
-    return JSON.parse(raw) as GrammarProgressData;
-  } catch {
-    return { lessonResults: {}, examResults: {}, totalXp: 0 };
-  }
-}
-
-function saveProgress(data: GrammarProgressData): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  } catch {
-    // localStorage full or unavailable — silent fail
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Hook
 // ---------------------------------------------------------------------------
+
+const EMPTY_PROGRESS: GrammarProgressData = { lessonResults: {}, examResults: {}, totalXp: 0 };
 
 export interface UseGrammarProgressResult {
   isLessonCompleted: (lessonId: string) => boolean;
@@ -127,7 +124,37 @@ export interface UseGrammarProgressResult {
 }
 
 export function useGrammarProgress(): UseGrammarProgressResult {
-  const [data, setData] = useState<GrammarProgressData>(loadProgress);
+  const userId = useAuthStore((s) => s.user?.id ?? null);
+  const [data, setData] = useState<GrammarProgressData>(EMPTY_PROGRESS);
+
+  // Hydrate from server on mount + when the authenticated user changes.
+  // No re-fetch on completion calls — those write through to local state
+  // optimistically. The server xp_earned and totalXp are recomputed from
+  // xp_ledger; the FE keeps a tier-based local total during the session
+  // for snappy UI, then re-hydrates from server next mount.
+  useEffect(() => {
+    let cancelled = false;
+    if (!userId) {
+      setData(EMPTY_PROGRESS);
+      return;
+    }
+    (async () => {
+      try {
+        const remote = await getGrammarProgress();
+        if (cancelled) return;
+        setData({
+          lessonResults: remote.lessonResults ?? {},
+          examResults: remote.examResults ?? {},
+          totalXp: remote.totalXp ?? 0,
+        });
+      } catch {
+        // Silent — keep EMPTY_PROGRESS so the UI shows "not yet started"
+        // rather than blocking. Wave 5.4.5 commit 3/3 backfill flow will
+        // recover any pre-existing localStorage progress.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [userId]);
 
   // Only count tenses lessons for the tenses progress display
   const tensesLessonIds = useMemo(
@@ -174,47 +201,41 @@ export function useGrammarProgress(): UseGrammarProgressResult {
   const completeLesson = useCallback(
     (lessonId: string, score: number): number => {
       const xp = XP_PER_LESSON + (score >= 100 ? XP_PERFECT_BONUS : 0);
-      const updated: GrammarProgressData = {
-        ...data,
+      // Optimistic in-memory update so the UI reacts instantly. The
+      // server is the source of truth on next hydrate; replays are
+      // idempotent via xp_ledger UNIQUE (Wave 2 0041).
+      setData((prev) => ({
+        ...prev,
         lessonResults: {
-          ...data.lessonResults,
-          [lessonId]: {
-            lessonId,
-            score,
-            completedAt: new Date().toISOString(),
-          },
+          ...prev.lessonResults,
+          [lessonId]: { lessonId, score, completedAt: new Date().toISOString() },
         },
-        totalXp: data.totalXp + xp,
-      };
-      saveProgress(updated);
-      setData(updated);
+        totalXp: prev.totalXp + xp,
+      }));
+      // Fire-and-forget; the hook does not block on the network. If the
+      // POST fails the local state will resync on the next mount.
+      recordGrammarLesson(lessonId, score).catch(() => { /* silent — server reconciles on next hydrate */ });
       return xp;
     },
-    [data]
+    []
   );
 
   const completeExam = useCallback(
     (unitId: string, score: number, passed: boolean): number => {
       const xp = unitId === "final" ? XP_FINAL_EXAM : XP_PER_EXAM;
       const earnedXp = passed ? xp : 0;
-      const updated: GrammarProgressData = {
-        ...data,
+      setData((prev) => ({
+        ...prev,
         examResults: {
-          ...data.examResults,
-          [unitId]: {
-            unitId,
-            score,
-            passed,
-            completedAt: new Date().toISOString(),
-          },
+          ...prev.examResults,
+          [unitId]: { unitId, score, passed, completedAt: new Date().toISOString() },
         },
-        totalXp: data.totalXp + earnedXp,
-      };
-      saveProgress(updated);
-      setData(updated);
+        totalXp: prev.totalXp + earnedXp,
+      }));
+      recordGrammarExam(unitId, score, passed).catch(() => { /* silent — server reconciles on next hydrate */ });
       return earnedXp;
     },
-    [data]
+    []
   );
 
   const isExamPassed = useCallback(
@@ -300,13 +321,11 @@ export function useGrammarProgress(): UseGrammarProgressResult {
   );
 
   const reset = useCallback(() => {
-    const empty: GrammarProgressData = {
-      lessonResults: {},
-      examResults: {},
-      totalXp: 0,
-    };
-    saveProgress(empty);
-    setData(empty);
+    // Local-only reset — clears the session view. The server-side
+    // grammar_progress + xp_ledger rows are NOT deleted (audit
+    // contract: ledger is append-only). Re-hydrating in a new
+    // session will resurrect the user's actual progress.
+    setData(EMPTY_PROGRESS);
   }, []);
 
   return {

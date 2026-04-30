@@ -449,6 +449,59 @@ export async function getBandProgress(userId: string): Promise<import("./types")
 }
 
 // ---------------------------------------------------------------------------
+// Grammar progress (Wave 5.4.5)
+// ---------------------------------------------------------------------------
+
+export interface ApiGrammarLessonResult {
+  lessonId: string;
+  score: number;
+  completedAt: string;
+}
+
+export interface ApiGrammarExamResult {
+  unitId: string;
+  score: number;
+  passed: boolean;
+  completedAt: string;
+}
+
+export interface ApiGrammarProgress {
+  lessonResults: Record<string, ApiGrammarLessonResult>;
+  examResults: Record<string, ApiGrammarExamResult>;
+  totalXp: number;
+}
+
+export interface ApiGrammarBackfillResult {
+  importedCount: number;
+  skippedCount: number;
+  totalXpServerComputed: number;
+}
+
+/** GET /api/v1/grammar/progress — full hydrate for the FE hook. */
+export async function getGrammarProgress(): Promise<ApiGrammarProgress> {
+  return apiFetchAuth<ApiGrammarProgress>("/grammar/progress");
+}
+
+/** POST /api/v1/grammar/progress/lesson — record one lesson completion. */
+export async function recordGrammarLesson(lessonId: string, score: number): Promise<{ row: unknown; xpAwarded: number }> {
+  return apiPostAuth("/grammar/progress/lesson", { lessonId, score });
+}
+
+/** POST /api/v1/grammar/progress/exam — record one exam attempt (pass or fail). */
+export async function recordGrammarExam(unitId: string, score: number, passed: boolean): Promise<{ row: unknown; xpAwarded: number }> {
+  return apiPostAuth("/grammar/progress/exam", { unitId, score, passed });
+}
+
+/** POST /api/v1/grammar/backfill — one-time bulk import from a client's localStorage. */
+export async function backfillGrammar(payload: {
+  lessonResults: Record<string, { score: number; completedAt?: string }>;
+  examResults: Record<string, { score: number; passed: boolean; completedAt?: string }>;
+  totalXp: number;
+}): Promise<ApiGrammarBackfillResult> {
+  return apiPostAuth<ApiGrammarBackfillResult>("/grammar/backfill", payload);
+}
+
+// ---------------------------------------------------------------------------
 // Pro / Subscription
 // ---------------------------------------------------------------------------
 
