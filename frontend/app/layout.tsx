@@ -78,9 +78,15 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
+      data-mode="brand"
       suppressHydrationWarning
       className={`${playfair.variable} ${dmSans.variable}`}
     >
+      {/* Wave 6 Sprint 2B: data-mode="brand" wires the 3-mode CSS variable system
+          (per .claude/skills/lingona-design/04-modes/mode-switch-rules.md).
+          Body className kept minimal — section-level bg-cream applied per Hero/landing
+          components. Existing (app) pages unaffected: next-themes .dark class is
+          orthogonal to data-mode and will be migrated in Sprint 8. */}
       <body className="font-sans">
         <ThemeProvider attribute="class" defaultTheme="dark">
           <AuthProvider>

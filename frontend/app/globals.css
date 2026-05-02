@@ -2,6 +2,142 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ══════════════════════════════════════════════════════════════════════
+   LINGONA DESIGN SYSTEM — 3-mode CSS variable system (Wave 6 Sprint 2B)
+   Per .claude/skills/lingona-design/04-modes/mode-switch-rules.md
+   ══════════════════════════════════════════════════════════════════════ */
+@layer base {
+  /* Default brand mode (root) — ~80% surface */
+  :root,
+  [data-mode="brand"] {
+    /* Page surface */
+    --color-bg-page:      #F8F7F4;
+    --color-bg-card:      #F8F7F4;
+    --color-bg-secondary: #FAF8F2;
+
+    /* Text */
+    --color-text-primary:   #1B2B4B;
+    --color-text-secondary: #6B7280;
+    --color-text-muted:     #9CA3AF;
+
+    /* Brand */
+    --color-cream:      #F8F7F4;
+    --color-navy:       #1B2B4B;
+    --color-navy-light: #2D4A7A;
+    --color-navy-dark:  #0F1429;
+    --color-teal:       #00A896;
+    --color-teal-light: #00C4B0;
+    --color-teal-dark:  #007A6E;
+    --color-gold:       #FFD700;
+
+    /* CTA */
+    --color-cta:       #00A896;
+    --color-cta-hover: #00C4B0;
+    --color-cta-text:  #F8F7F4;
+
+    /* Border */
+    --color-border-canon: #E5E7EB;
+    --color-border-strong: #D1D5DB;
+
+    /* Semantic */
+    --color-warning-canon: #F59E0B;
+    --color-error-canon:   #EF4444;
+    --color-highlight:     #FFEB3B;
+
+    /* Typography */
+    --font-body:    var(--font-dm-sans);
+    --font-display: var(--font-playfair);
+
+    /* Radius */
+    --radius-button: 12px;
+    --radius-card:   16px;
+    --radius-hero:   24px;
+
+    /* Duration */
+    --duration-quick:      100ms;
+    --duration-fast-canon: 150ms;
+    --duration-medium:     250ms;
+    --duration-moderate:   300ms;
+    --duration-slow-canon: 500ms;
+    --duration-deliberate: 600ms;
+  }
+
+  /* Brand-soft mode (Practice in-task) — Lintopus absent, content-dominant */
+  [data-mode="brand-soft"] {
+    /* Most tokens inherit from :root brand. Override only what differs. */
+    --duration-fast-canon: 100ms;
+    --duration-medium:     200ms;
+    --duration-moderate:   250ms;
+  }
+
+  /* IELTS-authentic mode (Full Test, Battle Ranked) — Cambridge faithful */
+  [data-mode="ielts-authentic"] {
+    --color-bg-page:      #F5EFDC;
+    --color-bg-card:      #F5EFDC;
+    --color-bg-secondary: #EDE5CB;
+
+    --color-text-primary:   #1A1A1A;
+    --color-text-secondary: #4A4A4A;
+
+    --color-cta:       #1A1A1A;
+    --color-cta-hover: #333333;
+    --color-cta-text:  #1A1A1A;
+
+    --color-border-canon: #C9B79C;
+
+    --font-body:    Georgia, serif;
+    --font-display: Georgia, serif;
+
+    --radius-button: 2px;
+    --radius-card:   0;
+    --radius-hero:   0;
+
+    --duration-quick:      0ms;
+    --duration-fast-canon: 0ms;
+    --duration-medium:     0ms;
+    --duration-moderate:   0ms;
+    --duration-slow-canon: 0ms;
+    --duration-deliberate: 0ms;
+  }
+
+  /* Reduced motion — duration 0 across all modes */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --duration-quick:      0ms;
+      --duration-fast-canon: 0ms;
+      --duration-medium:     0ms;
+      --duration-moderate:   0ms;
+      --duration-slow-canon: 0ms;
+      --duration-deliberate: 0ms;
+    }
+  }
+
+  /* Mascot breath idle (hero only, opt-in via .mascot-breath class) */
+  @keyframes lintopus-breath {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.02); }
+  }
+
+  .mascot-breath {
+    animation: lintopus-breath 4s ease-in-out infinite;
+    transform-origin: center;
+    will-change: transform;
+  }
+
+  /* Disable breath: reduced motion + ielts-authentic + mobile (perf-budget) */
+  @media (prefers-reduced-motion: reduce) {
+    .mascot-breath { animation: none; }
+  }
+
+  [data-mode="ielts-authentic"] .mascot-breath {
+    animation: none;
+  }
+
+  @media (max-width: 768px) {
+    .mascot-breath { animation: none; }
+  }
+}
+
 /* ── Fonts loaded via next/font in layout.tsx — no CSS @import needed ── */
 
 /* ══════════════════════════════════════════════════════════════════════

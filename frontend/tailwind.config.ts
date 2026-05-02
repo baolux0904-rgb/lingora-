@@ -31,7 +31,12 @@ const config: Config = {
       },
 
       colors: {
-        /* Brand */
+        /* Brand — Lingona canon */
+        cream: {
+          DEFAULT: "#F8F7F4",  // page bg warm-white
+          warm:    "#FAF8F2",  // hero/card subtle variant
+          soft:    "#F0EFEC",  // input/secondary surface
+        },
         navy: {
           DEFAULT: "#1B2B4B",
           light:   "#2D4A7A",
@@ -47,6 +52,8 @@ const config: Config = {
           dark:    "#007A6E",
           50:      "#E6F7F5",
         },
+        gold:      "#FFD700",  // accent (achievement/badge moments)
+        parchment: "#F5EFDC",  // ielts-authentic mode bg (Cambridge faithful)
         /* Neutral */
         gray: {
           50:  "#F9FAFB",
@@ -94,9 +101,12 @@ const config: Config = {
       fontFamily: {
         // DM Sans (body / UI) — loaded via next/font/google in app/layout.tsx
         sans:     ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],
+        body:     ["var(--font-dm-sans)", "DM Sans", "system-ui", "sans-serif"],  // Lingona canon alias
         // Playfair Display (hero / large display headings only)
         display:  ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
         playfair: ["var(--font-playfair)", "Playfair Display", "Georgia", "serif"],
+        // Georgia (ielts-authentic mode body + heading)
+        serif:    ["Georgia", "Cambria", "Times New Roman", "serif"],
       },
 
       borderColor: {
@@ -116,11 +126,15 @@ const config: Config = {
       },
 
       borderRadius: {
-        sm:   "8px",
-        md:   "12px",
-        lg:   "16px",
-        xl:   "24px",
-        full: "9999px",
+        sm:     "8px",
+        md:     "12px",
+        lg:     "16px",
+        xl:     "24px",
+        full:   "9999px",
+        // Lingona canon aliases per 01-foundations/radius-language.md
+        button: "12px",   // primary/secondary buttons
+        card:   "16px",   // default card
+        hero:   "24px",   // hero card / pricing tier
       },
 
       boxShadow: {
