@@ -1,154 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
+import { ArrowRight } from "lucide-react";
+import Mascot from "@/components/ui/Mascot";
 
-const container = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.12 } },
-};
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0, 0, 0.2, 1] as const } },
-};
-
+/**
+ * Hero section — Wave 6 Sprint 2B rebuild.
+ *
+ * Per .claude/skills/lingona-design:
+ * - 02-layout/desktop-canvas.md: Pattern C asymmetric (text col-7 + visual col-5)
+ * - 03-components/mascot.md: Lintopus 320px happy mood, hero placement
+ * - 03-components/primary-button.md: solid teal CTA (NO gradient, NO glow)
+ * - 04-modes/brand.md: brand mode default (cream surface, navy text)
+ * - 05-voice/persona.md: peer voice 'mình/bạn' Vietnamese-first
+ * - 09-anti-patterns/ai-generated-smell.md: NO mock chat, NO countdown banner,
+ *   NO gradient CTA, NO dark theme, NO glow shadow
+ * - 06-motion/motion-philosophy.md: calm > energetic, NO infinite floating
+ */
 export default function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center overflow-hidden pt-28 pb-20">
-      {/* Clean background — no gradient blobs */}
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left — Copy */}
+    <section className="relative bg-cream py-16 lg:py-24 px-6 lg:px-12 xl:px-20 overflow-hidden">
+      <div className="max-w-[1120px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Text — col-span-7 left (Pattern C asymmetric) */}
           <motion.div
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="text-center lg:text-left"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="lg:col-span-7 text-center lg:text-left"
           >
-            <motion.h1
-              variants={fadeUp}
-              className="font-playfair text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.1] tracking-tighter"
-              style={{ color: "var(--color-text)" }}
-            >
-              Luyện IELTS{" "}
-              <span className="text-[#00A896]">
-                thông minh hơn
-              </span>
+            <h1 className="font-display italic text-navy text-4xl sm:text-5xl lg:text-6xl leading-tight tracking-tight">
+              Cùng luyện IELTS
               <br />
-              cùng AI coach của bạn
-            </motion.h1>
+              <span className="text-teal">với mình</span>
+            </h1>
 
             <motion.p
-              variants={fadeUp}
-              className="mt-6 text-base sm:text-lg max-w-lg mx-auto lg:mx-0 leading-relaxed"
-              style={{ color: "var(--color-text-secondary)" }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.2, ease: "easeOut" }}
+              className="mt-6 lg:mt-8 text-lg lg:text-xl text-gray-700 max-w-xl mx-auto lg:mx-0 leading-relaxed"
             >
-              Lingona giúp bạn cải thiện Speaking, Grammar và Writing với phản hồi
-              AI real-time. Không cần gia sư. Học mọi lúc, mọi nơi.
+              Mình giúp bạn từ Band 5.0 đến 7.5+ — phản hồi cụ thể, không
+              cảm tính. Speaking AI chấm 4 tiêu chí IELTS, Writing 3x
+              multi-sampling.
             </motion.p>
 
             <motion.div
-              variants={fadeUp}
-              className="mt-8 flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.35, ease: "easeOut" }}
+              className="mt-8 lg:mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4"
             >
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-md bg-gradient-to-r from-[#00A896] to-[#00C9B1] text-white font-medium text-base hover:opacity-90 transition-opacity duration-200 shadow-[0_0_24px_rgba(0,168,150,0.25)] cursor-pointer"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-button bg-teal text-cream font-semibold text-lg hover:bg-teal-light active:scale-[0.97] transition-all duration-150 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
               >
-                Bắt đầu miễn phí
-                <svg className="ml-2 w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M5 12h14M12 5l7 7-7 7" />
-                </svg>
+                Bắt đầu luyện
+                <ArrowRight className="w-5 h-5" aria-hidden="true" />
               </Link>
+
               <a
-                href="#features"
-                className="inline-flex items-center justify-center px-7 py-3.5 rounded-md border font-medium text-base transition-all duration-200 cursor-pointer"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-text-secondary)" }}
+                href="#how-it-works"
+                className="text-base text-navy hover:text-teal-dark transition-colors duration-150 underline-offset-4 hover:underline"
               >
-                Xem demo
+                Lingona là gì?
               </a>
             </motion.div>
 
-            <motion.div
-              variants={fadeUp}
-              className="mt-6 flex items-center gap-2 justify-center lg:justify-start text-sm"
-              style={{ color: "var(--color-text-tertiary)" }}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.5 }}
+              className="mt-6 text-sm text-gray-600"
             >
-              <span>Mi&#7877;n ph&iacute; ho&agrave;n to&agrave;n</span>
-              <span>&bull;</span>
-              <span>Kh&ocirc;ng c&#7847;n th&#7867; t&iacute;n d&#7909;ng</span>
-            </motion.div>
+              Free tier không cần thẻ — Pro 179k/tháng (sinh viên giảm 20%)
+            </motion.p>
           </motion.div>
 
-          {/* Right — Hero Visual */}
+          {/* Mascot — col-span-5 right */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3, ease: [0, 0, 0.2, 1] }}
-            className="relative hidden lg:block"
+            initial={{ opacity: 0, scale: 0.95, x: 12 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+            className="lg:col-span-5 flex justify-center lg:justify-end"
           >
-            <div className="relative">
-              {/* Floating Lintopus */}
-              <motion.div
-                animate={{ y: [-5, 5, -5] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -bottom-5 -right-5 z-30"
-              >
-                <Image src="/mascot.svg" alt="Lintopus mascot" width={160} height={160} priority />
-              </motion.div>
-
-              {/* Mock app screenshot */}
-              <div className="relative rounded-2xl overflow-hidden border border-white/[0.08] shadow-2xl bg-[#0F1429]">
-                <div className="p-1">
-                  {/* Browser chrome */}
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-[#0A0F1E] rounded-t-xl">
-                    <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                    <div className="ml-3 flex-1 bg-white/[0.06] rounded-md py-1 px-3 text-xs text-gray-500">
-                      lingona.app
-                    </div>
-                  </div>
-                  {/* App mockup content */}
-                  <div className="bg-gradient-to-b from-[#0F1429] to-[#141830] p-6 space-y-4 min-h-[320px]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00A896] to-[#1B2B4B] flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium text-white">AI Speaking Coach</div>
-                        <div className="text-xs text-gray-500">IELTS Part 2 - Cue Card</div>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="bg-[#1B2B4B]/40 rounded-lg p-3 border border-white/[0.04]">
-                        <p className="text-xs text-gray-400">Examiner</p>
-                        <p className="text-sm text-gray-200 mt-1">Describe a place you have visited that you found particularly beautiful.</p>
-                      </div>
-                      <div className="bg-[#00A896]/10 rounded-lg p-3 border border-[#00A896]/20 ml-8">
-                        <p className="text-xs text-[#00A896]">You</p>
-                        <p className="text-sm text-gray-200 mt-1">I would like to talk about Da Lat...</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 pt-2">
-                      <div className="flex-1 bg-white/[0.04] rounded-full py-2 px-4 text-xs text-gray-500">
-                        Nhấn mic để nói...
-                      </div>
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#00A896] to-[#00C9B1] flex items-center justify-center shadow-[0_0_16px_rgba(0,168,150,0.3)]">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Mascot
+              size={320}
+              mood="happy"
+              enableIdle
+              priority
+              alt="Lintopus — Lingona's mascot"
+            />
           </motion.div>
         </div>
       </div>
     </section>
   );
 }
-
