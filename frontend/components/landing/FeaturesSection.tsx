@@ -175,16 +175,253 @@ function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
 }
 
 /**
- * Feature visual — minimal placeholder per feature.
- * Sprint 2E polish: refine each visual with real data preview / illustration.
- * For Sprint 2C v1: cream-warm card with subtle border + feature label.
+ * Feature visual — refined preview cards per feature.
+ * Sprint 2E commit 3 polish.
+ *
+ * Each visual = static JSX recreation of the feature's UI affordance.
+ * NOT real screenshots (would require live DB + auth). Numbers chosen as
+ * realistic-feel illustrations (per fake-stats-ban.md: NOT marketing
+ * inflation — these are previews showing what the feature renders).
  */
 function FeatureVisual({ featureId }: { featureId: string }) {
+  switch (featureId) {
+    case "speaking":
+      return <SpeakingVisual />;
+    case "writing":
+      return <WritingVisual />;
+    case "reading":
+      return <ReadingVisual />;
+    case "listening":
+      return <ListeningVisual />;
+    case "battle":
+      return <BattleVisual />;
+    case "achievement":
+      return <AchievementVisual />;
+    default:
+      return <PlaceholderVisual />;
+  }
+}
+
+/** Speaking — 4-criteria score card */
+function SpeakingVisual() {
+  const criteria = [
+    { label: "Fluency & Coherence", score: 7.0 },
+    { label: "Lexical Resource", score: 6.5 },
+    { label: "Grammatical Range", score: 6.5 },
+    { label: "Pronunciation", score: 7.0 },
+  ];
+  return (
+    <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
+      <div className="flex items-baseline justify-between mb-4">
+        <span className="text-xs font-semibold text-navy uppercase tracking-wide">
+          Speaking band
+        </span>
+        <span className="font-display italic text-teal text-3xl">6.5</span>
+      </div>
+      <ul className="space-y-2.5">
+        {criteria.map((c) => (
+          <li
+            key={c.label}
+            className="flex items-center justify-between text-xs"
+          >
+            <span className="text-gray-700">{c.label}</span>
+            <span className="font-semibold text-navy">{c.score.toFixed(1)}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Writing — 3x multi-sampling chart */
+function WritingVisual() {
+  const samples = [6.5, 7.0, 6.5];
+  return (
+    <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
+      <div className="flex items-baseline justify-between mb-4">
+        <span className="text-xs font-semibold text-navy uppercase tracking-wide">
+          3x multi-sampling
+        </span>
+        <span className="font-display italic text-teal text-3xl">6.5</span>
+      </div>
+      <div className="flex items-end gap-3 h-24">
+        {samples.map((s, i) => (
+          <div
+            key={i}
+            className="flex-1 flex flex-col items-center gap-1.5 justify-end"
+          >
+            <div
+              className="w-full bg-teal rounded-sm"
+              style={{ height: `${(s / 9) * 100}%` }}
+              aria-hidden="true"
+            />
+            <span className="text-[10px] text-gray-600">Lần {i + 1}</span>
+            <span className="text-xs font-semibold text-navy">
+              {s.toFixed(1)}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-gray-600 text-center">
+        Median = band Final
+      </p>
+    </div>
+  );
+}
+
+/** Reading — 56 passages count + grid */
+function ReadingVisual() {
+  return (
+    <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
+      <div className="text-center">
+        <span className="block font-display italic text-teal text-6xl leading-none">
+          56
+        </span>
+        <span className="mt-2 block text-xs text-gray-600 uppercase tracking-wide">
+          passages có sẵn
+        </span>
+      </div>
+      <div className="mt-4 grid grid-cols-7 gap-1">
+        {Array.from({ length: 56 }).map((_, i) => (
+          <div
+            key={i}
+            className={`aspect-square rounded-sm ${
+              i < 12 ? "bg-teal" : "bg-teal/20"
+            }`}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-gray-600 text-center">Đã giải: 12 / 56</p>
+    </div>
+  );
+}
+
+/** Listening — Cambridge audio waveform */
+function ListeningVisual() {
+  const waveform = [4, 7, 5, 9, 6, 8, 5, 7, 4, 6, 8, 5, 7, 9, 5, 6, 4, 8, 6, 7];
+  return (
+    <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
+      <div className="flex items-baseline justify-between mb-4">
+        <span className="text-xs font-semibold text-navy uppercase tracking-wide">
+          Cam 14 — Test 2
+        </span>
+        <span className="text-xs text-gray-600">02:47 / 30:00</span>
+      </div>
+      <div className="flex items-end gap-1 h-16 mb-4">
+        {waveform.map((h, i) => (
+          <div
+            key={i}
+            className={`flex-1 rounded-sm ${
+              i < 8 ? "bg-teal" : "bg-teal/30"
+            }`}
+            style={{ height: `${(h / 10) * 100}%` }}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+      <div className="flex items-center justify-center gap-3 text-xs text-gray-600">
+        <span>Cam 10</span>
+        <span>·</span>
+        <span>Cam 11</span>
+        <span>·</span>
+        <span>Cam 12</span>
+        <span>·</span>
+        <span className="font-semibold text-teal">Cam 14</span>
+      </div>
+    </div>
+  );
+}
+
+/** Battle — rank tier progression */
+function BattleVisual() {
+  const ranks = [
+    "Iron",
+    "Bronze",
+    "Silver",
+    "Gold",
+    "Platinum",
+    "Diamond",
+    "Master",
+    "Challenger",
+  ];
+  const currentIndex = 3; // Gold
+  return (
+    <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
+      <div className="flex items-baseline justify-between mb-4">
+        <span className="text-xs font-semibold text-navy uppercase tracking-wide">
+          Rank hiện tại
+        </span>
+        <span className="font-display italic text-teal text-2xl">Gold III</span>
+      </div>
+      <div className="flex items-center gap-1 mb-3">
+        {ranks.map((r, i) => (
+          <div
+            key={r}
+            className={`flex-1 h-1.5 rounded-full ${
+              i <= currentIndex ? "bg-teal" : "bg-gray-200"
+            }`}
+            aria-hidden="true"
+          />
+        ))}
+      </div>
+      <div className="flex items-center justify-between text-[10px] text-gray-600">
+        <span>Iron</span>
+        <span>Challenger</span>
+      </div>
+      <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between text-xs">
+        <span className="text-gray-700">Rating LP</span>
+        <span className="font-semibold text-navy">1,240 LP</span>
+      </div>
+    </div>
+  );
+}
+
+/** Achievement — badge gallery + streak */
+function AchievementVisual() {
+  const badges = Array.from({ length: 12 }).map((_, i) => i);
+  const unlocked = new Set([0, 1, 2, 4, 5, 7]);
+  return (
+    <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
+      <div className="flex items-baseline justify-between mb-4">
+        <span className="text-xs font-semibold text-navy uppercase tracking-wide">
+          Achievement
+        </span>
+        <span className="font-display italic text-teal text-2xl">12 / 45</span>
+      </div>
+      <div className="grid grid-cols-6 gap-2">
+        {badges.map((i) => {
+          const isUnlocked = unlocked.has(i);
+          return (
+            <div
+              key={i}
+              className={`aspect-square rounded-button flex items-center justify-center ${
+                isUnlocked ? "bg-teal text-cream" : "bg-gray-100 text-gray-400"
+              }`}
+              aria-hidden="true"
+            >
+              {isUnlocked ? (
+                <Trophy className="w-4 h-4" />
+              ) : (
+                <span className="text-xs">?</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 pt-3 border-t border-gray-200 flex items-center gap-2 text-xs">
+        <span className="text-gray-700">Streak hằng ngày:</span>
+        <span className="font-semibold text-teal">14 ngày 🔥</span>
+      </div>
+    </div>
+  );
+}
+
+/** Fallback for unknown featureId */
+function PlaceholderVisual() {
   return (
     <div className="aspect-[4/3] rounded-card border border-gray-200 bg-cream-warm p-6 flex items-center justify-center">
-      <span className="text-sm text-gray-500 italic">
-        {featureId} preview
-      </span>
+      <span className="text-sm text-gray-500">Preview</span>
     </div>
   );
 }
