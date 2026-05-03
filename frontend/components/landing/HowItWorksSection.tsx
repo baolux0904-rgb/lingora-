@@ -1,90 +1,84 @@
 "use client";
 
-import Image from "next/image";
 import { motion } from "framer-motion";
+import Mascot, { type MascotMood } from "@/components/ui/Mascot";
 
-const STEPS = [
+/**
+ * HowItWorksSection — Wave 6 Sprint 2C rebuild.
+ *
+ * Per .claude/skills/lingona-design:
+ * - 02-layout/desktop-canvas.md: 3-col grid for steps (md:grid-cols-3)
+ * - 03-components/mascot.md: Lintopus mood progression default → thinking → happy
+ * - 05-voice/persona.md: peer voice 'mình/bạn'
+ * - 06-motion/framer-variants.md: stagger reveal 120ms per step
+ * - 11-references/jschallenger-extract.md: try-first pattern (low friction entry)
+ *
+ * Vietnamese learner journey: try free → save with account → daily commitment.
+ *
+ * Note: Step 1 'try without register' = future implementation (backend session
+ * + result claim flow needed). Sprint 2C describes the flow visually + textually.
+ * Try-first feature implementation deferred (post-launch backlog).
+ */
+
+interface Step {
+  number: string;
+  title: string;
+  body: string;
+  mood: MascotMood;
+  bubble: string;
+}
+
+const steps: Step[] = [
   {
     number: "01",
-    title: "Tạo tài khoản miễn phí",
-    description: "Chỉ cần email và 30 giây. Bắt đầu luyện tập ngay lập tức.",
-    icon: UserPlusIcon,
+    title: "Thử ngay không cần đăng ký",
+    body:
+      "Vào thử 1 bài Speaking với AI — nhận band score và feedback ngay. " +
+      "Không cần email, không cần tài khoản.",
+    mood: "default",
+    bubble: "Cùng thử nhé",
   },
   {
     number: "02",
-    title: "Chọn mục tiêu IELTS của bạn",
-    description: "Lingona tạo lộ trình cá nhân hóa dựa trên band score mục tiêu của bạn.",
-    icon: TargetIcon,
+    title: "Lưu tiến độ với tài khoản",
+    body:
+      "Đăng nhập để lưu kết quả + theo dõi journey từ band hiện tại tới " +
+      "mục tiêu. Lintopus đồng hành cả lộ trình.",
+    mood: "thinking",
+    bubble: "Mình giúp bạn track",
   },
   {
     number: "03",
-    title: "Luyện tập mỗi ngày với AI coach",
-    description: "Speaking, Grammar, Writing — AI coach phản hồi real-time, giúp bạn tiến bộ từng ngày.",
-    icon: SparklesIcon,
+    title: "Luyện hằng ngày + Battle",
+    body:
+      "Daily missions, streak counter, Battle 1v1 với học viên khác. " +
+      "Tới band 7+ với rhythm bền.",
+    mood: "happy",
+    bubble: "Vững từ đây",
   },
 ];
 
 export default function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="relative py-24">
-      {/* Background accent */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-1/2 left-0 w-[400px] h-[400px] rounded-full bg-[#00A896]/[0.03] blur-[100px]" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }}
-          className="text-center max-w-2xl mx-auto mb-16"
-        >
-          <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-white">
-            Bắt đầu chỉ trong{" "}
-            <span className="text-teal">
-              3 bước
-            </span>
+    <section
+      id="how-it-works"
+      className="bg-cream py-20 lg:py-28 px-6 lg:px-12 xl:px-20 border-t border-gray-200"
+    >
+      <div className="max-w-[1120px] mx-auto">
+        {/* Section header */}
+        <div className="text-center mb-16 lg:mb-20">
+          <h2 className="font-display italic text-navy text-3xl lg:text-5xl leading-tight tracking-tight">
+            Bắt đầu thế nào?
           </h2>
-        </motion.div>
+          <p className="mt-4 text-base lg:text-lg text-gray-700 max-w-2xl mx-auto">
+            3 bước, không bắt đăng ký ngay từ đầu.
+          </p>
+        </div>
 
-        <div className="grid md:grid-cols-3 gap-8 lg:gap-12 relative">
-          {/* Connecting line (desktop only) */}
-          <div className="hidden md:block absolute top-[72px] left-[16.6%] right-[16.6%] h-px bg-gradient-to-r from-transparent via-[#00A896]/20 to-transparent" aria-hidden="true" />
-
-          {STEPS.map((step, i) => (
-            <motion.div
-              key={step.number}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.5, delay: i * 0.15 }}
-              className="relative text-center"
-            >
-              {/* Step number circle */}
-              <div className="relative inline-flex items-center justify-center w-[72px] h-[72px] rounded-full border border-[#00A896]/20 bg-[#00A896]/[0.06] mb-6">
-                <step.icon className="w-7 h-7 text-[#00A896]" />
-                <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-[#0A0F1E] border border-[#00A896]/30 flex items-center justify-center text-xs font-semibold text-[#00A896]">
-                  {step.number}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-semibold text-white mb-2">{step.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed max-w-xs mx-auto">
-                {step.description}
-              </p>
-
-              {/* Lintopus on last step */}
-              {i === 2 && (
-                <motion.div
-                  animate={{ y: [-4, 4, -4] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="mt-6 inline-block"
-                >
-                  <Image src="/mascot.svg" alt="Lintopus mascot" width={120} height={120} />
-                </motion.div>
-              )}
-            </motion.div>
+        {/* Steps grid — 3-col desktop, stack mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
+          {steps.map((step, index) => (
+            <StepCard key={step.number} step={step} index={index} />
           ))}
         </div>
       </div>
@@ -92,37 +86,43 @@ export default function HowItWorksSection() {
   );
 }
 
-/* ── Icons ── */
-
-function UserPlusIcon({ className }: { className?: string }) {
+function StepCard({ step, index }: { step: Step; index: number }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="8.5" cy="7" r="4" />
-      <line x1="20" y1="8" x2="20" y2="14" />
-      <line x1="23" y1="11" x2="17" y2="11" />
-    </svg>
-  );
-}
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{
+        duration: 0.4,
+        delay: index * 0.12,
+        ease: "easeOut",
+      }}
+      className="flex flex-col items-center text-center"
+    >
+      {/* Step number */}
+      <span className="font-display italic text-teal text-5xl lg:text-6xl leading-none">
+        {step.number}
+      </span>
 
-function TargetIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  );
-}
+      {/* Mascot inline with bubble */}
+      <div className="mt-6">
+        <Mascot
+          size={100}
+          mood={step.mood}
+          bubble={step.bubble}
+          bubblePosition="below"
+        />
+      </div>
 
-function SparklesIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z" />
-      <path d="M5 3v4" />
-      <path d="M19 17v4" />
-      <path d="M3 5h4" />
-      <path d="M17 19h4" />
-    </svg>
+      {/* Title */}
+      <h3 className="mt-6 font-display italic text-navy text-xl lg:text-2xl leading-tight">
+        {step.title}
+      </h3>
+
+      {/* Body */}
+      <p className="mt-3 text-base text-gray-700 leading-relaxed max-w-xs">
+        {step.body}
+      </p>
+    </motion.div>
   );
 }

@@ -6,7 +6,10 @@ import HeroSection from "./HeroSection";
 // .claude/skills/lingona-design/09-anti-patterns/ai-generated-smell.md#2.
 // Real launch date 09/07/2026 surfaces inline in Hero trust line + post-launch
 // in Pricing waitlist context (Sprint 2D).
-import SocialProofBar from "./SocialProofBar";
+// SocialProofBar removed Sprint 2C — fake stats banned per
+// .claude/skills/lingona-design/09-anti-patterns/fake-stats-ban.md.
+// Pre-launch: no real social proof to display. Will return post-launch with
+// real DB-pulled stats when meaningful threshold reached.
 import FeaturesSection from "./FeaturesSection";
 import HowItWorksSection from "./HowItWorksSection";
 import PricingSection from "./PricingSection";
@@ -32,7 +35,6 @@ export default function LandingPage() {
     <div className="min-h-dvh" style={{ scrollBehavior: "smooth" }}>
       <LandingNav />
       <HeroSection />
-      <SocialProofBar />
       <FeaturesSection />
       <HowItWorksSection />
       <PricingSection />

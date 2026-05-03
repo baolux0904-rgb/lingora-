@@ -1,94 +1,129 @@
 "use client";
 
 import { motion } from "framer-motion";
+import {
+  Mic,
+  PenLine,
+  BookOpen,
+  Headphones,
+  Swords,
+  Trophy,
+  type LucideIcon,
+} from "lucide-react";
 
-const FEATURES = [
+/**
+ * FeaturesSection — Wave 6 Sprint 2C rebuild.
+ *
+ * Per .claude/skills/lingona-design:
+ * - 02-layout/desktop-canvas.md: Pattern C alternating asymmetric per feature row
+ *   (text col-7 + visual col-5, alternate sides L→R→L→R→L→R)
+ * - 02-layout/grid-vs-flow.md: flow narrative (NOT card grid for features)
+ * - 03-components/card-language.md: feature visual placeholder card pattern
+ * - 05-voice/persona.md + microcopy-library.md: peer voice Vietnamese-first
+ * - 09-anti-patterns/ai-generated-smell.md: NO 'Fast/Smart/Secure' generic pillars,
+ *   NO 'Trusted by' logos, NO testimonials carousel
+ * - 09-anti-patterns/fake-stats-ban.md: only specific verifiable claims,
+ *   no fabricated user counts / band averages / satisfaction %
+ *
+ * 6 specific Lingona features (verified against codebase):
+ * - Speaking AI 4-criteria scoring (Whisper + LLM)
+ * - Writing 3x multi-sampling (GPT-4o-mini median)
+ * - Reading 56 passages (Cambridge-style)
+ * - Listening Cam 10/11/12/14 (64 audio files)
+ * - Battle 1v1 (Iron → Challenger 8 ranks)
+ * - Achievement 45 badges + streak system
+ *
+ * Visual blocks ship as placeholder cards. Sprint 2E polish refines each
+ * with real data preview (band score card / rank badge / streak ring / etc.).
+ */
+
+interface Feature {
+  id: string;
+  title: string;
+  body: string;
+  icon: LucideIcon;
+  side: "left" | "right";
+}
+
+const features: Feature[] = [
   {
-    icon: MicIcon,
-    title: "AI Speaking Coach",
-    description: "Luyện Speaking với AI chấm điểm theo tiêu chí IELTS thật. Phân tích phát âm từng phoneme.",
-    color: "#00A896",
+    id: "speaking",
+    title: "Speaking AI chấm theo 4 tiêu chí IELTS",
+    body:
+      "Fluency, Vocabulary, Grammar, Pronunciation — feedback cụ thể từng " +
+      "tiêu chí. Whisper transcribe + LLM scoring.",
+    icon: Mic,
+    side: "left",
   },
   {
-    icon: BookIcon,
-    title: "Grammar Journey",
-    description: "Lộ trình Grammar từ cơ bản đến nâng cao, unlock dần theo tiến độ học của bạn.",
-    color: "#3B82F6",
+    id: "writing",
+    title: "Writing chấm 3x giảm noise",
+    body:
+      "GPT-4o-mini chấm 3 lần độc lập, lấy median band score. Phản hồi 4 " +
+      "tiêu chí: Task Achievement, Coherence, Lexical, Grammar.",
+    icon: PenLine,
+    side: "right",
   },
   {
-    icon: ClipboardIcon,
-    title: "IELTS Exam Practice",
-    description: "Mô phỏng đề thi thật với AI examiner. 3 phần Speaking đầy đủ, chấm điểm chi tiết.",
-    color: "#8B5CF6",
+    id: "reading",
+    title: "Reading 56 passages có sẵn",
+    body:
+      "Practice + Full Test mode. Cambridge-style passages với MCQ, " +
+      "T/F/NG, Matching, Heading, Summary.",
+    icon: BookOpen,
+    side: "left",
   },
   {
-    icon: FlameIcon,
-    title: "Streak & Gamification",
-    description: "Duy trì động lực học hàng ngày với streak, XP và badges. Thử thách bản thân.",
-    color: "#F59E0B",
+    id: "listening",
+    title: "Listening — Cambridge audio chuẩn IELTS",
+    body:
+      "Cam 10, 11, 12, 14 — 64 audio file thi thật. 4 sections + answer " +
+      "sheet đúng format Cambridge.",
+    icon: Headphones,
+    side: "right",
   },
   {
-    icon: UsersIcon,
-    title: "Battle với bạn bè",
-    description: "Thách đấu nhóm, cạnh tranh theo vùng. Cùng bạn bè chinh phục IELTS.",
-    comingSoon: true,
-    color: "#EC4899",
+    id: "battle",
+    title: "Battle 1v1 — luyện trong áp lực",
+    body:
+      "Đấu Reading async với học viên khác. Iron → Challenger 8 rank tier. " +
+      "LP system, leaderboard top 100.",
+    icon: Swords,
+    side: "left",
   },
   {
-    icon: TrophyIcon,
-    title: "Leaderboard",
-    description: "Bảng xếp hạng weekly, so sánh với bạn bè và cộng đồng học viên.",
-    comingSoon: true,
-    color: "#EF4444",
+    id: "achievement",
+    title: "45 thành tựu + streak hằng ngày",
+    body:
+      "Mở khóa 45 badge qua 8 category. Streak counter, daily missions, " +
+      "level up — Lintopus theo bạn cả journey.",
+    icon: Trophy,
+    side: "right",
   },
 ];
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="relative py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }}
-          className="text-center max-w-2xl mx-auto mb-16"
-        >
-          <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-white">
-            Tất cả những gì bạn cần để đạt{" "}
-            <span className="text-teal">
-              IELTS mục tiêu
-            </span>
+    <section
+      id="features"
+      className="bg-cream py-20 lg:py-28 px-6 lg:px-12 xl:px-20"
+    >
+      <div className="max-w-[1120px] mx-auto">
+        {/* Section header */}
+        <div className="text-center mb-16 lg:mb-20">
+          <h2 className="font-display italic text-navy text-3xl lg:text-5xl leading-tight tracking-tight">
+            Cụ thể từng tính năng
           </h2>
-          <p className="mt-4 text-gray-400 text-base">
-            Nền tảng luyện thi toàn diện, được thiết kế riêng cho người Việt.
+          <p className="mt-4 text-base lg:text-lg text-gray-700 max-w-2xl mx-auto">
+            Không marketing chung chung. Từng feature mình chia sẻ đúng những
+            gì Lingona đang có.
           </p>
-        </motion.div>
+        </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {FEATURES.map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="group relative rounded-xl border border-white/[0.06] bg-[#0F1429]/60 p-6 hover:border-white/[0.1] hover:bg-[#0F1429]/80 transition-all duration-300 cursor-pointer"
-            >
-              {feature.comingSoon && (
-                <span className="absolute top-4 right-4 text-xs font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full bg-white/[0.06] text-gray-400 border border-white/[0.06]">
-                  Sắp ra mắt
-                </span>
-              )}
-              <div
-                className="w-11 h-11 rounded-lg flex items-center justify-center mb-4"
-                style={{ backgroundColor: `${feature.color}15` }}
-              >
-                <feature.icon className="w-5 h-5" style={{ color: feature.color }} />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">{feature.title}</h3>
-              <p className="text-sm text-gray-400 leading-relaxed">{feature.description}</p>
-            </motion.div>
+        {/* Features list — alternating Pattern C asymmetric rows */}
+        <div className="space-y-20 lg:space-y-32">
+          {features.map((feature, index) => (
+            <FeatureRow key={feature.id} feature={feature} index={index} />
           ))}
         </div>
       </div>
@@ -96,65 +131,60 @@ export default function FeaturesSection() {
   );
 }
 
-/* ── SVG Icons ── */
+function FeatureRow({ feature, index }: { feature: Feature; index: number }) {
+  const Icon = feature.icon;
+  const isTextLeft = feature.side === "left";
 
-function MicIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
   return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="8" y1="23" x2="16" y2="23" />
-    </svg>
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center"
+    >
+      {/* Text block */}
+      <div
+        className={`lg:col-span-7 ${
+          isTextLeft ? "lg:order-1" : "lg:order-2"
+        }`}
+      >
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-button bg-teal/10 mb-5">
+          <Icon className="w-6 h-6 text-teal" aria-hidden="true" />
+        </div>
+
+        <h3 className="font-display italic text-navy text-2xl lg:text-3xl leading-tight">
+          {feature.title}
+        </h3>
+
+        <p className="mt-4 text-base lg:text-lg text-gray-700 leading-relaxed max-w-xl">
+          {feature.body}
+        </p>
+      </div>
+
+      {/* Visual block — placeholder card (Sprint 2E polish refines per feature) */}
+      <div
+        className={`lg:col-span-5 ${
+          isTextLeft ? "lg:order-2" : "lg:order-1"
+        }`}
+      >
+        <FeatureVisual featureId={feature.id} />
+      </div>
+    </motion.div>
   );
 }
 
-function BookIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
+/**
+ * Feature visual — minimal placeholder per feature.
+ * Sprint 2E polish: refine each visual with real data preview / illustration.
+ * For Sprint 2C v1: cream-warm card with subtle border + feature label.
+ */
+function FeatureVisual({ featureId }: { featureId: string }) {
   return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    </svg>
-  );
-}
-
-function ClipboardIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-      <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
-    </svg>
-  );
-}
-
-function FlameIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-    </svg>
-  );
-}
-
-function UsersIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  );
-}
-
-function TrophyIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return (
-    <svg className={className} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-      <path d="M4 22h16" />
-      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-    </svg>
+    <div className="aspect-[4/3] rounded-card border border-gray-200 bg-cream-warm p-6 flex items-center justify-center">
+      <span className="text-sm text-gray-500 italic">
+        {featureId} preview
+      </span>
+    </div>
   );
 }
