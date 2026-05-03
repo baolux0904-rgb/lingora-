@@ -1,84 +1,155 @@
-"use client";
-
 import Link from "next/link";
 
-const FOOTER_LINKS = [
-  { label: "Tính năng", href: "#features" },
-  { label: "Bảng giá", href: "#pricing" },
-  { label: "Blog", href: "#" },
-  { label: "Liên hệ", href: "#" },
-];
-
+/**
+ * Footer — Wave 6 Sprint 2E rebuild.
+ *
+ * Per .claude/skills/lingona-design:
+ * - 02-layout/desktop-canvas.md: 4-col multi-section layout (12-col grid)
+ * - 09-anti-patterns/desktop-waste.md#8: NOT sparse single-column footer
+ * - 04-modes/brand.md: cream-warm bg + navy text + border-top gray-200
+ * - 05-voice/persona.md: Vietnamese peer voice + 'Made in Vietnam 🇻🇳'
+ *
+ * 4 columns: Brand info / Sản phẩm / Tài nguyên / Pháp lý.
+ * Legal links (/terms, /privacy, /refund) point to routes not yet built;
+ * pages defer to post-launch when legal text drafted.
+ */
 export default function Footer() {
   return (
-    <footer className="border-t border-white/[0.04] py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-          {/* Logo + tagline */}
-          <div className="flex items-center gap-3">
-            <svg width="28" height="28" viewBox="0 0 32 32" fill="none">
-              <circle cx="16" cy="16" r="14" fill="url(#footer-grad)" />
-              <ellipse cx="12" cy="13" rx="2.5" ry="3" fill="white" />
-              <ellipse cx="20" cy="13" rx="2.5" ry="3" fill="white" />
-              <circle cx="12" cy="13.5" r="1.2" fill="#1B2B4B" />
-              <circle cx="20" cy="13.5" r="1.2" fill="#1B2B4B" />
-              <path d="M11 20c0 0 2 2.5 5 2.5s5-2.5 5-2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="footer-grad" x1="2" y1="2" x2="30" y2="30">
-                  <stop stopColor="#00A896" />
-                  <stop offset="1" stopColor="#1B2B4B" />
-                </linearGradient>
-              </defs>
-            </svg>
-            <div>
-              <span className="font-semibold text-base text-white">
-                Lingona
-              </span>
-              <p className="text-xs text-gray-500">AI-powered IELTS coach</p>
-            </div>
+    <footer className="bg-cream-warm border-t border-gray-200 py-16 lg:py-20 px-6 lg:px-12 xl:px-20">
+      <div className="max-w-[1120px] mx-auto">
+        {/* Top — 4-col grid desktop, 2-col mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-12 gap-8 lg:gap-12 mb-12">
+          {/* Brand info — col-span-4 desktop */}
+          <div className="col-span-2 md:col-span-4">
+            <Link
+              href="/"
+              className="inline-block font-display italic text-navy text-2xl hover:text-teal transition-colors duration-150"
+            >
+              Lingona
+            </Link>
+            <p className="mt-4 text-sm text-gray-700 leading-relaxed max-w-xs">
+              Cùng luyện IELTS từ Band 5.0 đến 7.5+ — phản hồi cụ thể, không
+              cảm tính.
+            </p>
+            <p className="mt-4 text-xs text-gray-500">Made in Vietnam 🇻🇳</p>
           </div>
 
-          {/* Links */}
-          <nav className="flex items-center gap-6">
-            {FOOTER_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="text-sm text-gray-400 hover:text-white transition-colors duration-200 cursor-pointer"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
+          {/* Sản phẩm — col-span-3, starts col 6 */}
+          <div className="md:col-span-3 md:col-start-6">
+            <h4 className="text-sm font-semibold text-navy mb-3">Sản phẩm</h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li>
+                <Link
+                  href="/#features"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Tính năng
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/#pricing"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/#how-it-works"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Cách hoạt động
+                </Link>
+              </li>
+            </ul>
+          </div>
 
-          {/* Socials */}
-          <div className="flex items-center gap-4">
-            <a
-              href="#"
-              className="text-gray-500 hover:text-white transition-colors duration-200 cursor-pointer"
-              aria-label="Facebook"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
-            </a>
-            <a
-              href="#"
-              className="text-gray-500 hover:text-white transition-colors duration-200 cursor-pointer"
-              aria-label="TikTok"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1v-3.5a6.37 6.37 0 0 0-.79-.05A6.34 6.34 0 0 0 3.15 15a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.71a8.19 8.19 0 0 0 4.76 1.52v-3.4a4.85 4.85 0 0 1-1-.14z" />
-              </svg>
-            </a>
+          {/* Tài nguyên — col-span-2 */}
+          <div className="md:col-span-2">
+            <h4 className="text-sm font-semibold text-navy mb-3">Tài nguyên</h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li>
+                <Link
+                  href="/about"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Về Lingona
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/blog"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/help"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Help
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="https://facebook.com/lingona.app"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Facebook
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Pháp lý — col-span-3 */}
+          <div className="md:col-span-3">
+            <h4 className="text-sm font-semibold text-navy mb-3">Pháp lý</h4>
+            <ul className="space-y-2 text-sm text-gray-700">
+              <li>
+                <Link
+                  href="/terms"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Điều khoản sử dụng
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/privacy"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Bảo mật
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/refund"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  Hoàn tiền
+                </Link>
+              </li>
+              <li>
+                <a
+                  href="mailto:hello@lingona.app"
+                  className="hover:text-teal transition-colors duration-150"
+                >
+                  hello@lingona.app
+                </a>
+              </li>
+            </ul>
           </div>
         </div>
 
-        {/* Copyright */}
-        <div className="mt-8 pt-6 border-t border-white/[0.04] text-center">
-          <p className="text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} Lingona. All rights reserved.
-          </p>
+        {/* Bottom strip */}
+        <div className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-gray-500">
+          <p>© 2026 Lingona. Mọi quyền được bảo lưu.</p>
+          <p>Lingona ra mắt chính thức 09/07/2026.</p>
         </div>
       </div>
     </footer>
