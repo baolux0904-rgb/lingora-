@@ -15,4 +15,7 @@ const router = Router();
 // GET /api/v1/public/limits
 router.get("/limits", publicController.getPublicLimits);
 
+// POST /api/v1/public/waitlist (Wave 6 Sprint 2D — landing waitlist signup)
+router.post("/waitlist", publicController.postWaitlist);
+
 module.exports = router;

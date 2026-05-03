@@ -434,6 +434,75 @@ async function sendEmailUndoConfirmation(user) {
   }
 }
 
+/**
+ * Waitlist confirmation email — sent immediately after a visitor submits
+ * the landing-page waitlist form. Wave 6 Sprint 2D.
+ *
+ * Per .claude/skills/lingona-design/05-voice/persona.md edge case (email
+ * transactional templates): peer voice slightly formal but Vietnamese-first.
+ *
+ * Failure mode: logs + swallows (the waitlist signup itself already
+ * succeeded; email failure must not bubble back to the user).
+ *
+ * @param {Object}  params
+ * @param {string}  params.to               — recipient email
+ * @param {string}  params.name             — recipient display name
+ * @param {string}  params.interestedTier   — 'free' | 'pro' | 'pro_annual'
+ * @param {boolean} params.isStudent        — true if .edu domain detected
+ */
+async function sendWaitlistConfirmation({ to, name, interestedTier, isStudent }) {
+  const resend = getResend();
+  if (!resend || !to) return;
+
+  const tierLabel =
+    interestedTier === "free"
+      ? "Free (forever)"
+      : interestedTier === "pro"
+      ? "Pro 199k/tháng"
+      : "Pro Annual";
+
+  const studentBlock = isStudent
+    ? `
+    <div style="background:#F0FAFA;border:1px dashed ${BRAND_COLOR};border-radius:8px;padding:14px;margin:16px 0;">
+      <p style="margin:0;color:${BRAND_COLOR};font-weight:600;font-size:14px;">
+        🎓 Email .edu được nhận diện — bạn được giảm 20% gói Pro khi launch.
+      </p>
+    </div>`
+    : "";
+
+  const html = wrapHtml(`
+    <h2 style="margin:0 0 8px;font-size:20px;color:#1A1A1A;">Cảm ơn ${safe(name)} 🐙</h2>
+    <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px;">
+      Đã nhận đăng ký waitlist của bạn cho gói <strong>${safe(tierLabel)}</strong>.
+    </p>
+    <p style="color:#666;font-size:14px;line-height:1.6;margin:0 0 16px;">
+      Lingona ra mắt chính thức <strong>09/07/2026</strong>. Mình sẽ email bạn
+      ngay khi mở đăng ký Pro — không spam, chỉ 1 email khi launch.
+    </p>
+    ${studentBlock}
+    <p style="color:#666;font-size:14px;line-height:1.6;margin:24px 0 8px;">
+      Trong khi chờ, bạn có thể follow Lingona qua:
+    </p>
+    <ul style="color:#666;font-size:14px;line-height:1.8;padding-left:20px;margin:0 0 8px;">
+      <li>Facebook: <a href="https://facebook.com/lingona.app" style="color:${BRAND_COLOR};text-decoration:none;">facebook.com/lingona.app</a></li>
+      <li>Web: <a href="${APP_URL}" style="color:${BRAND_COLOR};text-decoration:none;">lingona.app</a></li>
+    </ul>
+  `);
+
+  try {
+    const safeName = String(name || "").replace(/[\r\n<>]/g, "");
+    await resend.emails.send({
+      from: `Lingona <${FROM_EMAIL}>`,
+      to,
+      subject: `Cảm ơn ${safeName} — đã ghi nhận waitlist`,
+      html,
+    });
+    console.log(`[email] Waitlist confirmation sent to ${to}`);
+  } catch (err) {
+    console.error("[email] Failed to send waitlist confirmation:", err.message);
+  }
+}
+
 module.exports = {
   sendWelcomeEmail,
   sendPromoEmail,
@@ -442,6 +511,7 @@ module.exports = {
   sendAccountDeletedEmail,
   sendEmailChangeNotification,
   sendEmailUndoConfirmation,
+  sendWaitlistConfirmation,
   // exposed for unit test of redactor
   __test: { redactEmail },
 };
