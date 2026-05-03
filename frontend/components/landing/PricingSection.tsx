@@ -1,223 +1,188 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { getPublicLimits } from "@/lib/api";
-import { PUBLIC_LIMITS_FALLBACK, formatPerDay } from "@/lib/limits";
-import type { PublicLimits } from "@/lib/types";
+import { Check } from "lucide-react";
+import WaitlistModal, { type TierKey } from "./WaitlistModal";
 
-function buildFreeFeatures(limits: PublicLimits): string[] {
-  return [
-    `Speaking AI (${formatPerDay(limits.free.speaking)})`,
-    `Writing AI (${formatPerDay(limits.free.writing)})`,
-    "Grammar Journey đầy đủ",
-    "Reading & Listening không giới hạn",
-    "Streak, XP, Leaderboard đầy đủ",
-    "IELTS Battle & Rank đầy đủ",
-    "Streak Shield (1 lần/tuần)",
-  ];
-}
+/**
+ * PricingSection — Wave 6 Sprint 2D rebuild.
+ *
+ * Per .claude/skills/lingona-design:
+ * - 02-layout/desktop-canvas.md: 2-col grid pricing tiers, max-w-[880px]
+ * - 03-components/card-language.md: hero card pattern, border-2 border-teal
+ *   for highlighted Pro tier with 'Lingona đề xuất' pill (factual, not
+ *   'Most Popular' psychology)
+ * - 03-components/primary-button.md: teal solid CTA Pro, secondary outline
+ *   navy CTA Free
+ * - 05-voice/microcopy-library.md: Vietnamese peer voice
+ * - 09-anti-patterns/ai-generated-smell.md: NO rainbow gradient badge,
+ *   NO 'Most Popular' English copy
+ * - 09-anti-patterns/fake-stats-ban.md: honest pre-launch '09/07/2026 ra
+ *   mắt' framing, no fabricated user counts
+ *
+ * Sprint 2D scope (Louis lock):
+ * - 2-tier display only (Free + Pro 199k/tháng)
+ * - 4 billing periods of Pro (1mo/3mo/6mo/12mo) deferred to post-launch
+ *   when MoMo merchant account active. Sprint 2D = waitlist signup only,
+ *   no purchase flow.
+ * - Both CTAs trigger WaitlistModal with tier preselected.
+ * - .edu auto-detect for student discount surfaces in modal email field
+ *   hint + on backend signup.
+ */
+
+const FREE_FEATURES = [
+  "1x Speaking AI mỗi ngày",
+  "1x Writing AI mỗi ngày",
+  "Reading + Listening Practice không giới hạn",
+  "Battle Casual",
+  "Streak + Daily missions",
+  "Lưu tiến độ + lịch sử",
+];
 
 const PRO_FEATURES = [
-  "Tất cả tính năng Free",
-  "Speaking AI không giới hạn",
-  "Writing AI không giới hạn",
-  "IELTS Full Mock Test không giới hạn",
-  "Band score prediction + phân tích điểm yếu",
-  "Lộ trình học cá nhân AI adaptive",
+  "Speaking AI 5x mỗi ngày (soft cap)",
+  "Writing AI 5x mỗi ngày (soft cap)",
+  "Battle Ranked + Leaderboard",
+  "Analytics chi tiết + Roadmap",
   "Study Rooms + AI Group Coach",
-  "Streak Shield (3 lần/tuần)",
-  "Priority support + early access",
+  "Priority Support",
+  "Sinh viên (.edu) tự động giảm 20%",
 ];
-
-// ─── Pricing tiers (safe pricing) ───────────────────────────────────────────
-const MONTHLY_BASE = 179_000; // base monthly rate
-
-type PlanId = "m1" | "m3" | "m6" | "m12";
-
-interface Plan {
-  id: PlanId;
-  label: string;
-  months: number;
-  price: number;
-  perMonth: number;
-  savings: number;  // % off monthly base
-  tag?: string;
-}
-
-const PLANS: Plan[] = [
-  { id: "m1",  label: "1 tháng", months: 1,  price: 179_000,   perMonth: 179_000, savings: 0 },
-  { id: "m3",  label: "3 tháng", months: 3,  price: 499_000,   perMonth: 166_333, savings: 7 },
-  { id: "m6",  label: "6 tháng", months: 6,  price: 929_000,   perMonth: 154_833, savings: 14, tag: "Phổ biến" },
-  { id: "m12", label: "1 năm",   months: 12, price: 1_490_000, perMonth: 124_167, savings: 31, tag: "Tiết kiệm nhất" },
-];
-
-function formatVnd(n: number): string {
-  return n.toLocaleString("vi-VN").replace(/,/g, ".") + "đ";
-}
 
 export default function PricingSection() {
-  const [planId, setPlanId] = useState<PlanId>("m12"); // default: 1 năm
-  const plan = PLANS.find((p) => p.id === planId) ?? PLANS[3];
-  const originalPrice = MONTHLY_BASE * plan.months;
-
-  // Marketing copy ("Speaking AI 1 lần/ngày") sourced from /public/limits.
-  // Fallback ensures correct first paint during SSR / before fetch resolves.
-  const [limits, setLimits] = useState<PublicLimits>(PUBLIC_LIMITS_FALLBACK);
-  useEffect(() => {
-    let cancelled = false;
-    getPublicLimits()
-      .then((data) => { if (!cancelled) setLimits(data); })
-      .catch(() => { /* keep fallback — fail open for marketing copy */ });
-    return () => { cancelled = true; };
-  }, []);
-  const freeFeatures = buildFreeFeatures(limits);
+  const [waitlistTier, setWaitlistTier] = useState<TierKey | null>(null);
 
   return (
-    <section id="pricing" className="relative py-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.5 }}
-          className="text-center max-w-2xl mx-auto mb-12"
-        >
-          <h2 className="font-playfair text-3xl sm:text-4xl font-bold text-white">
-            Đơn giản, minh bạch
+    <section
+      id="pricing"
+      className="bg-cream py-20 lg:py-28 px-6 lg:px-12 xl:px-20 border-t border-gray-200"
+    >
+      <div className="max-w-[1120px] mx-auto">
+        {/* Section header */}
+        <div className="text-center mb-16 lg:mb-20">
+          <h2 className="font-display italic text-navy text-3xl lg:text-5xl leading-tight tracking-tight">
+            Giá đơn giản — không bí mật
           </h2>
-          <p className="mt-4 text-gray-400 text-base">
-            Bắt đầu miễn phí. Nâng cấp khi bạn sẵn sàng.
+          <p className="mt-4 text-base lg:text-lg text-gray-700 max-w-2xl mx-auto">
+            Free tier dùng được forever. Pro 199k/tháng — sinh viên giảm 20%.
           </p>
+        </div>
 
-          {/* Plan selector — 4 tiers */}
-          <div className="mt-8 inline-flex flex-wrap items-center justify-center gap-2 bg-white/[0.04] rounded-full p-1 border border-white/[0.06]">
-            {PLANS.map((p) => {
-              const isActive = planId === p.id;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setPlanId(p.id)}
-                  className={`relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 cursor-pointer ${
-                    isActive
-                      ? "bg-white/[0.1] text-white"
-                      : "text-gray-400 hover:text-gray-300"
-                  }`}
-                >
-                  {p.label}
-                  {p.savings > 0 && (
-                    <span className="ml-1.5 text-xs font-semibold text-teal">-{p.savings}%</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </motion.div>
-
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-          {/* FREE */}
+        {/* Tier cards 2-col */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-[880px] mx-auto">
+          {/* Free tier */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5 }}
-            className="relative rounded-xl p-8 bg-[#0F1429]/60 border border-[#1B2B4B]"
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative bg-cream border border-gray-200 rounded-card p-8"
           >
-            <h3 className="text-lg font-semibold text-white">Free</h3>
-            <div className="mt-4 mb-1">
-              <span className="text-3xl font-bold text-white font-playfair">
-                Miễn phí
-              </span>
-            </div>
-            <p className="text-sm text-gray-400 mb-6">Mãi mãi</p>
-
-            <ul className="space-y-3 mb-8">
-              {freeFeatures.map((feature) => (
-                <li key={feature} className="flex items-start gap-3 text-sm text-gray-300">
-                  <svg className="w-4 h-4 mt-0.5 text-teal flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  {feature}
-                </li>
-              ))}
-            </ul>
-
-            <Link
-              href="/register"
-              className="block w-full text-center py-3 rounded-md font-medium text-sm transition-all duration-200 cursor-pointer border border-white/[0.1] text-gray-300 hover:bg-white/[0.04] hover:border-white/[0.15]"
-            >
-              Bắt đầu miễn phí
-            </Link>
-          </motion.div>
-
-          {/* PRO */}
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-60px" }}
-            transition={{ duration: 0.5, delay: 0.12 }}
-            className="relative rounded-xl p-8 bg-gradient-to-b from-[#00A896]/[0.08] to-[#0F1429]/60 border-2 border-teal/30 shadow-[0_0_40px_rgba(0,168,150,0.08)]"
-          >
-            {plan.tag && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold bg-gradient-to-r from-[#00A896] to-[#00C9B1] text-white whitespace-nowrap">
-                {plan.tag}
-              </span>
-            )}
-
-            <h3 className="text-lg font-semibold text-white">Pro — {plan.label}</h3>
-            <div className="mt-4 mb-1 flex items-baseline gap-2">
-              <span className="text-3xl font-bold text-white font-playfair">
-                {formatVnd(plan.price)}
-              </span>
-              <span className="text-sm text-gray-400">
-                /{plan.label}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mb-2 min-h-[24px]">
-              {plan.savings > 0 ? (
-                <>
-                  <span className="text-xs text-teal font-semibold px-2 py-0.5 rounded-full bg-teal/10 border border-teal/20">
-                    Tiết kiệm {plan.savings}%
-                  </span>
-                  <span className="text-xs text-gray-500 line-through">{formatVnd(originalPrice)}</span>
-                </>
-              ) : null}
-            </div>
-            <p className="text-xs text-gray-400 mb-6">
-              Chỉ {formatVnd(plan.perMonth)}/tháng
+            <h3 className="font-display italic text-navy text-2xl">Free</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Forever — không cần thẻ
             </p>
 
-            <ul className="space-y-3 mb-8">
-              {PRO_FEATURES.map((feature) => (
-                <li key={feature} className="flex items-start gap-3 text-sm text-gray-300">
-                  <svg className="w-4 h-4 mt-0.5 text-teal flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                  {feature}
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="font-display italic text-navy text-5xl">0₫</span>
+              <span className="text-sm text-gray-500">/ tháng</span>
+            </div>
+
+            <ul className="mt-8 space-y-3">
+              {FREE_FEATURES.map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-start gap-3 text-sm text-gray-700"
+                >
+                  <Check
+                    className="w-5 h-5 text-teal flex-shrink-0 mt-0.5"
+                    aria-hidden="true"
+                  />
+                  <span>{feature}</span>
                 </li>
               ))}
             </ul>
 
-            <Link
-              href="/register"
-              className="block w-full text-center py-3 rounded-md font-medium text-sm transition-all duration-200 cursor-pointer bg-gradient-to-r from-[#00A896] to-[#00C9B1] text-white hover:opacity-90 shadow-[0_0_20px_rgba(0,168,150,0.2)]"
+            <button
+              type="button"
+              onClick={() => setWaitlistTier("free")}
+              className="mt-10 w-full px-6 py-3 rounded-button border border-navy/20 text-navy font-semibold text-base hover:bg-navy/5 active:bg-navy/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30 focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
             >
-              Sắp ra mắt — Thông báo tôi
-            </Link>
+              Tham gia waitlist
+            </button>
+          </motion.div>
+
+          {/* Pro tier — highlighted */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
+            className="relative bg-cream border-2 border-teal rounded-hero p-8 shadow-md"
+          >
+            {/* 'Lingona đề xuất' pill — factual recommendation, NOT 'Most Popular' psychology */}
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+              <span className="px-4 py-1 bg-teal text-cream text-xs font-semibold rounded-full whitespace-nowrap">
+                Lingona đề xuất
+              </span>
+            </div>
+
+            <h3 className="font-display italic text-navy text-2xl">Pro</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Toàn quyền truy cập
+            </p>
+
+            <div className="mt-6 flex items-baseline gap-2">
+              <span className="font-display italic text-teal text-5xl">
+                199k
+              </span>
+              <span className="text-sm text-gray-500">/ tháng</span>
+            </div>
+            <p className="mt-1 text-xs text-gray-600">
+              Sinh viên (.edu):{" "}
+              <span className="font-semibold text-teal">159k/tháng</span>
+            </p>
+
+            <ul className="mt-8 space-y-3">
+              {PRO_FEATURES.map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-start gap-3 text-sm text-gray-700"
+                >
+                  <Check
+                    className="w-5 h-5 text-teal flex-shrink-0 mt-0.5"
+                    aria-hidden="true"
+                  />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              type="button"
+              onClick={() => setWaitlistTier("pro")}
+              className="mt-10 w-full px-6 py-3 rounded-button bg-teal text-cream font-semibold text-base hover:bg-teal-light active:bg-teal-dark transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
+            >
+              Tham gia waitlist
+            </button>
           </motion.div>
         </div>
 
-        {/* Notes */}
-        <div className="mt-8 text-center space-y-2">
-          <p className="text-sm text-gray-400">
-            Sinh viên giảm 20% — nhập mã <span className="text-teal font-medium">.edu</span> khi thanh toán
-          </p>
-          <p className="text-sm text-gray-500">
-            Dùng thử 3 ngày miễn phí &bull; Không cần thẻ tín dụng
-          </p>
-        </div>
+        {/* Honest pre-launch note */}
+        <p className="mt-10 text-center text-sm text-gray-600">
+          Lingona ra mắt 09/07/2026. Hiện đang beta — đăng ký waitlist để giữ
+          chỗ Pro.
+        </p>
       </div>
+
+      {/* Modal */}
+      {waitlistTier && (
+        <WaitlistModal
+          initialTier={waitlistTier}
+          onClose={() => setWaitlistTier(null)}
+        />
+      )}
     </section>
   );
 }
