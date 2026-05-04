@@ -106,16 +106,22 @@ function AppShellInner({ children }: { children: ReactNode }) {
 
 export default function AppGroupLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isLoading: authLoading } = useAuthStore();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingChecked, setOnboardingChecked] = useState(false);
 
-  // Auth guard — redirect unauthenticated users to /login once AuthProvider settles.
+  // Auth guard — redirect unauthenticated users to /login once AuthProvider
+  // settles. Sprint 3.5B: preserve the intended destination as ?redirect=
+  // so the login flow can return the user there after success (e.g. someone
+  // clicking a deep link to /battle gets bounced to /login?redirect=/battle
+  // and lands back on /battle once authenticated).
   useEffect(() => {
     if (!authLoading && !user) {
-      router.replace("/login");
+      const target = pathname && pathname !== "/login" ? pathname : "/home";
+      router.replace(`/login?redirect=${encodeURIComponent(target)}`);
     }
-  }, [authLoading, user, router]);
+  }, [authLoading, user, pathname, router]);
 
   // Onboarding check — global gate, not tab-specific.
   useEffect(() => {

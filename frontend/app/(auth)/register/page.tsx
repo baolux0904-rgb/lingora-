@@ -65,8 +65,11 @@ export default function RegisterPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastCheckedRef = useRef<string>("");
 
+  // Sprint 3.5B — already-authenticated users skip the form and land on the
+  // dashboard. Was '/' (Notion-style landing now renders for logged-in users
+  // too, so '/' would dump them on marketing instead of the app).
   useEffect(() => {
-    if (authReady && user) router.replace("/");
+    if (authReady && user) router.replace("/home");
   }, [authReady, user, router]);
 
   // Debounced username availability check
@@ -117,7 +120,7 @@ export default function RegisterPage() {
     // to email/name/username automatically.
     const parsed = registerSchema.safeParse({ email, name, username, password });
     if (!parsed.success) {
-      setError(getFirstError(parsed) ?? "Điền đủ các ô nhé.");
+      setError(getFirstError(parsed) ?? "Điền đủ các ô.");
       return;
     }
 
@@ -150,7 +153,7 @@ export default function RegisterPage() {
       router.replace("/home?new=1");
     } catch (err) {
       setError(
-        (err as Error)?.message || "Đăng ký không thành công — thử lại nhé.",
+        (err as Error)?.message || "Đăng ký không thành công — thử lại.",
       );
     } finally {
       setSubmitting(false);

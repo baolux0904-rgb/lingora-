@@ -43,7 +43,10 @@ export default function LoginPage() {
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/";
+  // Sprint 3.5B — default destination is /home (was '/'). The Notion-style
+  // landing now renders for logged-in users too, so '/' would dump them back
+  // on marketing instead of the dashboard they expected after login.
+  const redirectTo = searchParams.get("redirect") || "/home";
 
   const user = useAuthStore((s) => s.user);
   const authReady = !useAuthStore((s) => s.isLoading);
@@ -82,7 +85,7 @@ function LoginPageContent() {
       router.replace(redirectTo);
     } catch (err) {
       setError(
-        (err as Error)?.message || "Đăng nhập không thành công — thử lại nhé.",
+        (err as Error)?.message || "Đăng nhập không thành công — thử lại.",
       );
     } finally {
       setSubmitting(false);
@@ -116,7 +119,7 @@ function LoginPageContent() {
                 href="/register"
                 className="text-teal hover:text-teal-dark underline-offset-4 hover:underline transition-colors duration-fast"
               >
-                Đăng ký nhé
+                Đăng ký
               </Link>
             </p>
 

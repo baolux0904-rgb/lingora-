@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useAuthStore } from "@/lib/stores/authStore";
 
 /**
  * LandingNav — Wave 6 Sprint 2E rebuild.
@@ -30,6 +31,13 @@ const NAV_ITEMS = [
 ] as const;
 
 export default function LandingNav() {
+  // Wave 6 Sprint 3.5B — auth-conditional CTAs (Notion-style landing). Guests
+  // see Đăng nhập + Đăng ký; logged-in users see a single [Vào học] → /home.
+  // A skeleton placeholder fills the slot during the brief auth-hydration
+  // window so the CTA doesn't flicker between states.
+  const user = useAuthStore((s) => s.user);
+  const isLoading = useAuthStore((s) => s.isLoading);
+
   return (
     <nav className="bg-cream border-b border-gray-200">
       <div className="max-w-[1120px] mx-auto px-6 lg:px-12 xl:px-20 py-4 flex items-center justify-between gap-6">
@@ -58,20 +66,36 @@ export default function LandingNav() {
           ))}
         </ul>
 
-        {/* CTAs — Đăng nhập text link (sm+ visible) + Đăng ký teal button */}
+        {/* Auth-conditional CTAs (Sprint 3.5B) */}
         <div className="flex items-center gap-3 lg:gap-4">
-          <Link
-            href="/login"
-            className="hidden sm:inline-flex text-sm text-navy hover:text-teal transition-colors duration-150"
-          >
-            Đăng nhập
-          </Link>
-          <Link
-            href="/register"
-            className="inline-flex items-center px-4 py-2 rounded-button bg-teal text-cream font-semibold text-sm hover:bg-teal-light active:bg-teal-dark transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
-          >
-            Đăng ký
-          </Link>
+          {isLoading ? (
+            <div
+              className="w-32 h-9 rounded-button bg-gray-100 animate-pulse"
+              aria-hidden="true"
+            />
+          ) : user ? (
+            <Link
+              href="/home"
+              className="inline-flex items-center px-5 py-2 rounded-button bg-teal text-cream font-semibold text-sm hover:bg-teal-light active:bg-teal-dark transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
+            >
+              Vào học
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="hidden sm:inline-flex text-sm text-navy hover:text-teal transition-colors duration-150"
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                href="/register"
+                className="inline-flex items-center px-4 py-2 rounded-button bg-teal text-cream font-semibold text-sm hover:bg-teal-light active:bg-teal-dark transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
+              >
+                Đăng ký
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
