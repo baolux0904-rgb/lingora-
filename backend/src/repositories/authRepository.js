@@ -30,10 +30,13 @@ const SQL_FIND_USER_BY_ID = `
   LIMIT  1;
 `;
 
+// Wave 6 Sprint 3B — added username column (NULLable per migration 0016
+// partial UNIQUE; controller ensures non-null at register time, OAuth
+// signup flow auto-generates via lib/usernameHelper.autogenUsername).
 const SQL_CREATE_USER = `
-  INSERT INTO users (email, name, password_hash, role, dob)
-  VALUES ($1, $2, $3, $4, $5)
-  RETURNING id, email, name, role, dob, password_hash, password_version, created_at;
+  INSERT INTO users (email, name, username, password_hash, role, dob)
+  VALUES ($1, $2, $3, $4, $5, $6)
+  RETURNING id, email, name, username, role, dob, password_hash, password_version, created_at;
 `;
 
 // Cheap projection used by verifyToken middleware on every authenticated
@@ -70,6 +73,13 @@ const SQL_REVOKE_ALL_USER_REFRESH_TOKENS = `
 
 const SQL_EMAIL_EXISTS = `
   SELECT 1 FROM users WHERE email = $1 AND deleted_at IS NULL LIMIT 1;
+`;
+
+// Wave 6 Sprint 3B — case-insensitive username uniqueness check.
+// username column itself preserves case for display; lookups go via LOWER()
+// to support the public availability endpoint + register-time dedup.
+const SQL_USERNAME_EXISTS = `
+  SELECT 1 FROM users WHERE LOWER(username) = $1 AND deleted_at IS NULL LIMIT 1;
 `;
 
 const SQL_STORE_REFRESH_TOKEN = `
@@ -169,18 +179,36 @@ async function emailExists(email) {
 
 /**
  * Insert a new user row.
- * @param {{ email: string, name: string, passwordHash: string, role: string, dob: string|null }} params
- * @returns {Promise<object>} – the created user row (id, email, name, role, dob, created_at)
+ * Wave 6 Sprint 3B added username column (caller is responsible for format
+ * validation + lowercasing — repo just passes through; UNIQUE violation
+ * surfaces as Postgres 23505 for the controller to translate to 409).
+ *
+ * @param {{ email: string, name: string, username: string|null, passwordHash: string|null, role: string, dob: string|null }} params
+ * @returns {Promise<object>} – the created user row
  */
-async function createUser({ email, name, passwordHash, role, dob }) {
+async function createUser({ email, name, username, passwordHash, role, dob }) {
   const { rows } = await db.query(SQL_CREATE_USER, [
     email,
     name,
+    username || null,
     passwordHash,
     role   || "kid",
     dob    || null,
   ]);
   return rows[0];
+}
+
+/**
+ * Wave 6 Sprint 3B — case-insensitive username availability check.
+ * Caller passes the username pre-lowercased (matches storage convention
+ * for the lookup, even though the column itself preserves case).
+ *
+ * @param {string} usernameLower
+ * @returns {Promise<boolean>}
+ */
+async function usernameExists(usernameLower) {
+  const { rows } = await db.query(SQL_USERNAME_EXISTS, [usernameLower]);
+  return rows.length > 0;
 }
 
 /**
@@ -311,6 +339,7 @@ module.exports = {
   findByEmail,
   findById,
   emailExists,
+  usernameExists,
   createUser,
   storeRefreshToken,
   findActiveRefreshToken,

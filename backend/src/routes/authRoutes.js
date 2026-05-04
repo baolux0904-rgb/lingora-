@@ -27,9 +27,11 @@ const authLimiter = rateLimit({
   max:               10,
   standardHeaders:   true,           // Return rate limit info in RateLimit-* headers
   legacyHeaders:     false,
+  // Wave 6 Sprint 3B — translated per lingona-design/05-voice/microcopy-library.md
+  // + 09-anti-patterns/corporate-translate.md (peer voice, no 'vui lòng').
   message: {
     success: false,
-    message: "Too many requests. Please wait 15 minutes and try again.",
+    message: "Quá nhiều lần thử — đợi 15 phút rồi thử lại nhé 🐙",
   },
 });
 
@@ -113,9 +115,15 @@ if (process.env.GOOGLE_CLIENT_ID) {
           expires: result.refreshExpiresAt,
         });
 
-        // Redirect to frontend callback with access token in URL
+        // Redirect to frontend callback with access token in URL.
+        // Wave 6 Sprint 3B — append ?new=1 for first-time signups so the
+        // callback page (and downstream /home) can show the Lintopus
+        // happy greeting card. Returning users get the unmarked URL and
+        // skip the greeting (industry-standard signal pattern, used by
+        // GitHub/Linear/Notion/Vercel/Figma/Stripe/Airbnb).
         const frontendUrl = process.env.FRONTEND_URL || "https://lingona.app";
-        const callbackUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(result.accessToken)}&user=${encodeURIComponent(JSON.stringify(result.user))}`;
+        const newParam = result.isNewUser ? "&new=1" : "";
+        const callbackUrl = `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(result.accessToken)}&user=${encodeURIComponent(JSON.stringify(result.user))}${newParam}`;
         res.redirect(callbackUrl);
       } catch (err) {
         next(err);

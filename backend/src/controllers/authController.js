@@ -18,6 +18,7 @@
 const authService   = require("../services/authService");
 const { sendSuccess, sendError } = require("../response");
 const config          = require("../config");
+const { VALID_USERNAME_RE } = require("../lib/usernameHelper");
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
 
@@ -86,22 +87,35 @@ function validate(body, required, extra = {}) {
 /**
  * POST /api/v1/auth/register
  *
- * Body: { email, name, password, role?, dob? }
+ * Body: { email, name, username, password, role?, dob? }
+ *
+ * Wave 6 Sprint 3B: username added (required for new email/password signups
+ * via the rebuilt Register form; OAuth signups bypass this controller and
+ * auto-generate via authService.googleAuth → lib/usernameHelper).
  *
  * Returns 201 with { user, accessToken } and sets the refresh cookie.
  * Returns 400 on validation failure.
- * Returns 409 if email is already taken.
+ * Returns 409 if email or username is already taken.
  */
 async function register(req, res, next) {
   try {
-    const { email, name, password, role, dob } = req.body;
+    // Trim username before validation so a clipboard paste with surrounding
+    // whitespace doesn't trip the anchored VALID_USERNAME_RE regex with a
+    // confusing format error.
+    if (typeof req.body.username === "string") req.body.username = req.body.username.trim();
+
+    const { email, name, username, password, role, dob } = req.body;
 
     const errors = validate(
       req.body,
-      ["email", "name", "password"],
+      ["email", "name", "username", "password"],
       {
-        email: (v) => EMAIL_REGEX.test(v) ? null : "email must be a valid email address.",
-        password: (v) => v.length >= 8 ? null : "password must be at least 8 characters.",
+        email: (v) => EMAIL_REGEX.test(v) ? null : "Email không đúng định dạng.",
+        username: (v) =>
+          VALID_USERNAME_RE.test(v)
+            ? null
+            : "Username chỉ dùng chữ cái, số, dấu gạch dưới (3-30 ký tự).",
+        password: (v) => v.length >= 8 ? null : "Mật khẩu cần ít nhất 8 ký tự.",
         role: (v) => {
           const valid = ["kid", "teacher", "parent"];
           return valid.includes(v) ? null : `role must be one of: ${valid.join(", ")}.`;
@@ -122,6 +136,7 @@ async function register(req, res, next) {
     const result = await authService.register({
       email:    email.trim().toLowerCase(),
       name:     name.trim(),
+      username: username.trim(),
       password,
       role:     role || "kid",
       dob:      dob  || null,

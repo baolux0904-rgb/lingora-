@@ -15,13 +15,61 @@
 const { PUBLIC_LIMITS } = require("../domain/limits");
 const { sendSuccess, sendError } = require("../response");
 const waitlistRepository = require("../repositories/waitlistRepository");
+const authRepository = require("../repositories/authRepository");
 const { sendWaitlistConfirmation } = require("../services/emailService");
+const { VALID_USERNAME_RE } = require("../lib/usernameHelper");
 
 async function getPublicLimits(_req, res) {
   // 5 min CDN cache: limits change at most a few times a year, and the
   // shape is identical for every visitor.
   res.set("Cache-Control", "public, max-age=300, s-maxage=300");
   return sendSuccess(res, { data: PUBLIC_LIMITS, message: "Public daily limits" });
+}
+
+// ─── Username availability (Wave 6 Sprint 3B) ────────────────────────────────
+
+/**
+ * GET /api/v1/public/username-availability?username=<name>
+ *
+ * Real-time availability check for the Register form. Public — no auth
+ * required. Rate-limited at the route layer (30 req/min per IP) to soften
+ * username enumeration. Usernames are public (visible on /u/[username]
+ * profile pages) so leakage risk is bounded; throttle is comfort more
+ * than security.
+ *
+ * Always returns 200; the body's `available` field is the gate.
+ *   { available: true }                            — ok to use
+ *   { available: false, reason: 'invalid' }        — format violation
+ *   { available: false, reason: 'taken' }          — already in users table
+ */
+async function getUsernameAvailability(req, res, next) {
+  try {
+    const raw = (req.query.username || "").toString().trim();
+    const lower = raw.toLowerCase();
+
+    // Format check first — avoids a DB hit for obviously-bad input
+    if (!VALID_USERNAME_RE.test(raw)) {
+      return sendSuccess(res, {
+        data: { available: false, reason: "invalid" },
+        message: "Username format invalid",
+      });
+    }
+
+    const taken = await authRepository.usernameExists(lower);
+    if (taken) {
+      return sendSuccess(res, {
+        data: { available: false, reason: "taken" },
+        message: "Username taken",
+      });
+    }
+
+    return sendSuccess(res, {
+      data: { available: true },
+      message: "Username available",
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // ─── Waitlist (Wave 6 Sprint 2D) ─────────────────────────────────────────────
@@ -130,4 +178,4 @@ async function postWaitlist(req, res, next) {
   }
 }
 
-module.exports = { getPublicLimits, postWaitlist };
+module.exports = { getPublicLimits, postWaitlist, getUsernameAvailability };

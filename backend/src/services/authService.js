@@ -142,11 +142,22 @@ function formatUser(row) {
  * @param {{ email: string, name: string, password: string, role?: string, dob?: string }} params
  * @returns {Promise<{ user: object, accessToken: string, refreshToken: string, refreshExpiresAt: Date }>}
  */
-async function register({ email, name, password, role = "kid", dob }) {
+async function register({ email, name, username, password, role = "kid", dob }) {
   // 1. Duplicate email check
   const exists = await authRepository.emailExists(email);
   if (exists) {
-    throw httpError("An account with this email already exists.", 409);
+    throw httpError("Email này đã có người dùng rồi 🐙", 409);
+  }
+
+  // 1b. Wave 6 Sprint 3B — case-insensitive username dedup pre-check.
+  // The DB UNIQUE constraint is the authoritative gate (catches races between
+  // this check and INSERT), but checking here gives a friendlier 409 before
+  // we hash the password (~250ms bcrypt work avoided on collision).
+  if (username) {
+    const usernameTaken = await authRepository.usernameExists(username.toLowerCase());
+    if (usernameTaken) {
+      throw httpError("Username này có người dùng rồi 🐙", 409);
+    }
   }
 
   // 2. COPPA: flag under-13 accounts (parental consent flow hooks in here later)
@@ -168,6 +179,7 @@ async function register({ email, name, password, role = "kid", dob }) {
   const userRow = await authRepository.createUser({
     email,
     name,
+    username: username || null,
     passwordHash,
     role,
     dob: dob || null,
@@ -375,6 +387,13 @@ async function logout(rawToken) {
  */
 async function googleAuth({ googleId, email, name, avatarUrl }) {
   const db = require("../config/db");
+  const { autogenUsername } = require("../lib/usernameHelper");
+
+  // Wave 6 Sprint 3B — track whether this callback CREATES a new user
+  // vs links/finds an existing one. Frontend uses the flag to show the
+  // first-time greeting card on /home; redirect path is selected by
+  // authRoutes.js after this function returns.
+  let isNewUser = false;
 
   // 1. Try to find by google_id
   let userRow;
@@ -391,12 +410,18 @@ async function googleAuth({ googleId, email, name, avatarUrl }) {
       // Link google_id to existing account
       await db.query(`UPDATE users SET google_id = $1, updated_at = now() WHERE id = $2`, [googleId, userRow.id]);
     } else {
-      // 3. Create new user (no password)
+      // 3. Create new user (no password). Wave 6 Sprint 3B: auto-generate
+      // a username since OAuth flow doesn't surface a form field.
+      isNewUser = true;
+      const username = await autogenUsername(email, (candidate) =>
+        authRepository.usernameExists(candidate.toLowerCase())
+      );
+
       const { rows } = await db.query(
-        `INSERT INTO users (email, name, google_id, avatar_url, role)
-         VALUES ($1, $2, $3, $4, 'kid')
-         RETURNING id, email, name, role, avatar_url, password_hash, password_version, created_at`,
-        [email, name, googleId, avatarUrl || null]
+        `INSERT INTO users (email, name, username, google_id, avatar_url, role)
+         VALUES ($1, $2, $3, $4, $5, 'kid')
+         RETURNING id, email, name, username, role, avatar_url, password_hash, password_version, created_at`,
+        [email, name, username, googleId, avatarUrl || null]
       );
       userRow = rows[0];
     }
@@ -418,6 +443,7 @@ async function googleAuth({ googleId, email, name, avatarUrl }) {
     accessToken,
     refreshToken: refreshData.token,
     refreshExpiresAt: refreshData.expiresAt,
+    isNewUser,
   };
 }
 
