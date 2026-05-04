@@ -359,10 +359,21 @@ export interface ApiLoginPayload {
 export interface ApiRegisterPayload {
   email:    string;
   name:     string;
+  /**
+   * Wave 6 Sprint 3B: required by backend POST /auth/register. 3-30 chars,
+   * /^[a-zA-Z0-9_]{3,30}$/. Caller is responsible for trim + format check;
+   * backend re-trims defensively + returns 400/409 if violated.
+   */
+  username: string;
   password: string;
   role:     "kid" | "teacher" | "parent";
   dob?:     string; // ISO date YYYY-MM-DD — optional but required for COPPA under-13 detection
 }
+
+/** Wave 6 Sprint 3B — username availability response shape. */
+export type UsernameAvailability =
+  | { available: true }
+  | { available: false; reason: "invalid" | "taken" };
 
 // ---------------------------------------------------------------------------
 // API functions — Lessons
@@ -1120,6 +1131,31 @@ export async function registerUser(payload: ApiRegisterPayload): Promise<ApiRegi
   }
   const data = (json as { data: ApiRegisterData }).data;
   useAuthStore.getState().setAuth(data.user, data.accessToken);
+  return data;
+}
+
+/**
+ * GET /api/v1/public/username-availability
+ *
+ * Wave 6 Sprint 3B — real-time availability check used by the Register form.
+ * Public (no auth). Backend rate-limits 30 req/min per IP. The endpoint
+ * returns 200 with a discriminated body even when the username is taken or
+ * malformed, so we shape the failure into the same UsernameAvailability
+ * union; only network/parse failures throw.
+ */
+export async function checkUsernameAvailability(username: string): Promise<UsernameAvailability> {
+  const res = await fetch(
+    `${BASE_URL}/public/username-availability?username=${encodeURIComponent(username)}`,
+    { method: "GET", credentials: "omit" }
+  );
+  const json = await res.json().catch(() => ({}));
+  const data = (json as { data?: UsernameAvailability }).data;
+  if (!res.ok || !data) {
+    throw new Error(
+      (json as { message?: string }).message ??
+        "Không kiểm tra được username — thử lại nhé.",
+    );
+  }
   return data;
 }
 

@@ -1,37 +1,69 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { ArrowRight, Loader2 } from "lucide-react";
+import Mascot from "@/components/ui/Mascot";
 import { loginUser, migrateGuestProgress } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { getGuestUserId, clearGuestUserId } from "@/lib/guestUser";
-import { cn } from "@/lib/utils";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
-import Mascot from "@/components/ui/Mascot";
 
+/**
+ * Login page — Wave 6 Sprint 3C rebuild.
+ *
+ * Per .claude/skills/lingona-design/:
+ * - 02-layout/desktop-canvas.md: Pattern C asymmetric (form 7-col + Lintopus 5-col)
+ * - 03-components/mascot.md: Lintopus 200px (auth size, focused on form)
+ * - 03-components/primary-button.md: teal solid CTA + secondary border Google
+ * - 04-modes/brand.md: cream bg + navy text + DM Sans body + Playfair Italic headline
+ * - 05-voice/persona.md + microcopy-library.md: peer voice Vietnamese
+ * - 09-anti-patterns/ai-generated-smell.md: NO gradient text, NO glow, NO dark theme
+ * - 09-anti-patterns/corporate-translate.md: NO 'vui lòng', NO 'quý khách'
+ *
+ * Form fields: email + password
+ * Auth flow: email/password TOP → 'Hoặc dùng Google' divider → Google OAuth BOTTOM
+ *
+ * Re-uses existing lib/api.ts loginUser (which sets the auth store on success
+ * via useAuthStore.setAuth) + migrateGuestProgress + guestUser helpers so the
+ * post-login flow stays identical to legacy behaviour.
+ */
 export default function LoginPage() {
-  const router     = useRouter();
-  const user       = useAuthStore((s) => s.user);
-  const authReady  = !useAuthStore((s) => s.isLoading);
+  // useSearchParams forces client-side rendering for whatever uses it; wrap
+  // in Suspense so static prerender doesn't bail per Next.js 14 rules.
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
 
-  const [email,        setEmail]        = useState("");
-  const [password,     setPassword]     = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [error,        setError]        = useState<string | null>(null);
-  const [submitting,   setSubmitting]   = useState(false);
+function LoginPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
+
+  const user = useAuthStore((s) => s.user);
+  const authReady = !useAuthStore((s) => s.isLoading);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (authReady && user) router.replace("/");
-  }, [authReady, user, router]);
+    if (authReady && user) router.replace(redirectTo);
+  }, [authReady, user, router, redirectTo]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setError("");
 
-    if (!email.trim())  { setError("Vui lòng nhập email.");    return; }
-    if (!password)      { setError("Vui lòng nhập mật khẩu."); return; }
+    if (!email.trim() || !password) {
+      setError("Email và mật khẩu cần điền cả hai.");
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -43,186 +75,172 @@ export default function LoginPage() {
         clearGuestUserId();
       }
 
-      router.replace("/");
+      router.replace(redirectTo);
     } catch (err) {
-      setError((err as Error).message);
+      setError(
+        (err as Error)?.message || "Đăng nhập không thành công — thử lại nhé.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
+  function handleGoogleOAuth() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
+    window.location.href = `${apiUrl}/auth/google`;
+  }
+
+  const disabled = submitting || !email.trim() || !password;
+
   return (
-    <div className="max-w-[420px] mx-auto animate-fadeSlideUp">
+    <main className="min-h-screen px-6 lg:px-12 xl:px-20 py-12 lg:py-20">
+      <div className="max-w-[1120px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-center">
+          {/* Form 7-col left */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="lg:col-span-7 lg:col-start-1"
+          >
+            <h1 className="font-display italic text-navy text-3xl lg:text-4xl leading-tight">
+              Đăng nhập
+            </h1>
+            <p className="mt-3 text-base text-gray-600">
+              Chưa có tài khoản?{" "}
+              <Link
+                href="/register"
+                className="text-teal hover:text-teal-dark underline-offset-4 hover:underline transition-colors duration-fast"
+              >
+                Đăng ký nhé
+              </Link>
+            </p>
 
-      {/* Logo + heading */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center mb-4">
-          <Mascot size={64} />
-        </div>
-        <h1 className="font-display font-bold text-2xl tracking-[-0.5px]" style={{ color: "var(--color-text)" }}>
-          Chào mừng trở lại
-        </h1>
-        <p className="text-sm mt-1.5" style={{ color: "var(--color-text-secondary)" }}>Đăng nhập để tiếp tục luyện IELTS 🐙</p>
-      </div>
+            <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-5 max-w-md">
+              <label className="block">
+                <span className="text-sm font-medium text-navy">Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  disabled={submitting}
+                  className="mt-1.5 block w-full px-4 py-2.5 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
+                />
+              </label>
 
-      {/* Card — clean white, shadow-lg */}
-      <div
-        className="rounded-xl p-7"
-        style={{
-          background: "var(--color-bg-card)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        }}
-      >
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+              <label className="block">
+                <span className="text-sm font-medium text-navy">Mật khẩu</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  disabled={submitting}
+                  className="mt-1.5 block w-full px-4 py-2.5 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
+                />
+                <Link
+                  href="/forgot-password"
+                  className="mt-1.5 inline-block text-xs text-gray-600 hover:text-teal transition-colors duration-fast"
+                >
+                  Quên mật khẩu?
+                </Link>
+              </label>
 
-          {/* Email */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium tracking-[0.2px]" style={{ color: "var(--color-text-secondary)" }}>
-              Email
-            </label>
-            <Input
-              type="email"
-              inputSize="md"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </div>
+              {error && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-button bg-red-50 border border-red-200 text-sm text-red-700"
+                >
+                  {error}
+                </div>
+              )}
 
-          {/* Password */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium tracking-[0.2px]" style={{ color: "var(--color-text-secondary)" }}>
-              Mật khẩu
-            </label>
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                inputSize="md"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu"
-                className="pr-11"
-              />
+              <button
+                type="submit"
+                disabled={disabled}
+                className="w-full px-6 py-3 rounded-button bg-teal text-cream font-semibold text-base hover:bg-teal-light active:bg-teal-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    Đang đăng nhập...
+                  </>
+                ) : (
+                  <>
+                    Đăng nhập
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-3 bg-cream text-xs text-gray-500">Hoặc dùng Google</span>
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                style={{ color: "var(--color-text-secondary)" }}
-                aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                onClick={handleGoogleOAuth}
+                disabled={submitting}
+                className="w-full px-6 py-3 rounded-button bg-cream border border-gray-300 text-navy font-semibold text-base hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30 focus-visible:ring-offset-2 focus-visible:ring-offset-cream flex items-center justify-center gap-3"
               >
-                {showPassword ? <IconEyeOff /> : <IconEye />}
+                <GoogleIcon className="w-5 h-5" />
+                Tiếp tục với Google
               </button>
-            </div>
-          </div>
+            </form>
+          </motion.div>
 
-          {/* Error banner */}
-          {error && (
-            <div
-              className="flex items-start gap-2 px-3.5 py-2.5 rounded-md text-sm"
-              style={{
-                background: "rgba(239,68,68,0.08)",
-                border: "1px solid rgba(239,68,68,0.15)",
-                color: "#EF4444",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Submit */}
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={submitting}
-            disabled={submitting}
-            className="mt-1"
-            style={{
-              boxShadow: "0 4px 16px rgba(0,168,150,0.25)",
-            }}
+          {/* Lintopus 5-col right */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+            className="lg:col-span-5 flex justify-center lg:justify-end order-first lg:order-last"
           >
-            {submitting ? "Đang đăng nhập..." : "Đăng nhập"}
-          </Button>
-        </form>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
-          <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>hoặc</span>
-          <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+            <Mascot
+              size={200}
+              mood="happy"
+              bubble="Chào — login để tiếp tục nhé"
+              bubblePosition="below"
+              enableIdle
+              priority
+            />
+          </motion.div>
         </div>
-
-        {/* Google OAuth */}
-        <a
-          href="/api/v1/auth/google"
-          className="flex items-center justify-center gap-3 w-full py-3 rounded-lg text-sm font-medium transition-all active:scale-[0.98] cursor-pointer mb-4"
-          style={{
-            background: "var(--color-bg-card)",
-            border: "1px solid var(--color-border)",
-            color: "var(--color-text)",
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Đăng nhập bằng Google
-        </a>
-
-        {/* Guest access */}
-        <Link
-          href="/"
-          className={cn(
-            "flex items-center justify-center h-11 rounded-full",
-            "text-sm font-medium",
-            "border transition duration-normal hover:shadow-sm",
-          )}
-          style={{ color: "var(--color-text-secondary)", borderColor: "var(--color-border)", backgroundColor: "var(--color-bg)" }}
-        >
-          Tiếp tục không đăng nhập
-        </Link>
       </div>
-
-      {/* Sign-up link */}
-      <p className="text-center text-sm mt-5" style={{ color: "var(--color-text-secondary)" }}>
-        Chưa có tài khoản?{" "}
-        <Link
-          href="/register"
-          className="font-semibold transition-colors"
-          style={{ color: "#00A896" }}
-        >
-          Đăng ký miễn phí
-        </Link>
-      </p>
-    </div>
+    </main>
   );
 }
 
-function IconEye() {
+/** Inline Google G icon — keeps bundle lean (no extra lib for 1 icon) */
+function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  );
-}
-
-function IconEyeOff() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
+    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+      <path
+        fill="#FFC107"
+        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0124 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+      />
     </svg>
   );
 }

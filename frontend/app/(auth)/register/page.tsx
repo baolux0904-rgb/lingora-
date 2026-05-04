@@ -1,60 +1,141 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { registerUser, migrateGuestProgress } from "@/lib/api";
+import { motion } from "framer-motion";
+import { ArrowRight, Loader2, Check, X } from "lucide-react";
+import Mascot from "@/components/ui/Mascot";
+import {
+  registerUser,
+  migrateGuestProgress,
+  checkUsernameAvailability,
+} from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { getGuestUserId, clearGuestUserId } from "@/lib/guestUser";
-import { cn } from "@/lib/utils";
 import { analytics } from "@/lib/analytics";
-import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
-import Mascot from "@/components/ui/Mascot";
 
-const selectCls = cn(
-  "w-full h-11 px-4 rounded-md text-base",
-  "border outline-none",
-  "transition duration-normal",
-  "focus:ring-2 focus:ring-[#00A896]/20 focus:border-[#00A896]",
-);
+/**
+ * Register page — Wave 6 Sprint 3C rebuild.
+ *
+ * Per .claude/skills/lingona-design/:
+ * - 02-layout/desktop-canvas.md: Pattern C asymmetric (form 7-col + Lintopus 5-col)
+ * - 03-components/mascot.md: Lintopus 200px happy + bubble welcome
+ * - 03-components/primary-button.md: teal CTA + secondary border Google
+ * - 04-modes/brand.md: cream brand
+ * - 05-voice/persona.md + microcopy-library.md: peer voice Vietnamese
+ * - 09-anti-patterns/ai-generated-smell.md + corporate-translate.md
+ *
+ * Form fields: email + name + username (with availability check) + password
+ * Auth flow: email/password TOP → 'Hoặc dùng Google' divider → Google OAuth BOTTOM
+ *
+ * Username availability check (Sprint 3B endpoint):
+ * - 500ms debounce after typing stops
+ * - GET /public/username-availability?username=<name> via lib/api helper
+ * - Race protection via lastCheckedRef
+ * - Visual: icon (Check teal / X red / Loader2 spin) + inline text status
+ *
+ * Default role 'kid' (Sprint 3 doesn't surface a role picker — reserved for
+ * Sprint 3D onboarding flow).
+ */
+
+const VALID_USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
+
+type AvailState = "idle" | "checking" | "available" | "taken" | "invalid";
 
 export default function RegisterPage() {
-  const router    = useRouter();
-  const user      = useAuthStore((s) => s.user);
+  const router = useRouter();
+
+  const user = useAuthStore((s) => s.user);
   const authReady = !useAuthStore((s) => s.isLoading);
 
-  const [name,         setName]         = useState("");
-  const [email,        setEmail]        = useState("");
-  const [password,     setPassword]     = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [role,         setRole]         = useState<"kid" | "teacher" | "parent">("kid");
-  const [error,        setError]        = useState<string | null>(null);
-  const [submitting,   setSubmitting]   = useState(false);
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const [availState, setAvailState] = useState<AvailState>("idle");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastCheckedRef = useRef<string>("");
 
   useEffect(() => {
     if (authReady && user) router.replace("/");
   }, [authReady, user, router]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  // Debounced username availability check
+  useEffect(() => {
+    const cleaned = username.trim().toLowerCase();
 
-    if (!email.trim()) { setError("Vui lòng nhập email.");                       return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      setError("Email không hợp lệ."); return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!cleaned) {
+      setAvailState("idle");
+      return;
+    }
+
+    if (!VALID_USERNAME_RE.test(cleaned)) {
+      setAvailState("invalid");
+      return;
+    }
+
+    setAvailState("checking");
+
+    debounceRef.current = setTimeout(async () => {
+      lastCheckedRef.current = cleaned;
+      try {
+        const data = await checkUsernameAvailability(cleaned);
+        // Race protection: a faster value swap mid-flight wins.
+        if (lastCheckedRef.current !== cleaned) return;
+        if (data.available) setAvailState("available");
+        else if (data.reason === "invalid") setAvailState("invalid");
+        else setAvailState("taken");
+      } catch {
+        // Network fail — fall back to idle so the submit isn't permanently
+        // blocked; backend re-validates on submit anyway.
+        if (lastCheckedRef.current === cleaned) setAvailState("idle");
+      }
+    }, 500);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [username]);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const cleanUsername = username.trim();
+
+    if (!cleanEmail || !cleanName || !cleanUsername || !password) {
+      setError("Điền đủ các ô nhé.");
+      return;
+    }
+    if (!VALID_USERNAME_RE.test(cleanUsername)) {
+      setError("Username chỉ dùng chữ cái, số, dấu gạch dưới (3-30 ký tự).");
+      return;
     }
     if (password.length < 8) {
-      setError("Mật khẩu cần ít nhất 8 ký tự."); return;
+      setError("Mật khẩu cần ít nhất 8 ký tự.");
+      return;
+    }
+    if (availState === "taken") {
+      setError("Username này có người dùng rồi 🐙");
+      return;
     }
 
     setSubmitting(true);
     try {
       await registerUser({
-        name:     email.trim().split("@")[0],
-        email:    email.trim().toLowerCase(),
+        email: cleanEmail,
+        name: cleanName,
+        username: cleanUsername,
         password,
-        role,
+        role: "kid",
       });
 
       const guestId = getGuestUserId();
@@ -64,178 +145,259 @@ export default function RegisterPage() {
       }
 
       analytics.signupComplete("email");
-      router.replace("/");
+      router.replace("/?new=1");
     } catch (err) {
-      setError((err as Error).message);
+      setError(
+        (err as Error)?.message || "Đăng ký không thành công — thử lại nhé.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
+  function handleGoogleOAuth() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
+    window.location.href = `${apiUrl}/auth/google`;
+  }
+
+  const submitDisabled =
+    submitting ||
+    !email.trim() ||
+    !name.trim() ||
+    !username.trim() ||
+    !password ||
+    availState === "taken" ||
+    availState === "invalid" ||
+    availState === "checking";
+
   return (
-    <div className="max-w-[440px] mx-auto animate-fadeSlideUp">
+    <main className="min-h-screen px-6 lg:px-12 xl:px-20 py-12 lg:py-20">
+      <div className="max-w-[1120px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-start">
+          {/* Form 7-col left */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="lg:col-span-7 lg:col-start-1"
+          >
+            <h1 className="font-display italic text-navy text-3xl lg:text-4xl leading-tight">
+              Đăng ký
+            </h1>
+            <p className="mt-3 text-base text-gray-600">
+              Đã có tài khoản?{" "}
+              <Link
+                href="/login"
+                className="text-teal hover:text-teal-dark underline-offset-4 hover:underline transition-colors duration-fast"
+              >
+                Đăng nhập
+              </Link>
+            </p>
 
-      {/* Logo + heading */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center mb-4">
-          <Mascot size={64} />
-        </div>
-        <h1 className="font-display font-bold text-2xl tracking-[-0.5px]" style={{ color: "var(--color-text)" }}>
-          Tạo tài khoản
-        </h1>
-        <p className="text-sm mt-1.5" style={{ color: "var(--color-text-secondary)" }}>Bắt đầu luyện IELTS miễn phí 🐙</p>
-      </div>
+            <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-5 max-w-md">
+              {/* Email */}
+              <label className="block">
+                <span className="text-sm font-medium text-navy">Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  disabled={submitting}
+                  className="mt-1.5 block w-full px-4 py-2.5 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
+                />
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Email .edu: tự động giảm 20% gói Pro khi launch.
+                </p>
+              </label>
 
-      {/* Card */}
-      <div
-        className="rounded-xl p-7"
-        style={{
-          background: "var(--color-bg-card)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-        }}
-      >
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+              {/* Name */}
+              <label className="block">
+                <span className="text-sm font-medium text-navy">Tên của bạn</span>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  autoComplete="name"
+                  placeholder="Mình gọi bạn là gì?"
+                  disabled={submitting}
+                  className="mt-1.5 block w-full px-4 py-2.5 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
+                />
+              </label>
 
-          {/* Email */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium tracking-[0.2px]" style={{ color: "var(--color-text-secondary)" }}>
-              Email
-            </label>
-            <Input
-              type="email"
-              inputSize="md"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-            />
-          </div>
+              {/* Username + availability */}
+              <label className="block">
+                <span className="text-sm font-medium text-navy">Username</span>
+                <div className="relative mt-1.5">
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                    autoComplete="username"
+                    placeholder="vd: louis_2026"
+                    disabled={submitting}
+                    aria-invalid={availState === "taken" || availState === "invalid"}
+                    aria-describedby="username-status"
+                    className="block w-full px-4 py-2.5 pr-10 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
+                  />
+                  <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                    {availState === "checking" && (
+                      <Loader2 className="w-4 h-4 text-gray-400 animate-spin" aria-hidden="true" />
+                    )}
+                    {availState === "available" && (
+                      <Check className="w-5 h-5 text-teal" aria-hidden="true" />
+                    )}
+                    {(availState === "taken" || availState === "invalid") && (
+                      <X className="w-5 h-5 text-red-500" aria-hidden="true" />
+                    )}
+                  </div>
+                </div>
+                <p
+                  id="username-status"
+                  role="status"
+                  aria-live="polite"
+                  className={`mt-1.5 text-xs ${
+                    availState === "available"
+                      ? "text-teal"
+                      : availState === "taken" || availState === "invalid"
+                      ? "text-red-600"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {availState === "idle" &&
+                    "3-30 ký tự — chữ cái, số, dấu gạch dưới"}
+                  {availState === "checking" && "Đang kiểm tra..."}
+                  {availState === "available" && "Username dùng được 🐙"}
+                  {availState === "taken" && "Username này có người dùng rồi"}
+                  {availState === "invalid" &&
+                    "3-30 ký tự — chữ cái, số, dấu gạch dưới"}
+                </p>
+              </label>
 
-          {/* Password */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-medium tracking-[0.2px]" style={{ color: "var(--color-text-secondary)" }}>
-              Mật khẩu
-            </label>
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                inputSize="md"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min. 8 characters"
-                className="pr-11"
-              />
+              {/* Password */}
+              <label className="block">
+                <span className="text-sm font-medium text-navy">Mật khẩu</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                  placeholder="Ít nhất 8 ký tự"
+                  disabled={submitting}
+                  className="mt-1.5 block w-full px-4 py-2.5 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
+                />
+              </label>
+
+              {error && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-button bg-red-50 border border-red-200 text-sm text-red-700"
+                >
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitDisabled}
+                className="w-full px-6 py-3 rounded-button bg-teal text-cream font-semibold text-base hover:bg-teal-light active:bg-teal-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream flex items-center justify-center gap-2"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                    Đang đăng ký...
+                  </>
+                ) : (
+                  <>
+                    Đăng ký
+                    <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  </>
+                )}
+              </button>
+
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="px-3 bg-cream text-xs text-gray-500">Hoặc dùng Google</span>
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 transition-colors"
-                style={{ color: "var(--color-text-secondary)" }}
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                onClick={handleGoogleOAuth}
+                disabled={submitting}
+                className="w-full px-6 py-3 rounded-button bg-cream border border-gray-300 text-navy font-semibold text-base hover:bg-gray-50 active:bg-gray-100 disabled:opacity-50 transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30 focus-visible:ring-offset-2 focus-visible:ring-offset-cream flex items-center justify-center gap-3"
               >
-                {showPassword ? <IconEyeOff /> : <IconEye />}
+                <GoogleIcon className="w-5 h-5" />
+                Tiếp tục với Google
               </button>
-            </div>
-            {password.length > 0 && password.length < 8 && (
-              <p className="text-xs mt-0.5" style={{ color: "#F59E0B" }}>
-                {8 - password.length} more character{8 - password.length !== 1 ? "s" : ""} needed
+
+              <p className="text-xs text-gray-500 text-center">
+                Bằng việc đăng ký, bạn đồng ý với{" "}
+                <Link href="/terms" className="underline hover:text-teal">
+                  Điều khoản
+                </Link>{" "}
+                và{" "}
+                <Link href="/privacy" className="underline hover:text-teal">
+                  Bảo mật
+                </Link>
+                .
               </p>
-            )}
-          </div>
+            </form>
+          </motion.div>
 
-          {/* Error banner */}
-          {error && (
-            <div
-              className="flex items-start gap-2 px-3.5 py-2.5 rounded-md text-sm"
-              style={{
-                background: "rgba(239,68,68,0.08)",
-                border: "1px solid rgba(239,68,68,0.15)",
-                color: "#EF4444",
-              }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 shrink-0">
-                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Submit */}
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            fullWidth
-            loading={submitting}
-            disabled={submitting}
-            className="mt-1"
-            style={{
-              boxShadow: "0 4px 16px rgba(0,168,150,0.25)",
-            }}
+          {/* Lintopus 5-col right */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+            className="lg:col-span-5 flex justify-center lg:justify-end order-first lg:order-last lg:sticky lg:top-20"
           >
-            {submitting ? "Đang tạo..." : "Tạo tài khoản"}
-          </Button>
-        </form>
-
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
-          <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>hoặc</span>
-          <div className="flex-1 h-px" style={{ backgroundColor: "var(--color-border)" }} />
+            <Mascot
+              size={200}
+              mood="happy"
+              bubble="Hi — mình là Lintopus 🐙"
+              bubblePosition="below"
+              enableIdle
+              priority
+            />
+          </motion.div>
         </div>
-
-        {/* Google OAuth */}
-        <a
-          href="/api/v1/auth/google"
-          className="flex items-center justify-center gap-3 w-full py-3 rounded-lg text-sm font-medium transition-all active:scale-[0.98] cursor-pointer"
-          style={{
-            background: "var(--color-bg-card)",
-            border: "1px solid var(--color-border)",
-            color: "var(--color-text)",
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Đăng ký bằng Google
-        </a>
       </div>
-
-      {/* Sign-in link */}
-      <p className="text-center text-sm mt-5" style={{ color: "var(--color-text-secondary)" }}>
-        Đã có tài khoản?{" "}
-        <Link
-          href="/login"
-          className="font-semibold transition-colors"
-          style={{ color: "#00A896" }}
-        >
-          Đăng nhập
-        </Link>
-      </p>
-    </div>
+    </main>
   );
 }
 
-function IconEye() {
+/** Inline Google G icon — same as Login */
+function GoogleIcon({ className }: { className?: string }) {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  );
-}
-
-function IconEyeOff() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
+    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
+      <path
+        fill="#FFC107"
+        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0124 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 01-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+      />
     </svg>
   );
 }
