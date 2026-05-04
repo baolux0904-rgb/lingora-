@@ -9,6 +9,7 @@ import Mascot from "@/components/ui/Mascot";
 import { loginUser, migrateGuestProgress } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { getGuestUserId, clearGuestUserId } from "@/lib/guestUser";
+import { loginSchema, getFirstError } from "@/lib/schemas/auth";
 
 /**
  * Login page — Wave 6 Sprint 3C rebuild.
@@ -60,14 +61,17 @@ function LoginPageContent() {
     e.preventDefault();
     setError("");
 
-    if (!email.trim() || !password) {
-      setError("Email và mật khẩu cần điền cả hai.");
+    // Sprint 3E — replaced manual presence check with shared zod schema.
+    // Schema transforms (.trim(), .toLowerCase()) apply to email automatically.
+    const parsed = loginSchema.safeParse({ email, password });
+    if (!parsed.success) {
+      setError(getFirstError(parsed) ?? "Email và mật khẩu cần điền cả hai.");
       return;
     }
 
     setSubmitting(true);
     try {
-      await loginUser({ email: email.trim().toLowerCase(), password });
+      await loginUser({ email: parsed.data.email, password: parsed.data.password });
 
       const guestId = getGuestUserId();
       if (guestId) {

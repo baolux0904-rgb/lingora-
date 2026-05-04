@@ -31,8 +31,13 @@ import {
   updateMyUsername,
   autogenMyUsername,
 } from "@/lib/api";
+import {
+  usernameBackfillSchema,
+  USERNAME_REGEX,
+  getFirstError,
+} from "@/lib/schemas/auth";
 
-const VALID_USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
+// Sprint 3E — VALID_USERNAME_RE moved to lib/schemas/auth as USERNAME_REGEX.
 
 type AvailState = "idle" | "checking" | "available" | "taken" | "invalid";
 
@@ -63,7 +68,7 @@ export default function UsernameBackfillModal() {
       setAvailState("idle");
       return;
     }
-    if (!VALID_USERNAME_RE.test(cleaned)) {
+    if (!USERNAME_REGEX.test(cleaned)) {
       setAvailState("invalid");
       return;
     }
@@ -105,9 +110,10 @@ export default function UsernameBackfillModal() {
     e.preventDefault();
     if (submitting) return;
 
-    const cleaned = username.trim();
-    if (!VALID_USERNAME_RE.test(cleaned)) {
-      setError("Username chỉ dùng chữ cái, số, dấu gạch dưới (3-30 ký tự)");
+    // Sprint 3E — replaced manual regex check with shared usernameBackfillSchema.
+    const parsed = usernameBackfillSchema.safeParse({ username });
+    if (!parsed.success) {
+      setError(getFirstError(parsed) ?? "Username không hợp lệ");
       return;
     }
     if (availState === "taken") {
@@ -118,7 +124,7 @@ export default function UsernameBackfillModal() {
     setSubmitting(true);
     setError("");
     try {
-      await updateMyUsername(cleaned);
+      await updateMyUsername(parsed.data.username);
       // patchUser inside updateMyUsername populates user.username — the
       // (app) layout re-renders and unmounts this modal automatically.
     } catch (err) {

@@ -14,6 +14,11 @@ import {
 import { useAuthStore } from "@/lib/stores/authStore";
 import { getGuestUserId, clearGuestUserId } from "@/lib/guestUser";
 import { analytics } from "@/lib/analytics";
+import {
+  registerSchema,
+  USERNAME_REGEX,
+  getFirstError,
+} from "@/lib/schemas/auth";
 
 /**
  * Register page — Wave 6 Sprint 3C rebuild.
@@ -39,7 +44,7 @@ import { analytics } from "@/lib/analytics";
  * Sprint 3D onboarding flow).
  */
 
-const VALID_USERNAME_RE = /^[a-zA-Z0-9_]{3,30}$/;
+// Sprint 3E — VALID_USERNAME_RE moved to lib/schemas/auth as USERNAME_REGEX.
 
 type AvailState = "idle" | "checking" | "available" | "taken" | "invalid";
 
@@ -75,7 +80,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!VALID_USERNAME_RE.test(cleaned)) {
+    if (!USERNAME_REGEX.test(cleaned)) {
       setAvailState("invalid");
       return;
     }
@@ -107,22 +112,16 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanName = name.trim();
-    const cleanUsername = username.trim();
+    // Sprint 3E — replaced manual chain (presence + regex + length) with the
+    // shared registerSchema. Schema transforms (.trim(), .toLowerCase()) apply
+    // to email/name/username automatically.
+    const parsed = registerSchema.safeParse({ email, name, username, password });
+    if (!parsed.success) {
+      setError(getFirstError(parsed) ?? "Điền đủ các ô nhé.");
+      return;
+    }
 
-    if (!cleanEmail || !cleanName || !cleanUsername || !password) {
-      setError("Điền đủ các ô nhé.");
-      return;
-    }
-    if (!VALID_USERNAME_RE.test(cleanUsername)) {
-      setError("Username chỉ dùng chữ cái, số, dấu gạch dưới (3-30 ký tự).");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Mật khẩu cần ít nhất 8 ký tự.");
-      return;
-    }
+    // availState is a UI signal (debounced server check) — not schema-validatable.
     if (availState === "taken") {
       setError("Username này có người dùng rồi 🐙");
       return;
@@ -131,10 +130,10 @@ export default function RegisterPage() {
     setSubmitting(true);
     try {
       await registerUser({
-        email: cleanEmail,
-        name: cleanName,
-        username: cleanUsername,
-        password,
+        email: parsed.data.email,
+        name: parsed.data.name,
+        username: parsed.data.username,
+        password: parsed.data.password,
         role: "kid",
       });
 
