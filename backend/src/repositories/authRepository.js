@@ -211,6 +211,29 @@ async function usernameExists(usernameLower) {
   return rows.length > 0;
 }
 
+// Wave 6 Sprint 3D — username write path used by PATCH /auth/me/username.
+// Initial NULL→first-set bypasses the (not-yet-implemented) 30-day rename
+// cooldown by design; future settings rename flow will gate via a separate
+// repo method that consults the cooldown table from migration 0049.
+const SQL_UPDATE_USERNAME = `
+  UPDATE users
+     SET username = $2,
+         updated_at = NOW()
+   WHERE id = $1
+     AND deleted_at IS NULL
+   RETURNING id, username;
+`;
+
+/**
+ * @param {string} userId
+ * @param {string} username  – caller is responsible for trim + format check
+ * @returns {Promise<{id: string, username: string} | undefined>}
+ */
+async function updateUsername(userId, username) {
+  const { rows } = await db.query(SQL_UPDATE_USERNAME, [userId, username]);
+  return rows[0];
+}
+
 /**
  * Persist a new refresh token record.
  * @param {{ userId: string, tokenHash: string, family: string, expiresAt: Date }} params
@@ -340,6 +363,7 @@ module.exports = {
   findById,
   emailExists,
   usernameExists,
+  updateUsername,
   createUser,
   storeRefreshToken,
   findActiveRefreshToken,

@@ -47,7 +47,11 @@ function GoogleCallbackContent() {
         clearGuestUserId();
       }
 
-      router.replace("/home");
+      // Wave 6 Sprint 3D — propagate the backend's first-time signal
+      // (Sprint 3B appends &new=1 to this callback URL for new signups)
+      // forward to /home so WelcomeBanner can fire.
+      const isNew = searchParams.get("new") === "1";
+      router.replace(isNew ? "/home?new=1" : "/home");
     } catch {
       setError("Failed to process authentication. Please try again.");
     }

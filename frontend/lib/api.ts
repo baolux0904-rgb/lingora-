@@ -1135,6 +1135,55 @@ export async function registerUser(payload: ApiRegisterPayload): Promise<ApiRegi
 }
 
 /**
+ * PATCH /api/v1/auth/me/username
+ *
+ * Wave 6 Sprint 3D — sets / updates the authenticated user's username.
+ * Backend validates format + dedup; on success the local auth store is
+ * patched so re-renders see the new value (drives the
+ * UsernameBackfillModal unmount).
+ */
+export async function updateMyUsername(username: string): Promise<{ username: string }> {
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${BASE_URL}/auth/me/username`, {
+    method:      "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ username: username.trim() }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((json as { message?: string }).message ?? "Lưu không thành công — thử lại nhé");
+  }
+  const data = (json as { data: { username: string } }).data;
+  useAuthStore.getState().patchUser({ username: data.username });
+  return data;
+}
+
+/**
+ * POST /api/v1/auth/me/autogen-username
+ *
+ * Wave 6 Sprint 3D — server-side candidate generation (email-prefix +
+ * 6-char base36) used by the "Để Lintopus chọn cho mình 🐙" button. Does
+ * NOT write — caller fills the input and confirms via updateMyUsername.
+ */
+export async function autogenMyUsername(): Promise<{ candidate: string }> {
+  const token = useAuthStore.getState().accessToken;
+  const res = await fetch(`${BASE_URL}/auth/me/autogen-username`, {
+    method:      "POST",
+    credentials: "include",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error((json as { message?: string }).message ?? "Tạo username không thành công");
+  }
+  return (json as { data: { candidate: string } }).data;
+}
+
+/**
  * GET /api/v1/public/username-availability
  *
  * Wave 6 Sprint 3B — real-time availability check used by the Register form.

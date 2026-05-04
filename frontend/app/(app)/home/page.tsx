@@ -1,9 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Topbar from "@/components/Topbar";
 import HomeDashboard from "@/components/HomeDashboard";
+import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
 import { useAppData } from "@/contexts/AppDataContext";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { getScenarios } from "@/lib/api";
@@ -50,6 +52,12 @@ export default function HomePage() {
         <Topbar streak={displayStreak} />
       </div>
       <div className="mx-auto px-5 py-6 max-w-5xl">
+        {/* Wave 6 Sprint 3D — first-time greeting banner. Suspense wraps
+            because WelcomeBanner uses useSearchParams which would force
+            client-render bailout otherwise (Next.js 14). */}
+        <Suspense fallback={null}>
+          <WelcomeBanner />
+        </Suspense>
         <HomeDashboard
           userName={user.name}
           gamification={gamification}

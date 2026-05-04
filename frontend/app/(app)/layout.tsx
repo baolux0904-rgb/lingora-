@@ -43,6 +43,14 @@ const OnboardingFlow = dynamic(
   { ssr: false },
 );
 
+// Wave 6 Sprint 3D — full-screen blocking modal forces NULL-username users
+// to pick before any authenticated route renders. Dynamic + ssr:false so
+// it never appears in SSR output (client-only gate).
+const UsernameBackfillModal = dynamic(
+  () => import("@/components/auth/UsernameBackfillModal"),
+  { ssr: false },
+);
+
 function findNavItem(id: string, items: NavItem[] = NAV_ITEMS): NavItem | null {
   for (const item of items) {
     if (item.id === id) return item;
@@ -121,6 +129,15 @@ export default function AppGroupLayout({ children }: { children: ReactNode }) {
   }, [user, onboardingChecked]);
 
   if (authLoading || !user) return null;
+
+  // Wave 6 Sprint 3D — username backfill gate. Block every authenticated
+  // route until the legacy NULL-username cohort picks a value. Sits before
+  // the onboarding gate so name + username get sorted first; once
+  // patchUser populates user.username this layout re-renders and
+  // OnboardingFlow / AppShell take over.
+  if (!user.username) {
+    return <UsernameBackfillModal />;
+  }
 
   if (showOnboarding) {
     return (

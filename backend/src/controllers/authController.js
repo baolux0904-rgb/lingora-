@@ -16,9 +16,10 @@
  */
 
 const authService   = require("../services/authService");
+const authRepository = require("../repositories/authRepository");
 const { sendSuccess, sendError } = require("../response");
 const config          = require("../config");
-const { VALID_USERNAME_RE } = require("../lib/usernameHelper");
+const { VALID_USERNAME_RE, autogenUsername } = require("../lib/usernameHelper");
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
 
@@ -356,7 +357,92 @@ async function handleEmailChangeUndo(req, res, next) {
   } catch (err) { next(err); }
 }
 
+// ─── Wave 6 Sprint 3D — username backfill (PATCH/POST /auth/me/...) ─────────
+
+/**
+ * PATCH /api/v1/auth/me/username
+ *
+ * Updates the authenticated user's username. Drives:
+ *  - UsernameBackfillModal (forces NULL → first-set for legacy users)
+ *  - Future settings page rename (Wave 2 30-day cooldown still pending wiring)
+ *
+ * Initial NULL → first-set explicitly bypasses cooldown (no prior value to
+ * cool down from). Cooldown enforcement for subsequent renames will be added
+ * when the settings rename flow ships.
+ */
+async function patchMyUsername(req, res, next) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return sendError(res, { status: 401, message: "Cần đăng nhập trước" });
+
+    const raw = req.body?.username;
+    if (typeof raw !== "string") {
+      return sendError(res, { status: 400, message: "Username không hợp lệ" });
+    }
+    const username = raw.trim().toLowerCase();
+    if (!VALID_USERNAME_RE.test(username)) {
+      return sendError(res, {
+        status: 400,
+        message: "Username chỉ dùng chữ cái, số, dấu gạch dưới (3-30 ký tự)",
+      });
+    }
+
+    // Pre-INSERT dedup. Allow no-op when the same user already owns this
+    // exact username (idempotent retry safe). DB UNIQUE remains the
+    // authoritative gate; 23505 below catches the race.
+    const taken = await authRepository.usernameExists(username);
+    if (taken) {
+      const current = await authRepository.findById(userId);
+      if ((current?.username ?? "").toLowerCase() !== username) {
+        return sendError(res, { status: 409, message: "Username này có người dùng rồi 🐙" });
+      }
+    }
+
+    let updated;
+    try {
+      updated = await authRepository.updateUsername(userId, username);
+    } catch (dbErr) {
+      if (dbErr?.code === "23505" || /unique/i.test(dbErr?.message || "")) {
+        return sendError(res, { status: 409, message: "Username này có người dùng rồi 🐙" });
+      }
+      throw dbErr;
+    }
+    if (!updated) {
+      return sendError(res, { status: 404, message: "Không tìm thấy tài khoản" });
+    }
+
+    return sendSuccess(res, {
+      data: { username: updated.username },
+      message: "Username đã lưu",
+    });
+  } catch (err) { next(err); }
+}
+
+/**
+ * POST /api/v1/auth/me/autogen-username
+ *
+ * Generates a username candidate (email-prefix + 6-char base36) for the
+ * "Để Lintopus chọn cho mình 🐙" button in the backfill modal. Does NOT
+ * write — client confirms via PATCH above so the user can edit before
+ * committing.
+ */
+async function postAutogenUsername(req, res, next) {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return sendError(res, { status: 401, message: "Cần đăng nhập trước" });
+
+    const user = await authRepository.findById(userId);
+    if (!user) return sendError(res, { status: 404, message: "Không tìm thấy tài khoản" });
+
+    const candidate = await autogenUsername(user.email, (u) =>
+      authRepository.usernameExists(u.toLowerCase()),
+    );
+    return sendSuccess(res, { data: { candidate }, message: "Username candidate" });
+  } catch (err) { next(err); }
+}
+
 module.exports = {
   register, login, refresh, logout, handleChangePassword,
   handleEmailChange, handleEmailChangeUndo,
+  patchMyUsername, postAutogenUsername,
 };

@@ -145,7 +145,10 @@ export default function RegisterPage() {
       }
 
       analytics.signupComplete("email");
-      router.replace("/?new=1");
+      // Sprint 3D — go straight to /home so ?new=1 survives the redirect
+      // chain (RootPageClient at / would otherwise router.replace('/home')
+      // and drop the query param before WelcomeBanner ever sees it).
+      router.replace("/home?new=1");
     } catch (err) {
       setError(
         (err as Error)?.message || "Đăng ký không thành công — thử lại nhé.",

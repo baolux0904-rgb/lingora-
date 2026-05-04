@@ -58,6 +58,29 @@ router.post("/logout",   authController.logout);
  *  initial pass and existing-pass users rotating. */
 router.post("/change-password", verifyToken, authController.handleChangePassword);
 
+// ─── Wave 6 Sprint 3D — username backfill (NULL → first-set + autogen) ──────
+// 10 req/min/IP — modest throttle on the hybrid pick UX (manual + autogen
+// taps both endpoints). Public availability check uses a separate limiter
+// in publicRoutes.js so the backfill flow can't starve it (or vice versa).
+const usernameUpdateLimiter = rateLimit({
+  windowMs:        60 * 1000,
+  max:             10,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message: {
+    success: false,
+    message: "Quá nhiều lần thử — đợi tí nhé 🐙",
+  },
+});
+
+/** PATCH — set / update authenticated user's username. Backfill modal +
+ *  future settings rename both call this. */
+router.patch("/me/username", verifyToken, usernameUpdateLimiter, authController.patchMyUsername);
+
+/** POST — generate a username candidate from the user's email prefix.
+ *  Client previews + can edit before confirming via PATCH above. */
+router.post("/me/autogen-username", verifyToken, usernameUpdateLimiter, authController.postAutogenUsername);
+
 // ─── Wave 2.10 — Email change ────────────────────────────────────────────────
 
 const { emailChangeLimiter } = require("../middleware/rateLimiters");

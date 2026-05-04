@@ -31,6 +31,15 @@ export interface AuthUser {
    *  Zustand-persist caches pre-dating this field don't crash; consumers
    *  should treat `undefined` as `false` (safer default — show SSO UX). */
   has_password?: boolean;
+  /**
+   * Wave 6 Sprint 3B — username (3-30 chars, /^[a-zA-Z0-9_]+$/), set at
+   * register time for new email/password signups and auto-generated for
+   * Google OAuth signups. Optional + nullable on this type because legacy
+   * beta users predate the column being mandatory; Sprint 3D's
+   * UsernameBackfillModal forces them to pick one before they can use any
+   * authenticated route.
+   */
+  username?: string | null;
 }
 
 interface AuthState {
