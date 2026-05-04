@@ -28,8 +28,8 @@ import {
  * 6 specific Lingona features (verified against codebase):
  * - Speaking AI 4-criteria scoring (Whisper + LLM)
  * - Writing 3x multi-sampling (GPT-4o-mini median)
- * - Reading 56 passages (Cambridge-style)
- * - Listening Cam 10/11/12/14 (64 audio files)
+ * - Reading 56 passages (IELTS official source style)
+ * - Listening 64 audio files (IELTS official source)
  * - Battle 1v1 (Iron → Challenger 8 ranks)
  * - Achievement 45 badges + streak system
  *
@@ -68,17 +68,17 @@ const features: Feature[] = [
     id: "reading",
     title: "Reading 56 passages có sẵn",
     body:
-      "Practice + Full Test mode. Cambridge-style passages với MCQ, " +
+      "Practice + Full Test mode. Passages chuẩn IELTS với MCQ, " +
       "T/F/NG, Matching, Heading, Summary.",
     icon: BookOpen,
     side: "left",
   },
   {
     id: "listening",
-    title: "Listening — Cambridge audio chuẩn IELTS",
+    title: "Listening — bộ source IELTS official",
     body:
-      "Cam 10, 11, 12, 14 — 64 audio file thi thật. 4 sections + answer " +
-      "sheet đúng format Cambridge.",
+      "64 audio file từ bộ source IELTS official. 4 sections + answer " +
+      "sheet đúng format chuẩn.",
     icon: Headphones,
     side: "right",
   },
@@ -297,14 +297,14 @@ function ReadingVisual() {
   );
 }
 
-/** Listening — Cambridge audio waveform */
+/** Listening — IELTS official source audio waveform */
 function ListeningVisual() {
   const waveform = [4, 7, 5, 9, 6, 8, 5, 7, 4, 6, 8, 5, 7, 9, 5, 6, 4, 8, 6, 7];
   return (
     <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
       <div className="flex items-baseline justify-between mb-4">
         <span className="text-xs font-semibold text-navy uppercase tracking-wide">
-          Cam 14 — Test 2
+          Bộ source IELTS — Test 2
         </span>
         <span className="text-xs text-gray-600">02:47 / 30:00</span>
       </div>
@@ -320,14 +320,8 @@ function ListeningVisual() {
           />
         ))}
       </div>
-      <div className="flex items-center justify-center gap-3 text-xs text-gray-600">
-        <span>Cam 10</span>
-        <span>·</span>
-        <span>Cam 11</span>
-        <span>·</span>
-        <span>Cam 12</span>
-        <span>·</span>
-        <span className="font-semibold text-teal">Cam 14</span>
+      <div className="flex items-center justify-center text-xs text-gray-600">
+        <span className="font-semibold text-teal">Bộ source IELTS official — 64 audio files</span>
       </div>
     </div>
   );
