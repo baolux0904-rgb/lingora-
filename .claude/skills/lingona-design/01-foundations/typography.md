@@ -221,11 +221,42 @@ Touch a page? Run:
    - If no → DM Sans + Playfair canon
 ```
 
+## Font weight loadout (Wave 6 Sprint 3.5E)
+
+The two brand families are loaded with explicit weight + style arrays in
+`frontend/app/layout.tsx` via `next/font/google`. Loading only the weights
+actually used keeps the font payload tight while preventing browser
+faux-bold synthesis.
+
+**DM Sans (sans / body)** — weights `400 / 500 / 600 / 700`, styles `normal + italic`:
+- 400 — body text, regular paragraphs
+- 500 — labels, secondary headers, button text
+- 600 — primary headers, CTA emphasis, navigation active state
+- 700 — highest emphasis (rare; numeric stat cards may use 600 instead)
+
+**Playfair Display (display / italic accents)** — weights `400 / 700`, styles `normal + italic`:
+- 400 italic — signature warm headline accent (Hero, section titles)
+- 700 — bolder editorial moments (rare)
+- Italic = primary mode (peer-warm Lingona voice)
+- Roman = formal moments (legal page section numbers)
+
+### Why explicit weights matter
+
+Faux-bold (browser synthesizing bold appearance from regular-weight font
+when bold isn't loaded) produces visually muddy text on Vietnamese
+diacritics — `ă / â / ê / ô / ơ / ư / đ` characters lose crispness.
+Explicit weights ensure the browser uses actual bold cuts from the font
+family. Lingona is an educational product where readability is core to
+user value, and Vietnamese audience reads diacritics every line.
+
+See `09-anti-patterns/faux-bold-ban.md` for detection + fix instructions.
+
 ## See also
 
 - `01-foundations/palette.md` — color system
 - `01-foundations/space-system.md` — vertical rhythm + spacing
 - `02-layout/hierarchy-stair.md` — 3-level hierarchy rule (pending)
 - `04-modes/ielts-authentic.md` — Cambridge font swap detail (pending)
+- `09-anti-patterns/faux-bold-ban.md` — why every used weight must be loaded
 - `00-manifesto/recognizable-from-100ft.md#3` — dual font signature 100ft test
 - `00-manifesto/visual-vocabulary.md` — typography mapping per WARM/RIGOROUS axis

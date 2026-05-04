@@ -32,7 +32,7 @@ export default function FullTestLauncher({ onSelect, onBack }: Props) {
         const { tests: rows } = await listReadingFullTests();
         setTests(rows);
       } catch {
-        setError("Không tải được danh sách bài thi. Thử lại sau nhé.");
+        setError("Không tải được danh sách bài thi. Thử lại sau.");
       }
     })();
   }, []);

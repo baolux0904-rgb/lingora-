@@ -214,7 +214,7 @@ function LoginPageContent() {
             className="lg:col-span-5 flex justify-center lg:justify-end order-first lg:order-last"
           >
             <Mascot
-              size={200}
+              size={240}
               mood="happy"
               bubble="Chào — login để tiếp tục nhé"
               bubblePosition="below"

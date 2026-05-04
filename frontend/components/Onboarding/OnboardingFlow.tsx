@@ -126,7 +126,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <Mascot size={48} />
             </div>
             <h1 className="text-xl font-display font-bold mb-2" style={{ color: "#F8FAFC" }}>
-              Cho Lintopus biết bạn đang ở đâu nhé
+              Cho Lintopus biết bạn đang ở đâu
             </h1>
             <p className="text-sm mb-8" style={{ color: "#94A3B8" }}>
               Lộ trình của bạn sẽ được cá nhân hóa theo điểm xuất phát thật. Không có áp lực — bạn có thể chọn &quot;Chưa biết&quot;.

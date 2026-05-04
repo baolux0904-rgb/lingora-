@@ -375,7 +375,7 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
           Không tải được hồ sơ
         </h3>
         <p className="text-sm text-center max-w-xs" style={{ color: "var(--color-text-secondary)" }}>
-          Có vấn đề khi tải dữ liệu. Kiểm tra kết nối và thử lại nhé 🐙
+          Có vấn đề khi tải dữ liệu. Kiểm tra kết nối và thử lại 🐙
         </p>
         <button
           onClick={loadStats}

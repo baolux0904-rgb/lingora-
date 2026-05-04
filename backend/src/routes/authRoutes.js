@@ -31,7 +31,7 @@ const authLimiter = rateLimit({
   // + 09-anti-patterns/corporate-translate.md (peer voice, no 'vui lòng').
   message: {
     success: false,
-    message: "Quá nhiều lần thử — đợi 15 phút rồi thử lại nhé 🐙",
+    message: "Quá nhiều lần thử — đợi 15 phút rồi thử lại 🐙",
   },
 });
 
@@ -69,7 +69,7 @@ const usernameUpdateLimiter = rateLimit({
   legacyHeaders:   false,
   message: {
     success: false,
-    message: "Quá nhiều lần thử — đợi tí nhé 🐙",
+    message: "Quá nhiều lần thử — đợi tí 🐙",
   },
 });
 

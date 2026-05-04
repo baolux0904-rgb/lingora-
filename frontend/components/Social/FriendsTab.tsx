@@ -87,7 +87,7 @@ function ActivityFeed({ friends }: { friends: Friend[] }) {
           <div className="flex flex-col items-center justify-center h-full text-center py-12">
             <Mascot size={56} mood="thinking" />
             <p className="text-sm mb-1 mt-2" style={{ color: "var(--color-text-secondary)" }}>Chưa có bạn bè!</p>
-            <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Mời bạn cùng luyện IELTS nhé 🐙</p>
+            <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Mời bạn cùng luyện IELTS 🐙</p>
           </div>
         ) : (
           <div className="flex flex-col gap-4">
@@ -284,7 +284,7 @@ function FriendsList() {
     return (
       <div className="text-center py-12">
         <Mascot size={56} mood="thinking" />
-        <p className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>Chưa có bạn bè! Thêm bạn nhé 🐙</p>
+        <p className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>Chưa có bạn bè! Thêm bạn 🐙</p>
       </div>
     );
   }

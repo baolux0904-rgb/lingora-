@@ -5,14 +5,23 @@ import "./globals.css";
 import AuthProvider from "@/providers/AuthProvider";
 import SplashScreen from "@/components/SplashScreen";
 
+// Wave 6 Sprint 3.5E: explicit weight + style arrays. Pre-Sprint-3.5E only
+// the default 400 loaded, which left every font-semibold / font-bold in the
+// codebase relying on browser-synthesized faux-bold — muddy on Vietnamese
+// diacritics (ă/â/ê/ô/ơ/ư/đ). See lingona-design/09-anti-patterns/
+// faux-bold-ban.md for the rationale.
 const playfair = Playfair_Display({
   subsets: ["latin", "vietnamese"],
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
   variable: "--font-playfair",
   display: "swap",
 });
 
 const dmSans = DM_Sans({
   subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
   variable: "--font-dm-sans",
   display: "swap",
 });

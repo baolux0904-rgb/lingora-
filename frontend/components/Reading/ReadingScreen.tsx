@@ -418,7 +418,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose, mode = "
       <div className="w-full max-w-sm rounded-xl p-5 text-center" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
         <div className="text-base font-semibold mb-2" style={{ color: "var(--color-text)" }}>Tạm dừng luyện tập?</div>
         <div className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
-          Đây chỉ là luyện tập. Nếu bận thì dừng lại, xong quay lại tiếp tục nhé.
+          Đây chỉ là luyện tập. Nếu bận thì dừng lại, xong quay lại tiếp tục.
         </div>
         <div className="flex gap-3">
           <button onClick={() => setShowPauseModal(false)} className="flex-1 py-2.5 rounded-lg text-sm font-medium" style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)" }}>
@@ -436,7 +436,7 @@ export default function ReadingScreen({ passageId, onComplete, onClose, mode = "
     <div className="absolute inset-0 z-overlay flex items-center justify-center p-4" style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)" }}>
       <div className="text-center rounded-xl px-6 py-5" style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
         <div className="text-base font-semibold mb-1" style={{ color: "var(--color-text)" }}>Đã tạm dừng</div>
-        <div className="text-xs mb-4" style={{ color: "var(--color-text-secondary)" }}>Sẵn sàng thì bấm tiếp tục nhé.</div>
+        <div className="text-xs mb-4" style={{ color: "var(--color-text-secondary)" }}>Sẵn sàng thì bấm tiếp tục.</div>
         <button onClick={() => setPaused(false)} className="px-5 py-2 rounded-lg text-sm font-semibold" style={{ background: "#00A896", color: "#fff" }}>
           Tiếp tục
         </button>

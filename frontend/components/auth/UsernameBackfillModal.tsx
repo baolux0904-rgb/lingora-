@@ -100,7 +100,7 @@ export default function UsernameBackfillModal() {
       const { candidate } = await autogenMyUsername();
       setUsername(candidate);
     } catch (err) {
-      setError((err as Error)?.message || "Tạo username không thành công — thử lại nhé");
+      setError((err as Error)?.message || "Tạo username không thành công — thử lại");
     } finally {
       setAutogenLoading(false);
     }
@@ -128,7 +128,7 @@ export default function UsernameBackfillModal() {
       // patchUser inside updateMyUsername populates user.username — the
       // (app) layout re-renders and unmounts this modal automatically.
     } catch (err) {
-      setError((err as Error)?.message || "Lưu không thành công — thử lại nhé");
+      setError((err as Error)?.message || "Lưu không thành công — thử lại");
       setSubmitting(false);
     }
   }
@@ -160,7 +160,7 @@ export default function UsernameBackfillModal() {
             id="backfill-title"
             className="mt-4 font-display italic text-navy text-2xl"
           >
-            Bạn chọn username nhé
+            Bạn chọn username
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Username dùng cho profile + Battle leaderboard. Có thể đổi sau

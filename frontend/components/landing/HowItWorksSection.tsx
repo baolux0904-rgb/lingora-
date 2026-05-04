@@ -36,7 +36,7 @@ const steps: Step[] = [
       "Vào thử 1 bài Speaking với AI — nhận band score và feedback ngay. " +
       "Không cần email, không cần tài khoản.",
     mood: "default",
-    bubble: "Cùng thử nhé",
+    bubble: "Cùng thử",
   },
   {
     number: "02",

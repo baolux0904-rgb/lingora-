@@ -29,7 +29,7 @@ const usernameAvailLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Quá nhiều lần kiểm tra — đợi tí nhé 🐙",
+    message: "Quá nhiều lần kiểm tra — đợi tí 🐙",
   },
 });
 

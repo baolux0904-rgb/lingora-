@@ -54,7 +54,7 @@ export default function UpgradeTrigger({ type, used, limit, onUpgrade }: Upgrade
         Hết lượt {label} cho hôm nay rồi!
       </div>
       <div className="text-xs mb-3" style={{ color: "#94A3B8" }}>
-        Nếu bạn thấy app thật sự giúp ích, cùng mình đi tới Pro nhé! Mách nhỏ: rẻ hơn trung tâm ngoài kia nhiều lắm 😉 • Reset sau {timeUntilReset}
+        Nếu bạn thấy app thật sự giúp ích, cùng mình đi tới Pro! Mách nhỏ: rẻ hơn trung tâm ngoài kia nhiều lắm 😉 • Reset sau {timeUntilReset}
       </div>
       <button onClick={() => { analytics.proUpgradeClick("limit_trigger"); onUpgrade(); }}
         className="px-4 py-2 rounded-lg text-xs font-semibold transition-all active:scale-95"

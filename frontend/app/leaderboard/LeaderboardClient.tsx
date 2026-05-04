@@ -47,7 +47,7 @@ export default function LeaderboardClient() {
       {error && !loading && (
         <div className="py-20 flex flex-col items-center gap-3 text-center">
           <Mascot size={56} mood="sad" />
-          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Ối, tải không được! Thử lại nhé 🐙</p>
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Ối, tải không được! Thử lại 🐙</p>
         </div>
       )}
 

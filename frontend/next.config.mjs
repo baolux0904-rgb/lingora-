@@ -36,6 +36,15 @@ const nextConfig = {
   images: {
     formats: ["image/webp"],
     domains: [],
+    // Wave 6 Sprint 3.5E: enable SVG optimization for controlled assets.
+    // Lingona only ships one SVG (frontend/public/mascot.svg, R1-protected,
+    // 23711 bytes). Without this flag Next.js 14 refuses to optimize local
+    // SVGs and the priority-mode <Image> on Login + Register fell back to
+    // alt text — Sprint 3.5A audit Bug 7 root cause.
+    // XSS risk mitigated by the restrictive CSP + sandbox below; matches
+    // the Vercel-recommended pattern for trusted SVG assets.
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   // ------------------------------------------------------------------

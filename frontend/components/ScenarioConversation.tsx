@@ -132,7 +132,7 @@ export default function ScenarioConversation({
       })
       .catch((err) => {
         if (cancelled) return;
-        setError(err.message || "Ối, có lỗi rồi! Thử lại nhé 🐙");
+        setError(err.message || "Ối, có lỗi rồi! Thử lại 🐙");
         setPhase("error");
       });
 

@@ -14,7 +14,7 @@ export default function NotFound() {
       </h1>
 
       <p className="text-sm max-w-xs" style={{ color: "var(--color-text-secondary)" }}>
-        Để mình đưa bạn về trang chính nhé 🐙
+        Để mình đưa bạn về trang chính 🐙
       </p>
 
       <Link

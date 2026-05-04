@@ -369,7 +369,7 @@ export default function RegisterPage() {
             className="lg:col-span-5 flex justify-center lg:justify-end order-first lg:order-last lg:sticky lg:top-20"
           >
             <Mascot
-              size={200}
+              size={240}
               mood="happy"
               bubble="Hi — mình là Lintopus 🐙"
               bubblePosition="below"

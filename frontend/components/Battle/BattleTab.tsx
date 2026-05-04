@@ -240,7 +240,7 @@ export default function BattleTab() {
               style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
               <Mascot size={56} mood="thinking" />
               <p className="text-sm font-medium mb-1 mt-2" style={{ color: "var(--color-text)" }}>Chưa có hạng nào</p>
-              <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Chơi trận đầu tiên để nhận hạng nhé 🐙</p>
+              <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Chơi trận đầu tiên để nhận hạng 🐙</p>
             </div>
           )}
 

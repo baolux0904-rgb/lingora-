@@ -56,7 +56,7 @@ export default function BattleLeaderboard({ onClose }: BattleLeaderboardProps) {
         ) : entries.length === 0 ? (
           <div className="text-center py-16 flex flex-col items-center gap-3">
             <Mascot size={64} mood="thinking" />
-            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Chưa có trận đấu nào! Thử sức nhé 🐙</p>
+            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Chưa có trận đấu nào! Thử sức 🐙</p>
           </div>
         ) : (
           <div className="max-w-2xl mx-auto flex flex-col gap-2">

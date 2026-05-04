@@ -6,7 +6,7 @@ import Mascot from "@/components/ui/Mascot";
 
 const TIPS = [
   "Mỗi sáng luyện nói 5 phút — kiên trì quan trọng hơn luyện dài 🐙",
-  "Đừng lo ngữ pháp hoàn hảo. Tập trung nói cho người khác hiểu trước nhé!",
+  "Đừng lo ngữ pháp hoàn hảo. Tập trung nói cho người khác hiểu trước!",
   "Ghi âm lại rồi nghe — bạn sẽ phát hiện lỗi mà lúc nói không nghe ra đâu 🐙",
   "Luyện những âm tiếng Việt không có, như 'th' và 'r' — mỗi ngày một chút!",
 ];

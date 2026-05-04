@@ -148,7 +148,7 @@ export default function ProUpgradeModal({ isOpen, onClose, onUpgraded }: ProUpgr
           <div className="text-center">
             <div className="flex justify-center mb-3"><Mascot size={56} mood="happy" /></div>
             <h2 className="text-2xl font-display font-bold" style={{ color: "#F8FAFC" }}>
-              Cùng mình đi Pro nhé!
+              Cùng mình đi Pro!
             </h2>
             <p className="text-sm mt-1" style={{ color: "#94A3B8" }}>
               Luyện không giới hạn, rẻ hơn 1 buổi gia sư nhiều lắm!

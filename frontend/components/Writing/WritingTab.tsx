@@ -980,7 +980,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                 Tạm dừng luyện tập?
               </div>
               <p className="text-sm mt-1.5" style={{ color: "var(--color-text-secondary)" }}>
-                Đây chỉ là luyện tập. Nếu bận thì dừng lại, xong quay lại tiếp tục nhé.
+                Đây chỉ là luyện tập. Nếu bận thì dừng lại, xong quay lại tiếp tục.
               </p>
             </div>
             <div className="flex gap-2">

@@ -116,7 +116,7 @@ export default function ConversationListHeader() {
   const handleShare = async () => {
     setOpen(false);
     const url = typeof window !== "undefined" ? window.location.origin : "https://lingona.app";
-    const text = "Cùng luyện IELTS với mình trên Lingona nhé!";
+    const text = "Cùng luyện IELTS với mình trên Lingona!";
     try {
       if (typeof navigator !== "undefined" && (navigator as Navigator).share) {
         await (navigator as Navigator).share({ title: "Lingona", text, url });

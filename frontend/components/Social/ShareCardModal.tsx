@@ -65,7 +65,7 @@ function CardPreview({ template, stats }: { template: TemplateKey; stats: ShareC
         <div className="text-4xl font-bold mb-1" style={{ color: "#00C4B0" }}>{stats.predictedBand?.toFixed(1) ?? "—"}</div>
         <div className="text-sm mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>Band dự đoán</div>
         <div className="text-xs mb-1" style={{ color: "rgba(255,255,255,0.5)" }}>Level {stats.level} · {stats.totalXp.toLocaleString()} XP</div>
-        <div className="text-xs mb-1" style={{ color: "#F59E0B" }}>Tiếp tục luyện nhé! 🐙</div>
+        <div className="text-xs mb-1" style={{ color: "#F59E0B" }}>Tiếp tục luyện! 🐙</div>
         {brand}
       </div>
     );

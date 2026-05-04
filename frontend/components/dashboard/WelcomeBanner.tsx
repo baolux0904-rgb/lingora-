@@ -91,7 +91,7 @@ export default function WelcomeBanner() {
               </h2>
               <p className="mt-2 text-sm sm:text-base text-gray-700 leading-relaxed">
                 Mình là Lintopus 🐙 — đồng hành cả journey IELTS của bạn. Bắt đầu thử
-                1 bài Speaking hoặc Reading nhé.
+                1 bài Speaking hoặc Reading.
               </p>
             </div>
             <button

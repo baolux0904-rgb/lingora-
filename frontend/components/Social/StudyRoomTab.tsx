@@ -332,7 +332,7 @@ export default function StudyRoomTab() {
       ) : rooms.length === 0 ? (
         <div className="text-center py-12 flex flex-col items-center gap-3">
           <Mascot size={56} mood="thinking" />
-          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Chưa có phòng học nào! Tạo phòng và mời bạn bè nhé 🐙</p>
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Chưa có phòng học nào! Tạo phòng và mời bạn bè 🐙</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">

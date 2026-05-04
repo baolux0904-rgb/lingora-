@@ -27,7 +27,7 @@ export default function GlobalError({
       </h1>
 
       <p className="text-sm max-w-xs" style={{ color: "var(--color-text-secondary)" }}>
-        Đừng lo, Lintopus đang sửa! Bạn thử tải lại trang nhé 🐙
+        Đừng lo, Lintopus đang sửa! Bạn thử tải lại trang 🐙
       </p>
 
       <div className="flex gap-3 mt-2">

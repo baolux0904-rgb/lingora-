@@ -153,7 +153,7 @@ function ConversationList({ conversations, activeId, onSelect, loading }: {
           <div className="text-center py-12 flex flex-col items-center gap-3">
             <Mascot size={56} mood="thinking" />
             <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-              {search ? "Không tìm thấy" : "Chưa có tin nhắn nào! Nhắn cho bạn bè nhé 🐙"}
+              {search ? "Không tìm thấy" : "Chưa có tin nhắn nào! Nhắn cho bạn bè 🐙"}
             </p>
           </div>
         ) : (
