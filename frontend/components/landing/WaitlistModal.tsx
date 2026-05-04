@@ -62,6 +62,15 @@ export type TierKey = "free" | "pro_1m" | "pro_3m" | "pro_6m" | "pro_12m";
 
 interface WaitlistModalProps {
   initialTier: TierKey;
+  /**
+   * Wave 6 Sprint 3.6 — caller indicates the user toggled the "Tôi là
+   * học sinh / sinh viên" checkbox in PricingSection. Forwarded as
+   * `student_status: 'interested' | null` in the POST body. Backend
+   * silently ignores extra fields today (manual destructure validator);
+   * the field becomes durable when the .edu verification gate ships
+   * with MoMo onboarding (Sprint 7+).
+   */
+  studentInterested?: boolean;
   onClose: () => void;
 }
 
@@ -93,6 +102,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
 
 export default function WaitlistModal({
   initialTier,
+  studentInterested = false,
   onClose,
 }: WaitlistModalProps) {
   const [email, setEmail] = useState("");
@@ -139,6 +149,11 @@ export default function WaitlistModal({
           name: name.trim(),
           interested_tier: tier,
           goal_band: goalBand,
+          // Sprint 3.6 — forward the student-toggle state from
+          // PricingSection. Backend silently drops unknown fields today;
+          // becomes durable when the .edu verification gate ships
+          // (Sprint 7+ with MoMo onboarding).
+          student_status: studentInterested ? "interested" : null,
         }),
       });
 

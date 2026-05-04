@@ -341,4 +341,6 @@ Fail any = revise
 - `05-voice/microcopy-library.md` — VN microcopy table
 - `05-voice/battle-drama.md` — exception register
 - `05-voice/never-say-list.md` — hard-banned phrases
+- `09-anti-patterns/jargon-ban.md` — end-user vs developer language split
+  (no Whisper / GPT-4o-mini / LLM in UI copy; "Lintopus AI" is the brand)
 - `04-modes/ielts-authentic.md` — voice swap to English

@@ -43,8 +43,8 @@ export default function HeroSection() {
               className="mt-6 lg:mt-8 text-lg lg:text-xl text-gray-700 max-w-xl mx-auto lg:mx-0 leading-relaxed"
             >
               Mình giúp bạn từ Band 5.0 đến 7.5+ — phản hồi cụ thể, không
-              cảm tính. Speaking AI chấm 4 tiêu chí IELTS, Writing 3x
-              multi-sampling.
+              cảm tính. Lintopus AI chấm Speaking 4 tiêu chí IELTS, Writing
+              3 lần để giảm sai số.
             </motion.p>
 
             <motion.div

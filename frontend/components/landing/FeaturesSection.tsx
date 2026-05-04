@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 /**
- * FeaturesSection — Wave 6 Sprint 2C rebuild.
+ * FeaturesSection — Wave 6 Sprint 3.6 rebuild (production hotfix round 2).
  *
  * Per .claude/skills/lingona-design:
  * - 02-layout/desktop-canvas.md: Pattern C alternating asymmetric per feature row
@@ -24,17 +24,25 @@ import {
  *   NO 'Trusted by' logos, NO testimonials carousel
  * - 09-anti-patterns/fake-stats-ban.md: only specific verifiable claims,
  *   no fabricated user counts / band averages / satisfaction %
+ * - 09-anti-patterns/jargon-ban.md: end-user-facing copy uses "Lintopus AI",
+ *   never "Whisper", "GPT-4o-mini", "LLM", "median", "multi-sampling".
  *
  * 6 specific Lingona features (verified against codebase):
- * - Speaking AI 4-criteria scoring (Whisper + LLM)
- * - Writing 3x multi-sampling (GPT-4o-mini median)
- * - Reading 56 passages (IELTS official source style)
+ * - Speaking AI 4-criteria scoring
+ * - Writing — 3 lần chấm độc lập (Lintopus AI)
+ * - Reading — đầy đủ 5 dạng câu hỏi IELTS (Practice + Full Test)
  * - Listening 64 audio files (IELTS official source)
  * - Battle 1v1 (Iron → Challenger 8 ranks)
  * - Achievement 45 badges + streak system
  *
- * Visual blocks ship as placeholder cards. Sprint 2E polish refines each
- * with real data preview (band score card / rank badge / streak ring / etc.).
+ * Sprint 3.6 changes (Louis production round-2 lock):
+ * - Reading: drop "56 passages có sẵn" copy + 56-grid visual
+ *   (Louis: "lộ rõ điểm yếu rồi" — exposed 12/56 progress).
+ *   New copy lists 5 IELTS question types; new visual previews a hero
+ *   passage card ("The Origin of Coffee").
+ * - Speaking + Writing: scrub developer jargon (Whisper / GPT-4o-mini /
+ *   LLM / multi-sampling / median) → branded "Lintopus AI" voice.
+ *   Louis: "người dùng sẽ không hiểu gpt call rồi này nọ là gì".
  */
 
 interface Feature {
@@ -50,26 +58,26 @@ const features: Feature[] = [
     id: "speaking",
     title: "Speaking AI chấm theo 4 tiêu chí IELTS",
     body:
-      "Fluency, Vocabulary, Grammar, Pronunciation — feedback cụ thể từng " +
-      "tiêu chí. Whisper transcribe + LLM scoring.",
+      "Lintopus AI nghe phát âm + chấm 4 tiêu chí IELTS chính thức: " +
+      "Fluency, Vocabulary, Grammar, Pronunciation — feedback cụ thể từng tiêu chí.",
     icon: Mic,
     side: "left",
   },
   {
     id: "writing",
-    title: "Writing chấm 3x giảm noise",
+    title: "Writing chấm 3 lần — giảm sai số",
     body:
-      "GPT-4o-mini chấm 3 lần độc lập, lấy median band score. Phản hồi 4 " +
-      "tiêu chí: Task Achievement, Coherence, Lexical, Grammar.",
+      "Lintopus AI chấm 3 lần để giảm sai số — kết quả band ổn định hơn. " +
+      "Phản hồi 4 tiêu chí: Task Achievement, Coherence, Lexical, Grammar.",
     icon: PenLine,
     side: "right",
   },
   {
     id: "reading",
-    title: "Reading 56 passages có sẵn",
+    title: "Reading IELTS đầy đủ format",
     body:
-      "Practice + Full Test mode. Passages chuẩn IELTS với MCQ, " +
-      "T/F/NG, Matching, Heading, Summary.",
+      "Practice + Full Test mode. Đủ 5 dạng câu hỏi IELTS: Multiple Choice, " +
+      "True / False / Not Given, Matching, Heading, Summary completion.",
     icon: BookOpen,
     side: "left",
   },
@@ -233,14 +241,14 @@ function SpeakingVisual() {
   );
 }
 
-/** Writing — 3x multi-sampling chart */
+/** Writing — 3 lần chấm độc lập (Lintopus AI) */
 function WritingVisual() {
   const samples = [6.5, 7.0, 6.5];
   return (
     <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
       <div className="flex items-baseline justify-between mb-4">
         <span className="text-xs font-semibold text-navy uppercase tracking-wide">
-          3x multi-sampling
+          3 lần chấm độc lập
         </span>
         <span className="font-display italic text-teal text-3xl">6.5</span>
       </div>
@@ -263,36 +271,44 @@ function WritingVisual() {
         ))}
       </div>
       <p className="mt-3 text-xs text-gray-600 text-center">
-        Median = band Final
+        Trung vị = band cuối
       </p>
     </div>
   );
 }
 
-/** Reading — 56 passages count + grid */
+/** Reading — hero passage card preview ("The Origin of Coffee" mock) */
 function ReadingVisual() {
   return (
     <div className="rounded-card border border-gray-200 bg-cream-warm p-6 shadow-sm">
-      <div className="text-center">
-        <span className="block font-display italic text-teal text-6xl leading-none">
-          56
+      <div className="flex items-baseline justify-between mb-3">
+        <span className="text-xs font-semibold text-navy uppercase tracking-wide">
+          Academic Reading — Test mode
         </span>
-        <span className="mt-2 block text-xs text-gray-600 uppercase tracking-wide">
-          passages có sẵn
-        </span>
+        <span className="text-xs text-gray-600">20:00</span>
       </div>
-      <div className="mt-4 grid grid-cols-7 gap-1">
-        {Array.from({ length: 56 }).map((_, i) => (
-          <div
-            key={i}
-            className={`aspect-square rounded-sm ${
-              i < 12 ? "bg-teal" : "bg-teal/20"
-            }`}
-            aria-hidden="true"
-          />
-        ))}
+      <h4 className="font-display italic text-navy text-lg leading-snug">
+        The Origin of Coffee
+      </h4>
+      <p className="mt-2 text-xs text-gray-700 leading-relaxed line-clamp-4">
+        Coffee is one of the most widely consumed beverages in the world,
+        but its origins remain shrouded in legend. The most popular tale
+        traces it to a 9th-century Ethiopian goatherd named Kaldi, who
+        noticed his goats grew unusually energetic after eating the bright
+        red berries of a particular shrub…
+      </p>
+      <div className="mt-4 grid grid-cols-2 gap-2 text-[10px]">
+        <div className="rounded-sm bg-teal/10 text-teal px-2 py-1 font-semibold text-center">
+          13 câu hỏi
+        </div>
+        <div className="rounded-sm bg-cream text-navy border border-gray-200 px-2 py-1 font-semibold text-center">
+          Passage 1 / 3
+        </div>
       </div>
-      <p className="mt-3 text-xs text-gray-600 text-center">Đã giải: 12 / 56</p>
+      <div className="mt-3 pt-3 border-t border-gray-200 flex items-center justify-between text-[10px] text-gray-600">
+        <span>Cambridge IELTS format</span>
+        <span className="text-teal font-semibold">Practice + Full Test</span>
+      </div>
     </div>
   );
 }
