@@ -110,9 +110,15 @@ export default function Footer() {
           <div className="md:col-span-3">
             <h4 className="text-sm font-semibold text-navy mb-3">Pháp lý</h4>
             <ul className="space-y-2 text-sm text-gray-700">
+              {/* Wave 6 Sprint 3.5C-3 commit 2 — point at /legal/* doc-style
+                  pages. Refund link removed per edu/IELTS industry pattern
+                  (Duolingo / Memrise / Khan Academy use 3-link footer);
+                  refund still surfaces in Pricing section + Terms §7
+                  cross-reference. Cookie added since cookie disclosure is now
+                  expected baseline for any auth-handling site. */}
               <li>
                 <Link
-                  href="/terms"
+                  href="/legal/terms"
                   className="hover:text-teal transition-colors duration-150"
                 >
                   Điều khoản sử dụng
@@ -120,18 +126,18 @@ export default function Footer() {
               </li>
               <li>
                 <Link
-                  href="/privacy"
+                  href="/legal/privacy"
                   className="hover:text-teal transition-colors duration-150"
                 >
-                  Bảo mật
+                  Chính sách bảo mật
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/refund"
+                  href="/legal/cookie"
                   className="hover:text-teal transition-colors duration-150"
                 >
-                  Hoàn tiền
+                  Chính sách cookie
                 </Link>
               </li>
               <li>

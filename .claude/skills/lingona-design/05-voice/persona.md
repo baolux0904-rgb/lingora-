@@ -215,6 +215,45 @@ Privacy policy, Terms of Service, Refund policy — neutral formal but Vietnames
 
 Per Wave 6 launch audit — legal pages use formal but Vietnamese-first.
 
+**Wave 6 Sprint 3.5C-3 lock — formal voice exception scope:**
+
+The exception applies to all routes under `/legal/*`:
+- `/legal/terms` — Điều khoản sử dụng
+- `/legal/privacy` — Chính sách bảo mật
+- `/legal/refund` — Chính sách hoàn tiền (7 ngày unconditional)
+- `/legal/cookie` — Chính sách cookie
+- `/legal/data` — Xử lý dữ liệu
+
+Specific rules for these pages (DIFFERENT from peer voice default):
+
+- Capitalize `Bạn` as formal address (legal convention, Tiki/Shopee
+  precedent — NOT lowercase `bạn`).
+- NO `nhé` particle anywhere in the page body.
+- NO `mình` — use the entity name `Lingona` (or `Chúng tôi` once
+  introduced) instead.
+- Sentence structure follows legal precedent: numbered headings
+  (`1. Chấp nhận điều khoản`), formal connective phrases
+  (`Bằng việc … Bạn đồng ý …`), explicit cross-references between
+  sub-pages instead of conversational hand-offs.
+- `Cập nhật: DD/MM/YYYY · Version X.Y` header on every legal page so
+  changes are traceable.
+
+Why the exception exists:
+1. Legal language requires precise enforceability — peer voice
+   ambiguity weakens stated terms.
+2. Vietnamese audience expects formal tone in legal documents
+   (Tiki / Shopee / Stripe Vietnam precedent).
+3. Casual peer voice in legal text undermines authority + can be cited
+   against the entity in a dispute.
+
+Canonical implementations (don't redesign — read these before drafting
+any new legal content):
+- `frontend/app/(public)/legal/terms/page.tsx`
+- `frontend/app/(public)/legal/privacy/page.tsx`
+- `frontend/app/(public)/legal/refund/page.tsx`
+- `frontend/app/(public)/legal/cookie/page.tsx`
+- `frontend/app/(public)/legal/data/page.tsx`
+
 ### 3. Critical safety message
 
 Account deletion confirm, financial action, data loss warning:
