@@ -47,7 +47,7 @@ export default function FinalCTA() {
             <div className="mt-8 lg:mt-10 flex flex-wrap items-center justify-center lg:justify-start gap-4">
               <button
                 type="button"
-                onClick={() => setWaitlistOpen("pro")}
+                onClick={() => setWaitlistOpen("pro_12m")}
                 className="inline-flex items-center gap-2 px-8 py-4 rounded-button bg-teal text-cream font-semibold text-lg hover:bg-teal-light active:bg-teal-dark transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
               >
                 Tham gia waitlist Pro

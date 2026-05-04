@@ -74,7 +74,19 @@ async function getUsernameAvailability(req, res, next) {
 
 // ─── Waitlist (Wave 6 Sprint 2D) ─────────────────────────────────────────────
 
-const ALLOWED_TIERS = ["free", "pro", "pro_annual"];
+// Wave 6 Sprint 3.5C-2 — extended for the rebuilt PricingSection 4-tier
+// Pro pricing (1m / 3m / 6m / 12m). Legacy values 'pro' and 'pro_annual'
+// from Sprint 2D are kept so any pre-existing waitlist row stays valid +
+// any deep-linked stale form (none today, defensive) doesn't 400.
+const ALLOWED_TIERS = [
+  "free",
+  "pro",         // legacy Sprint 2D
+  "pro_annual",  // legacy Sprint 2D
+  "pro_1m",
+  "pro_3m",
+  "pro_6m",
+  "pro_12m",
+];
 const ALLOWED_GOAL_BANDS = ["5.5", "6.0", "6.5", "7.0", "7.5+", "unsure"];
 const EDU_REGEX = /\.edu(\.[a-z]{2,3})?$/i;
 // Pragmatic email shape — same surface area as register flow, not RFC 5322

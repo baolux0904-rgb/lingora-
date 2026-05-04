@@ -46,7 +46,19 @@ import Mascot from "@/components/ui/Mascot";
  * - body scroll locked while open
  */
 
-export type TierKey = "free" | "pro" | "pro_annual";
+/**
+ * Waitlist tier identifiers — Wave 6 Sprint 3.5C-2 expansion.
+ *
+ * Old union ("free" | "pro" | "pro_annual") was a 3-option Sprint 2D
+ * lock. New 5-option set mirrors the rebuilt PricingSection 4-tier Pro
+ * pricing (1m / 3m / 6m / 12m).
+ *
+ * Backend ALLOWED_TIERS allowlist in publicController.js was extended
+ * in this same commit to keep the legacy values ('pro', 'pro_annual')
+ * AND accept the four new pro_*m values, so existing waitlist rows
+ * stay valid.
+ */
+export type TierKey = "free" | "pro_1m" | "pro_3m" | "pro_6m" | "pro_12m";
 
 interface WaitlistModalProps {
   initialTier: TierKey;
@@ -59,9 +71,11 @@ interface TierOption {
 }
 
 const TIER_OPTIONS: TierOption[] = [
-  { value: "free", label: "Free (forever)" },
-  { value: "pro", label: "Pro 199k/tháng" },
-  { value: "pro_annual", label: "Pro Annual (sắp ra mắt)" },
+  { value: "free",    label: "Free (0₫ — mãi mãi)" },
+  { value: "pro_1m",  label: "Pro 1 tháng (169k)" },
+  { value: "pro_3m",  label: "Pro 3 tháng (495k)" },
+  { value: "pro_6m",  label: "Pro 6 tháng (955k)" },
+  { value: "pro_12m", label: "Pro 12 tháng (1.791k) ★ Tốt nhất" },
 ];
 
 const GOAL_BAND_OPTIONS: { value: string; label: string }[] = [
@@ -134,7 +148,7 @@ export default function WaitlistModal({
         setState("error");
         setErrorMsg(
           (data && typeof data.message === "string" && data.message) ||
-            "Có lỗi rồi — thử lại nhé"
+            "Có lỗi rồi — thử lại"
         );
         return;
       }
@@ -146,7 +160,7 @@ export default function WaitlistModal({
       );
     } catch {
       setState("error");
-      setErrorMsg("Không kết nối được. Kiểm tra mạng nhé.");
+      setErrorMsg("Không kết nối được. Kiểm tra mạng.");
     }
   }
 

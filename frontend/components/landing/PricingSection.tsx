@@ -2,34 +2,95 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check } from "lucide-react";
+import { Check, Sparkles, Star } from "lucide-react";
 import WaitlistModal, { type TierKey } from "./WaitlistModal";
 
 /**
- * PricingSection — Wave 6 Sprint 2D rebuild.
+ * PricingSection — Wave 6 Sprint 3.5C-2 rebuild.
  *
  * Per .claude/skills/lingona-design:
- * - 02-layout/desktop-canvas.md: 2-col grid pricing tiers, max-w-[880px]
- * - 03-components/card-language.md: hero card pattern, border-2 border-teal
+ * - 02-layout/desktop-canvas.md: 2-card grid (Free + Pro) inside max-w-1120px
+ * - 03-components/card-language.md: cream-warm cards, border-2 border-teal
  *   for highlighted Pro tier with 'Lingona đề xuất' pill (factual, not
  *   'Most Popular' psychology)
- * - 03-components/primary-button.md: teal solid CTA Pro, secondary outline
- *   navy CTA Free
- * - 05-voice/microcopy-library.md: Vietnamese peer voice
- * - 09-anti-patterns/ai-generated-smell.md: NO rainbow gradient badge,
+ * - 03-components/primary-button.md: teal solid CTA Pro, secondary outline Free
+ * - 04-modes/brand.md: cream brand canon
+ * - 05-voice/microcopy-library.md + persona.md: Vietnamese peer voice
+ * - 06-motion/framer-variants.md: scroll-into-view stagger
+ * - 09-anti-patterns/ai-generated-smell.md: NO rainbow gradient,
  *   NO 'Most Popular' English copy
- * - 09-anti-patterns/fake-stats-ban.md: honest pre-launch '09/07/2026 ra
- *   mắt' framing, no fabricated user counts
  *
- * Sprint 2D scope (Louis lock):
- * - 2-tier display only (Free + Pro 199k/tháng)
- * - 4 billing periods of Pro (1mo/3mo/6mo/12mo) deferred to post-launch
- *   when MoMo merchant account active. Sprint 2D = waitlist signup only,
- *   no purchase flow.
+ * Sprint 3.5C-2 scope (Louis Q1 lock):
+ * - 4-tier Pro pricing: 1m / 3m / 6m / 12m with 15/17/20/25% discount
+ * - Pattern A: 2 cards horizontal + Pro card has billing toggle
+ * - Default tier = 12m (best discount, Spotify pattern)
+ * - Featured 'Lingona đề xuất' pill on Pro card (always)
+ * - Featured 'Tốt nhất' star on 12m option
+ * - Display: monthly equivalent prominent + total small
+ * - .edu auto -20% callout in Pro card
+ * - Compare table below: 4 columns showing all Pro tier prices
  * - Both CTAs trigger WaitlistModal with tier preselected.
- * - .edu auto-detect for student discount surfaces in modal email field
- *   hint + on backend signup.
  */
+
+type ProTierId = "pro_1m" | "pro_3m" | "pro_6m" | "pro_12m";
+
+interface ProTier {
+  id: ProTierId;
+  months: number;
+  label: string;       // e.g., '12 tháng'
+  shortLabel: string;  // e.g., '12m' for toggle
+  original: number;    // pre-discount total (VND)
+  final: number;       // post-discount total (VND)
+  discountPct: number; // e.g., 25
+  monthlyEquiv: number;// rounded VND/month for display
+  featured?: boolean;  // 12m = true (default + best-value star)
+}
+
+const PRO_TIERS: ProTier[] = [
+  {
+    id: "pro_1m",
+    months: 1,
+    label: "1 tháng",
+    shortLabel: "1m",
+    original: 199_000,
+    final: 169_000,
+    discountPct: 15,
+    monthlyEquiv: 169_000,
+  },
+  {
+    id: "pro_3m",
+    months: 3,
+    label: "3 tháng",
+    shortLabel: "3m",
+    original: 597_000,
+    final: 495_000,
+    discountPct: 17,
+    monthlyEquiv: 165_000,
+  },
+  {
+    id: "pro_6m",
+    months: 6,
+    label: "6 tháng",
+    shortLabel: "6m",
+    original: 1_194_000,
+    final: 955_000,
+    discountPct: 20,
+    monthlyEquiv: 159_000,
+  },
+  {
+    id: "pro_12m",
+    months: 12,
+    label: "12 tháng",
+    shortLabel: "12m",
+    original: 2_388_000,
+    final: 1_791_000,
+    discountPct: 25,
+    monthlyEquiv: 149_000,
+    featured: true,
+  },
+];
+
+const DEFAULT_PRO_TIER: ProTierId = "pro_12m";
 
 const FREE_FEATURES = [
   "1x Speaking AI mỗi ngày",
@@ -47,11 +108,19 @@ const PRO_FEATURES = [
   "Analytics chi tiết + Roadmap",
   "Study Rooms + AI Group Coach",
   "Priority Support",
-  "Sinh viên (.edu) tự động giảm 20%",
+  "Tất cả tính năng Free",
 ];
+
+/** Format VND with the vi-VN thousand separator (1.791.000 style). */
+function formatVND(amount: number): string {
+  return amount.toLocaleString("vi-VN");
+}
 
 export default function PricingSection() {
   const [waitlistTier, setWaitlistTier] = useState<TierKey | null>(null);
+  const [selectedTierId, setSelectedTierId] = useState<ProTierId>(DEFAULT_PRO_TIER);
+
+  const currentTier = PRO_TIERS.find((t) => t.id === selectedTierId) ?? PRO_TIERS[3];
 
   return (
     <section
@@ -60,36 +129,34 @@ export default function PricingSection() {
     >
       <div className="max-w-[1120px] mx-auto">
         {/* Section header */}
-        <div className="text-center mb-16 lg:mb-20">
+        <div className="text-center mb-12 lg:mb-16">
           <h2 className="font-display italic text-navy text-3xl lg:text-5xl leading-tight tracking-tight">
             Giá đơn giản — không bí mật
           </h2>
           <p className="mt-4 text-base lg:text-lg text-gray-700 max-w-2xl mx-auto">
-            Free tier dùng được forever. Pro 199k/tháng — sinh viên giảm 20%.
+            Free mãi mãi cho người mới bắt đầu. Pro khi bạn nghiêm túc với mục tiêu IELTS.
           </p>
         </div>
 
-        {/* Tier cards 2-col */}
+        {/* 2-card grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 max-w-[880px] mx-auto">
-          {/* Free tier */}
+          {/* Free card */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="relative bg-cream border border-gray-200 rounded-card p-8"
+            className="relative bg-cream-warm border border-gray-200 rounded-card p-8 flex flex-col"
           >
             <h3 className="font-display italic text-navy text-2xl">Free</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Forever — không cần thẻ
-            </p>
+            <p className="mt-2 text-sm text-gray-600">Mãi mãi miễn phí — không cần thẻ</p>
 
             <div className="mt-6 flex items-baseline gap-2">
               <span className="font-display italic text-navy text-5xl">0₫</span>
               <span className="text-sm text-gray-500">/ tháng</span>
             </div>
 
-            <ul className="mt-8 space-y-3">
+            <ul className="mt-8 space-y-3 flex-1">
               {FREE_FEATURES.map((feature) => (
                 <li
                   key={feature}
@@ -109,42 +176,89 @@ export default function PricingSection() {
               onClick={() => setWaitlistTier("free")}
               className="mt-10 w-full px-6 py-3 rounded-button border border-navy/20 text-navy font-semibold text-base hover:bg-navy/5 active:bg-navy/10 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy/30 focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
             >
-              Tham gia waitlist
+              Tham gia waitlist Free
             </button>
           </motion.div>
 
-          {/* Pro tier — highlighted */}
+          {/* Pro card — highlighted with billing toggle */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-            className="relative bg-cream border-2 border-teal rounded-hero p-8 shadow-md"
+            className="relative bg-cream-warm border-2 border-teal rounded-hero p-8 shadow-md flex flex-col"
           >
-            {/* 'Lingona đề xuất' pill — factual recommendation, NOT 'Most Popular' psychology */}
+            {/* 'Lingona đề xuất' pill */}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-              <span className="px-4 py-1 bg-teal text-cream text-xs font-semibold rounded-full whitespace-nowrap">
+              <span className="inline-flex items-center gap-1.5 px-4 py-1 bg-teal text-cream text-xs font-semibold rounded-full whitespace-nowrap">
+                <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
                 Lingona đề xuất
               </span>
             </div>
 
             <h3 className="font-display italic text-navy text-2xl">Pro</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Toàn quyền truy cập
+              AI không giới hạn + tất cả tính năng
             </p>
 
-            <div className="mt-6 flex items-baseline gap-2">
-              <span className="font-display italic text-teal text-5xl">
-                199k
-              </span>
-              <span className="text-sm text-gray-500">/ tháng</span>
+            {/* Billing toggle */}
+            <div
+              role="radiogroup"
+              aria-label="Chọn chu kỳ Pro"
+              className="mt-5 grid grid-cols-4 gap-1.5 p-1 bg-cream rounded-button border border-gray-200"
+            >
+              {PRO_TIERS.map((tier) => {
+                const active = selectedTierId === tier.id;
+                return (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setSelectedTierId(tier.id)}
+                    className={`relative px-2 py-1.5 rounded-button text-xs font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light ${
+                      active
+                        ? "bg-teal text-cream"
+                        : "text-navy hover:bg-gray-50"
+                    }`}
+                  >
+                    {tier.shortLabel}
+                    {tier.featured && (
+                      <Star
+                        className="absolute -top-1.5 -right-1.5 w-3 h-3 text-amber-500 fill-amber-500"
+                        aria-label="Tốt nhất"
+                      />
+                    )}
+                  </button>
+                );
+              })}
             </div>
-            <p className="mt-1 text-xs text-gray-600">
-              Sinh viên (.edu):{" "}
-              <span className="font-semibold text-teal">159k/tháng</span>
-            </p>
 
-            <ul className="mt-8 space-y-3">
+            {/* Selected tier display */}
+            <div className="mt-6" aria-live="polite">
+              <div className="flex items-baseline gap-2">
+                <span className="font-display italic text-teal text-5xl">
+                  {formatVND(currentTier.monthlyEquiv)}₫
+                </span>
+                <span className="text-sm text-gray-500">/ tháng</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                <span>{formatVND(currentTier.final)}₫ tổng cộng</span>
+                <span className="px-2 py-0.5 rounded-button bg-teal/10 text-teal font-semibold text-xs">
+                  -{currentTier.discountPct}%
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-gray-500 line-through">
+                {formatVND(currentTier.original)}₫
+              </div>
+            </div>
+
+            {/* .edu callout — single mention, applies to all Pro tiers */}
+            <div className="mt-4 mb-2 p-3 rounded-button bg-amber-50 border border-amber-200 text-xs text-amber-900">
+              📚 Email <span className="font-mono font-semibold">.edu</span> auto giảm thêm 20% trên giá đã giảm
+            </div>
+
+            <ul className="mt-6 space-y-3 flex-1">
               {PRO_FEATURES.map((feature) => (
                 <li
                   key={feature}
@@ -161,18 +275,67 @@ export default function PricingSection() {
 
             <button
               type="button"
-              onClick={() => setWaitlistTier("pro")}
+              onClick={() => setWaitlistTier(currentTier.id)}
               className="mt-10 w-full px-6 py-3 rounded-button bg-teal text-cream font-semibold text-base hover:bg-teal-light active:bg-teal-dark transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
             >
-              Tham gia waitlist
+              Tham gia waitlist Pro {currentTier.label}
             </button>
           </motion.div>
         </div>
 
+        {/* Compare-all table */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-12 lg:mt-16 max-w-[880px] mx-auto"
+        >
+          <h3 className="text-center text-sm font-semibold text-navy uppercase tracking-wide mb-6">
+            So sánh các gói Pro
+          </h3>
+          <div className="rounded-card border border-gray-200 bg-cream-warm overflow-hidden">
+            <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-gray-200">
+              {PRO_TIERS.map((tier) => (
+                <div
+                  key={tier.id}
+                  className={`p-4 lg:p-6 text-center ${
+                    tier.featured ? "bg-teal/5" : ""
+                  }`}
+                >
+                  <p className="text-xs font-semibold text-navy uppercase tracking-wide mb-3">
+                    {tier.label}
+                  </p>
+                  <p className="text-xs text-gray-500 line-through">
+                    {formatVND(tier.original)}₫
+                  </p>
+                  <p className="font-display italic text-teal text-2xl lg:text-3xl mt-1">
+                    {formatVND(tier.final)}₫
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-gray-700">
+                    -{tier.discountPct}%
+                    {tier.featured && (
+                      <Star
+                        className="inline-block w-3.5 h-3.5 text-amber-500 fill-amber-500 ml-1 -mt-0.5"
+                        aria-label="Tốt nhất"
+                      />
+                    )}
+                  </p>
+                  <p className="mt-3 text-xs text-gray-600">
+                    {formatVND(tier.monthlyEquiv)}₫ / tháng
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="mt-4 text-center text-xs text-gray-500">
+            Tất cả gói: 7 ngày hoàn tiền nếu không vừa ý.
+          </p>
+        </motion.div>
+
         {/* Honest pre-launch note */}
         <p className="mt-10 text-center text-sm text-gray-600">
-          Lingona ra mắt 09/07/2026. Hiện đang beta — đăng ký waitlist để giữ
-          chỗ Pro.
+          Lingona ra mắt 09/07/2026. Hiện đang beta — đăng ký waitlist để giữ chỗ Pro.
         </p>
       </div>
 
