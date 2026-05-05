@@ -100,38 +100,54 @@ function validate(body, required, extra = {}) {
  */
 async function register(req, res, next) {
   try {
-    // Trim username before validation so a clipboard paste with surrounding
-    // whitespace doesn't trip the anchored VALID_USERNAME_RE regex with a
-    // confusing format error.
+    // Wave 6 Sprint 4.5 (3/5) — username is now optional in the
+    // request body. The cream-canon register form (Sprint 4.5)
+    // collects only email + display name + password; the controller
+    // auto-generates a unique username via the existing
+    // lib/usernameHelper.autogenUsername (same machinery
+    // googleAuth has used since Wave 6 Sprint 3B). Legacy clients
+    // that still send a username get its existing validation path.
     if (typeof req.body.username === "string") req.body.username = req.body.username.trim();
 
-    const { email, name, username, password, role, dob } = req.body;
+    const { email, name, password, role, dob } = req.body;
+    let { username } = req.body;
 
-    const errors = validate(
-      req.body,
-      ["email", "name", "username", "password"],
-      {
-        email: (v) => EMAIL_REGEX.test(v) ? null : "Email không đúng định dạng.",
-        username: (v) =>
-          VALID_USERNAME_RE.test(v)
-            ? null
-            : "Username chỉ dùng chữ cái, số, dấu gạch dưới (3-30 ký tự).",
-        password: (v) => v.length >= 8 ? null : "Mật khẩu cần ít nhất 8 ký tự.",
-        role: (v) => {
-          const valid = ["kid", "teacher", "parent"];
-          return valid.includes(v) ? null : `role must be one of: ${valid.join(", ")}.`;
-        },
-        dob: (v) => {
-          const d = new Date(v);
-          return isNaN(d.getTime()) ? "dob must be a valid date (YYYY-MM-DD)." : null;
-        },
-      }
-    );
+    const required = ["email", "name", "password"];
+    const validators = {
+      email: (v) => EMAIL_REGEX.test(v) ? null : "Email không đúng định dạng.",
+      password: (v) => v.length >= 8 ? null : "Mật khẩu cần ít nhất 8 ký tự.",
+      role: (v) => {
+        const valid = ["kid", "teacher", "parent"];
+        return valid.includes(v) ? null : `role must be one of: ${valid.join(", ")}.`;
+      },
+      dob: (v) => {
+        const d = new Date(v);
+        return isNaN(d.getTime()) ? "dob must be a valid date (YYYY-MM-DD)." : null;
+      },
+    };
+    if (typeof username === "string" && username.length > 0) {
+      required.push("username");
+      validators.username = (v) =>
+        VALID_USERNAME_RE.test(v)
+          ? null
+          : "Username chỉ dùng chữ cái, số, dấu gạch dưới (3-30 ký tự).";
+    }
+
+    const errors = validate(req.body, required, validators);
 
     if (errors.length) {
       const err = new Error(errors.join(" "));
       err.status = 400;
       return next(err);
+    }
+
+    if (!username) {
+      // Same machinery the googleAuth flow uses for OAuth signups —
+      // emailPrefixToBase + 6-char base36 suffix, retry on collision.
+      username = await autogenUsername(
+        email.trim().toLowerCase(),
+        async (candidate) => authRepository.usernameExists(candidate),
+      );
     }
 
     const result = await authService.register({

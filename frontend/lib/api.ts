@@ -360,11 +360,13 @@ export interface ApiRegisterPayload {
   email:    string;
   name:     string;
   /**
-   * Wave 6 Sprint 3B: required by backend POST /auth/register. 3-30 chars,
-   * /^[a-zA-Z0-9_]{3,30}$/. Caller is responsible for trim + format check;
-   * backend re-trims defensively + returns 400/409 if violated.
+   * Wave 6 Sprint 4.5 (3/5): now OPTIONAL. Backend auto-generates a
+   * unique username from the email prefix when this is omitted (same
+   * machinery the googleAuth flow uses). Frontend register form no
+   * longer collects this field. Existing callers that still pass a
+   * value continue to work — backend validates iff present.
    */
-  username: string;
+  username?: string;
   password: string;
   role:     "kid" | "teacher" | "parent";
   dob?:     string; // ISO date YYYY-MM-DD — optional but required for COPPA under-13 detection

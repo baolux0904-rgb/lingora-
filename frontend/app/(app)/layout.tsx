@@ -43,13 +43,13 @@ const OnboardingFlow = dynamic(
   { ssr: false },
 );
 
-// Wave 6 Sprint 3D — full-screen blocking modal forces NULL-username users
-// to pick before any authenticated route renders. Dynamic + ssr:false so
-// it never appears in SSR output (client-only gate).
-const UsernameBackfillModal = dynamic(
-  () => import("@/components/auth/UsernameBackfillModal"),
-  { ssr: false },
-);
+// Wave 6 Sprint 4.5 (3/5) — UsernameBackfillModal removed. Backend now
+// auto-generates usernames at register (Sprint 3B googleAuth machinery
+// extended to email/password signup), so no NULL-username cohort
+// exists in new accounts. The 7 legacy beta users with NULL username
+// have been backfilled per Sprint 4.5 production verify; if any
+// regression introduces a NULL-username row, Settings page can edit
+// after launch.
 
 function findNavItem(id: string, items: NavItem[] = NAV_ITEMS): NavItem | null {
   for (const item of items) {
@@ -148,14 +148,12 @@ export default function AppGroupLayout({ children }: { children: ReactNode }) {
 
   if (authLoading || !user) return null;
 
-  // Wave 6 Sprint 3D — username backfill gate. Block every authenticated
-  // route until the legacy NULL-username cohort picks a value. Sits before
-  // the onboarding gate so name + username get sorted first; once
-  // patchUser populates user.username this layout re-renders and
-  // OnboardingFlow / AppShell take over.
-  if (!user.username) {
-    return <UsernameBackfillModal />;
-  }
+  // Wave 6 Sprint 4.5 (3/5) — username backfill gate REMOVED. Backend
+  // auto-generates a unique username at register (controller calls
+  // lib/usernameHelper.autogenUsername when the body field is absent),
+  // so no NULL-username cohort exists in new accounts. The orphan
+  // re-prompt loop (Bug 1, production verify 2026-05-05) is closed by
+  // dropping the gate.
 
   if (showOnboarding) {
     return (

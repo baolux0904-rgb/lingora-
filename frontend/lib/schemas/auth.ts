@@ -58,11 +58,16 @@ export const loginSchema = z.object({
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
-/** Register — full new-account validation. */
+/**
+ * Register — Wave 6 Sprint 4.5 (3/5).
+ * Username dropped from the schema (and the form). Backend
+ * auto-generates a unique username from the email prefix at register
+ * time via lib/usernameHelper.autogenUsername (same machinery the
+ * googleAuth flow has used since Sprint 3B).
+ */
 export const registerSchema = z.object({
   email: emailSchema,
   name: nameSchema,
-  username: usernameSchema,
   password: passwordSchema,
 });
 
