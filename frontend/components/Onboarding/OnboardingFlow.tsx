@@ -110,35 +110,77 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     onComplete();
   }, [onComplete]);
 
-  const handleSubmit = useCallback(async () => {
-    if (submitting) return;
-    setSubmitting(true);
-    try {
-      // Sprint 4E.2 — body field name canonicalised to
-      // exam_date_bucket (matches migration 0057 column). The 4E.1
-      // backend accepts both `exam_date` (legacy 4D ship alias) and
-      // `exam_date_bucket` so this rename is non-breaking.
-      await completeOnboarding(targetBand, currentBand, {
-        exam_date_bucket: examDate,
-        study_hours_per_week: studyHours,
-        exam_type: examType,
-      });
-      invalidateOnboardingStatus();
-    } catch {
-      /* silent — failure surfaces via the gate re-prompting on next mount */
+  // Wave 6 Sprint 4.5 (5/5) — band validation hybrid logic.
+  // If targetBand < currentBand the user gets a 2-step modal flow
+  // (warning → auto-fix explanation) before the actual submit fires.
+  // currentBand === null (Chưa biết) skips the check entirely so the
+  // user-doesn't-know path stays frictionless.
+  const [bandWarning, setBandWarning] = useState(false);
+  const [bandAutoFix, setBandAutoFix] = useState<{
+    appliedTarget: number;
+  } | null>(null);
+
+  const performSubmit = useCallback(
+    async (resolvedTarget: number | null) => {
+      if (submitting) return;
+      setSubmitting(true);
+      try {
+        // Sprint 4E.2 — body field name canonicalised to
+        // exam_date_bucket (matches migration 0057 column). The 4E.1
+        // backend accepts both `exam_date` (legacy 4D ship alias) and
+        // `exam_date_bucket` so this rename is non-breaking.
+        await completeOnboarding(resolvedTarget, currentBand, {
+          exam_date_bucket: examDate,
+          study_hours_per_week: studyHours,
+          exam_type: examType,
+        });
+        invalidateOnboardingStatus();
+      } catch {
+        /* silent — failure surfaces via the gate re-prompting on next mount */
+      }
+      analytics.onboardingComplete(resolvedTarget, currentBand);
+      setSubmitting(false);
+      onComplete();
+    },
+    [submitting, currentBand, examDate, studyHours, examType, onComplete],
+  );
+
+  const handleSubmit = useCallback(() => {
+    // Hybrid validation: warn when target < current. currentBand null
+    // (Chưa biết) bypasses; equal current/target also bypasses (only
+    // strictly LESS-THAN triggers).
+    if (
+      currentBand !== null &&
+      targetBand !== null &&
+      targetBand < currentBand
+    ) {
+      setBandWarning(true);
+      return;
     }
-    analytics.onboardingComplete(targetBand, currentBand);
-    setSubmitting(false);
-    onComplete();
-  }, [
-    targetBand,
-    currentBand,
-    examDate,
-    studyHours,
-    examType,
-    submitting,
-    onComplete,
-  ]);
+    void performSubmit(targetBand);
+  }, [currentBand, targetBand, performSubmit]);
+
+  const handleBandWarningConfirm = useCallback(() => {
+    // User insists on lower target → auto-fix to current + 0.5 (capped
+    // at 9.0) and surface an explanation modal before submit fires.
+    if (currentBand === null) {
+      // Defensive — shouldn't reach here without currentBand, but if so
+      // submit as-is.
+      setBandWarning(false);
+      void performSubmit(targetBand);
+      return;
+    }
+    const newTarget = Math.min(currentBand + 0.5, 9.0);
+    setTargetBand(newTarget);
+    setBandWarning(false);
+    setBandAutoFix({ appliedTarget: newTarget });
+  }, [currentBand, targetBand, performSubmit]);
+
+  const handleBandAutoFixOk = useCallback(() => {
+    const applied = bandAutoFix?.appliedTarget ?? targetBand;
+    setBandAutoFix(null);
+    void performSubmit(applied);
+  }, [bandAutoFix, targetBand, performSubmit]);
 
   const goToStep2 = useCallback(() => setStep(2), []);
   const goBackToStep1 = useCallback(() => setStep(1), []);
@@ -289,7 +331,123 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Sprint 4.5 (5/5) — band validation hybrid modals.
+          Mounted inside the main onboarding modal so backdrop layering
+          (z-splash) cleanly stacks above the cream surface without a
+          second portal. */}
+      <BandValidationModal
+        open={bandWarning}
+        headline="Mục tiêu thấp hơn band hiện tại?"
+        body={
+          currentBand !== null && targetBand !== null
+            ? `Bạn chọn band hiện tại ${currentBand.toFixed(1)}, mục tiêu ${targetBand.toFixed(1)}. Bạn chắc chứ?`
+            : "Mục tiêu đang thấp hơn band hiện tại. Bạn chắc chứ?"
+        }
+        primaryLabel="Quay lại chọn lại"
+        onPrimary={() => setBandWarning(false)}
+        secondaryLabel="Chắc chắn"
+        onSecondary={handleBandWarningConfirm}
+      />
+      <BandValidationModal
+        open={bandAutoFix !== null}
+        headline={
+          bandAutoFix
+            ? `Lintopus đã đặt mục tiêu ${bandAutoFix.appliedTarget.toFixed(1)}`
+            : ""
+        }
+        body="Band hiện tại không thể cao hơn mục tiêu, mình đã tự động chỉnh để bạn vẫn có chỗ để phát triển."
+        primaryLabel="OK"
+        onPrimary={handleBandAutoFixOk}
+      />
     </motion.div>
+  );
+}
+
+/**
+ * Band-validation modal — Sprint 4.5 (5/5). Cream-canon dialog used
+ * for both the warning step (target < current) and the auto-fix
+ * explanation step. Same shape as OnboardingGateModal but with caller-
+ * provided CTA labels — extracted as a local component because the
+ * 2 use-sites here have different copy than the gate modal's
+ * "Hoàn thiện hồ sơ (30 giây)" / "Bỏ qua" baked-in labels.
+ */
+function BandValidationModal({
+  open,
+  headline,
+  body,
+  primaryLabel,
+  onPrimary,
+  secondaryLabel,
+  onSecondary,
+}: {
+  open: boolean;
+  headline: string;
+  body: string;
+  primaryLabel: string;
+  onPrimary: () => void;
+  secondaryLabel?: string;
+  onSecondary?: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            key="band-modal-backdrop"
+            className="fixed inset-0 z-40 bg-navy/50 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            aria-hidden="true"
+          />
+          <motion.div
+            key="band-modal-content"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+            variants={pageEnter}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="band-modal-headline"
+              className="pointer-events-auto bg-cream border border-gray-200 rounded-card p-6 sm:p-8 max-w-md w-full shadow-lg flex flex-col items-center text-center"
+            >
+              <h2
+                id="band-modal-headline"
+                className="font-display italic text-navy text-2xl leading-tight"
+              >
+                {headline}
+              </h2>
+              <p className="mt-3 text-base text-gray-700 leading-relaxed">
+                {body}
+              </p>
+              <div className="mt-8 w-full flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={onPrimary}
+                  className="w-full px-6 py-3 rounded-md bg-teal text-cream font-sans font-semibold text-base hover:bg-teal-light active:bg-teal-dark transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
+                >
+                  {primaryLabel}
+                </button>
+                {secondaryLabel && onSecondary && (
+                  <button
+                    type="button"
+                    onClick={onSecondary}
+                    className="text-sm font-medium text-navy/60 hover:text-teal transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-light focus-visible:ring-offset-2 focus-visible:ring-offset-cream rounded-md px-2 py-1"
+                  >
+                    {secondaryLabel}
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
