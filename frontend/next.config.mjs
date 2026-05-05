@@ -86,15 +86,19 @@ const nextConfig = {
       { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "grammar" }],   destination: "/learn/grammar",   permanent: true },
 
       // Wave 6 Sprint 3.5C-3 commit 2 — legacy legal route redirects.
-      // 308 permanent for SEO + bookmark preservation. Sources mapped from
-      // routes that actually had a legacy page.tsx file (per Phase 1 audit):
-      //   - frontend/app/(legal)/data-deletion → URL /data-deletion
-      //   - frontend/app/(legal)/privacy       → URL /privacy
-      // The dead /terms and /refund Footer links from Sprint 2E never had
-      // backing pages — Footer is fixed in this same commit, no redirect
-      // needed.
+      // 308 permanent for SEO + bookmark preservation.
       { source: "/data-deletion", destination: "/legal/data",    permanent: true },
       { source: "/privacy",       destination: "/legal/privacy", permanent: true },
+      // Wave 6 Sprint 4.5 (1/5) — add the 3 missing short-form legal
+      // redirects. Sprint 3.5C-3 commit 2 only mapped /privacy +
+      // /data-deletion because /terms /refund /cookie didn't have
+      // backing pages at that point. Sprint 3.5C-3 commit 1 then added
+      // all 5 legal pages; the redirects map was never updated to
+      // match. Production verify 2026-05-05 surfaced /terms 404.
+      // Symmetric fix here.
+      { source: "/terms",  destination: "/legal/terms",  permanent: true },
+      { source: "/refund", destination: "/legal/refund", permanent: true },
+      { source: "/cookie", destination: "/legal/cookie", permanent: true },
     ];
   },
 };
