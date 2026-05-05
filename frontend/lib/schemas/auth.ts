@@ -73,12 +73,12 @@ export const registerSchema = z.object({
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 
-/** Username backfill — single field, used by UsernameBackfillModal. */
-export const usernameBackfillSchema = z.object({
-  username: usernameSchema,
-});
-
-export type UsernameBackfillInput = z.infer<typeof usernameBackfillSchema>;
+// Wave 6 Sprint 5K (1.1) — usernameBackfillSchema + UsernameBackfillInput
+// removed. Both were orphaned: the consumer (UsernameBackfillModal.tsx)
+// was deleted in Sprint 4.5 commit 1aba1f6, and the backend endpoints
+// (PATCH /me/username + POST /me/autogen-username) were dropped in
+// Sprint 5K execute commit 3a209e8. The schema definition was the last
+// surviving reference to the deleted modal.
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
