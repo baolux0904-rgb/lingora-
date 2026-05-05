@@ -20,22 +20,18 @@ import { useState, useEffect, useCallback } from "react";
 import { completeOnboarding, skipOnboarding } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import Mascot from "@/components/ui/Mascot";
+import BandGrid from "./BandGrid";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
-const TARGET_BAND_OPTIONS = [5.0, 5.5, 6.0, 6.5, 7.0, 7.5];
-
-// 13 half-bands [3.0, 9.0] — anchors at "extremely limited" (3) and
-// "expert" (9). Below 3 the user should pick "Chưa biết" — keeping the
-// dropdown short avoids paralysis and matches band-descriptor reality.
-const SELF_REPORT_BAND_OPTIONS: number[] = [];
-for (let b = 3.0; b <= 9.0 + 1e-9; b += 0.5) {
-  SELF_REPORT_BAND_OPTIONS.push(Math.round(b * 2) / 2);
-}
-
-const UNKNOWN = "unknown" as const;
+// Wave 6 Sprint 4B — band picker contract moved into BandGrid component
+// (11 half-bands 4.0 → 9.0; the dark inline button grids previously
+// rendered here are gone). Backend onboardingController still accepts
+// the [3.0, 9.0] floor for legacy clients so existing rows in
+// `users.estimated_band` below 4.0 stay valid; the UI just doesn't
+// surface those values to new pickers.
 
 type Screen = 1 | 2 | 3 | 4;
 
@@ -95,20 +91,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <p className="text-xs mb-6" style={{ color: "#64748B" }}>
               Hầu hết học viên đặt mục tiêu 6.5+
             </p>
-            <div className="grid grid-cols-3 gap-3 w-full max-w-xs mb-6">
-              {TARGET_BAND_OPTIONS.map((b) => (
-                <button key={b} onClick={() => setTargetBand(b)}
-                  className="py-3 rounded-xl text-base font-semibold transition-all"
-                  style={{
-                    background: targetBand === b ? "linear-gradient(135deg, #8B71EA, #2DD4BF)" : "transparent",
-                    color: targetBand === b ? "#fff" : "#94A3B8",
-                    border: `2px solid ${targetBand === b ? "transparent" : "rgba(255,255,255,0.08)"}`,
-                    boxShadow: targetBand === b ? "0 0 20px rgba(139,113,234,0.3)" : "none",
-                    transform: targetBand === b ? "scale(1.05)" : "scale(1)",
-                  }}>
-                  {b === 7.5 ? "7.5+" : b.toFixed(1)}
-                </button>
-              ))}
+            <div className="w-full mb-6">
+              <BandGrid
+                value={targetBand}
+                onChange={setTargetBand}
+                showUnknownEscape={false}
+                mode="dark"
+                ariaLabel="Band IELTS mục tiêu"
+              />
             </div>
             <button onClick={() => goTo(2)} disabled={!targetBand}
               className="w-full max-w-xs py-3 rounded-xl text-sm font-semibold transition-all disabled:opacity-30"
@@ -153,27 +143,15 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               Bạn có thể đoán hoặc chọn &quot;Chưa biết&quot;
             </p>
 
-            <label className="w-full max-w-xs mb-6">
-              <span className="sr-only">Band hiện tại</span>
-              <select
-                value={selfReportedBand === null ? UNKNOWN : selfReportedBand.toFixed(1)}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  setSelfReportedBand(v === UNKNOWN ? null : Number(v));
-                }}
-                className="w-full py-3 px-4 rounded-xl text-base font-medium appearance-none cursor-pointer"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  color: "#F8FAFC",
-                  border: "2px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                <option value={UNKNOWN}>Chưa biết</option>
-                {SELF_REPORT_BAND_OPTIONS.map((b) => (
-                  <option key={b} value={b.toFixed(1)}>Band {b.toFixed(1)}</option>
-                ))}
-              </select>
-            </label>
+            <div className="w-full mb-6">
+              <BandGrid
+                value={selfReportedBand}
+                onChange={setSelfReportedBand}
+                showUnknownEscape={true}
+                mode="dark"
+                ariaLabel="Band IELTS hiện tại"
+              />
+            </div>
 
             <button
               onClick={handleComplete}
