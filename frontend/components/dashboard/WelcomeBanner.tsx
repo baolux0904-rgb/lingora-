@@ -18,6 +18,15 @@
  * localStorage 'lingona-welcome-seen' persists across sessions: once
  * dismissed, never re-shows (even if URL re-acquires ?new=1).
  *
+ * Wave 6 Sprint 4.5 (4/5) — sessionStorage persistence layer added
+ * between the ?new=1 query trigger and localStorage permanent flag.
+ * Bug repro production-verify 2026-05-05: register → /home shows
+ * banner → click Profile → back to /home → banner gone (URL no longer
+ * carries ?new=1, banner had no way to know it was already shown
+ * this session). Fix: when ?new=1 first hits we mark sessionStorage;
+ * subsequent /home mounts within the session re-show the banner from
+ * the session flag without needing the query param.
+ *
  * Caller is responsible for wrapping in <Suspense> if their layout doesn't
  * already provide one — useSearchParams forces client-side rendering.
  */
@@ -29,7 +38,8 @@ import { X } from "lucide-react";
 import Mascot from "@/components/ui/Mascot";
 import { useAuthStore } from "@/lib/stores/authStore";
 
-const STORAGE_KEY = "lingona-welcome-seen";
+const STORAGE_KEY = "lingona-welcome-seen";          // permanent dismiss
+const SESSION_KEY = "lingona-welcome-session-shown"; // current-session active
 
 export default function WelcomeBanner() {
   const router = useRouter();
@@ -39,24 +49,36 @@ export default function WelcomeBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("new") !== "1") return;
+    if (typeof window === "undefined") return;
 
-    const seen =
-      typeof window !== "undefined" &&
-      window.localStorage.getItem(STORAGE_KEY) === "1";
-
-    if (seen) {
-      // Strip ?new=1 — the user already met Lintopus on a prior session.
-      router.replace(pathname);
+    // Permanent dismiss wins over everything else.
+    if (window.localStorage.getItem(STORAGE_KEY) === "1") {
+      // Strip ?new=1 if it's tagging along — the user already met
+      // Lintopus on a prior session.
+      if (searchParams.get("new") === "1") router.replace(pathname);
       return;
     }
 
-    setVisible(true);
+    const queryNew = searchParams.get("new") === "1";
+    const sessionActive =
+      window.sessionStorage.getItem(SESSION_KEY) === "1";
+
+    // First /home mount of the signup session ?new=1 carries the flag.
+    // Promote into sessionStorage so subsequent mounts within the session
+    // (e.g. Profile → back to /home) keep the banner visible.
+    if (queryNew && !sessionActive) {
+      window.sessionStorage.setItem(SESSION_KEY, "1");
+    }
+
+    if (queryNew || sessionActive) {
+      setVisible(true);
+    }
   }, [searchParams, router, pathname]);
 
   function handleDismiss() {
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, "1");
+      window.sessionStorage.removeItem(SESSION_KEY);
     }
     setVisible(false);
     // Wait for the exit animation, then strip the query param so a refresh
