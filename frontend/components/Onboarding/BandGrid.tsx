@@ -133,9 +133,9 @@ export default function BandGrid({
           tabIndex={value === null ? 0 : -1}
           onClick={() => onChange(null)}
           className={unknownCellClasses(mode, value === null)}
-          variants={reduce ? undefined : cellVariants}
+          variants={reduce ? undefined : cardEnter}
           whileTap={reduce ? undefined : { scale: 0.95 }}
-          transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.15, ease: easeOutExpo }}
           aria-label="Chưa biết band hiện tại"
         >
           <HelpCircle
