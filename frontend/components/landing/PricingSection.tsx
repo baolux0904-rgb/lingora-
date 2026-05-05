@@ -47,14 +47,20 @@ interface ProTier {
   months: number;
   label: string;       // e.g., '12 tháng'
   shortLabel: string;  // e.g., '12m' for toggle
-  basePrice: number;             // pre-discount total (VND) — the default
-  baseMonthlyEquiv: number;      // base price ÷ months (always 199_000)
+  basePrice: number;             // pre-discount total (VND)
+  baseMonthlyEquiv: number;      // base /m equivalent (varies per tier — 4.5 lock)
+  baseSavedPercent: number;      // 4.5 NEW — non-student saved % vs 199k/m flat
   studentFinal: number;          // post-student-discount total
   studentMonthlyEquiv: number;   // student price ÷ months
-  studentDiscountPct: number;    // 15 / 17 / 20 / 25
+  studentDiscountPct: number;    // student-toggle saving % vs new base price
   featured?: boolean;            // 12m = true (best value star)
 }
 
+// Wave 6 Sprint 4.5 (2/5) — non-student tier numbers locked Louis
+// 2026-05-05. Discount now baked into base /m equivalent (was flat
+// 199k/m + student-only discount). Student toggle keeps hardcoded
+// student totals as they were (Sprint 3.6 ship); studentDiscountPct
+// recomputed against the new base so the badge math stays honest.
 const PRO_TIERS: ProTier[] = [
   {
     id: "pro_1m",
@@ -63,6 +69,7 @@ const PRO_TIERS: ProTier[] = [
     shortLabel: "1m",
     basePrice: 199_000,
     baseMonthlyEquiv: 199_000,
+    baseSavedPercent: 0,
     studentFinal: 169_000,
     studentMonthlyEquiv: 169_000,
     studentDiscountPct: 15,
@@ -72,33 +79,36 @@ const PRO_TIERS: ProTier[] = [
     months: 3,
     label: "3 tháng",
     shortLabel: "3m",
-    basePrice: 597_000,
-    baseMonthlyEquiv: 199_000,
+    basePrice: 537_000,
+    baseMonthlyEquiv: 179_000,
+    baseSavedPercent: 10,
     studentFinal: 495_000,
     studentMonthlyEquiv: 165_000,
-    studentDiscountPct: 17,
+    studentDiscountPct: 8,
   },
   {
     id: "pro_6m",
     months: 6,
     label: "6 tháng",
     shortLabel: "6m",
-    basePrice: 1_194_000,
-    baseMonthlyEquiv: 199_000,
+    basePrice: 1_014_000,
+    baseMonthlyEquiv: 169_000,
+    baseSavedPercent: 15,
     studentFinal: 955_000,
     studentMonthlyEquiv: 159_000,
-    studentDiscountPct: 20,
+    studentDiscountPct: 6,
   },
   {
     id: "pro_12m",
     months: 12,
-    label: "12 tháng",
+    label: "1 năm",
     shortLabel: "12m",
-    basePrice: 2_388_000,
-    baseMonthlyEquiv: 199_000,
+    basePrice: 1_908_000,
+    baseMonthlyEquiv: 159_000,
+    baseSavedPercent: 20,
     studentFinal: 1_791_000,
     studentMonthlyEquiv: 149_000,
-    studentDiscountPct: 25,
+    studentDiscountPct: 6,
     featured: true,
   },
 ];
@@ -260,7 +270,9 @@ export default function PricingSection() {
               })}
             </div>
 
-            {/* Selected tier display — base by default, student-discounted when toggled */}
+            {/* Selected tier display — base by default, student-discounted when toggled.
+                Sprint 4.5 (2/5) — non-student baseSavedPercent badge now
+                surfaces alongside the /m + total + saved trio per Louis lock. */}
             <div className="mt-6" aria-live="polite">
               <div className="flex items-baseline gap-2">
                 <span className="font-display italic text-teal text-5xl">
@@ -270,6 +282,11 @@ export default function PricingSection() {
               </div>
               <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
                 <span>{formatVND(displayTotal)}₫ tổng cộng</span>
+                {!isStudent && currentTier.baseSavedPercent > 0 && (
+                  <span className="px-2 py-0.5 rounded-button bg-teal/10 text-teal font-semibold text-xs">
+                    Tiết kiệm {currentTier.baseSavedPercent}%
+                  </span>
+                )}
                 {isStudent && (
                   <span className="px-2 py-0.5 rounded-button bg-teal/10 text-teal font-semibold text-xs">
                     -{currentTier.studentDiscountPct}%
@@ -362,11 +379,17 @@ export default function PricingSection() {
                     )}
                   </p>
                   <p className="font-display italic text-teal text-2xl lg:text-3xl">
-                    {formatVND(tier.basePrice)}₫
+                    {formatVND(tier.baseMonthlyEquiv)}₫
                   </p>
+                  <p className="mt-1 text-xs text-gray-600">/ tháng</p>
                   <p className="mt-2 text-xs text-gray-600">
-                    {formatVND(tier.baseMonthlyEquiv)}₫ / tháng
+                    {formatVND(tier.basePrice)}₫ tổng cộng
                   </p>
+                  {tier.baseSavedPercent > 0 && (
+                    <span className="mt-2 inline-block px-2 py-0.5 rounded-button bg-teal/10 text-teal font-semibold text-[11px]">
+                      Tiết kiệm {tier.baseSavedPercent}%
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
