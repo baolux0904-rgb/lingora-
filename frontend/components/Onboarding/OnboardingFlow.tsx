@@ -59,6 +59,11 @@ import { completeOnboarding, skipOnboarding } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import Mascot from "@/components/ui/Mascot";
 import BandGrid from "./BandGrid";
+import OptionalSection, {
+  type ExamDateBucket,
+  type StudyHoursBucket,
+  type ExamType,
+} from "./OptionalSection";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -99,6 +104,17 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [targetBand, setTargetBand] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Sprint 4D — optional personalisation fields. Sent in the submit
+  // body today; backend's manual-destructure validator silently drops
+  // them until Sprint 4E.1 ships migration 0057 + extends the
+  // controller. examType defaults to 'academic' (90%+ Vietnamese
+  // demographic per Q2 reasoning).
+  const [examDate, setExamDate] = useState<ExamDateBucket | null>(null);
+  const [studyHours, setStudyHours] = useState<StudyHoursBucket | null>(null);
+  const [examType, setExamType] = useState<ExamType>("academic");
+  const [optionalExpanded, setOptionalExpanded] = useState(false);
+  const toggleOptional = useCallback(() => setOptionalExpanded((v) => !v), []);
+
   const handleDefer = useCallback(async () => {
     // Sprint 4C — client-side defer only. Closes the modal + navigates
     // back to /home via the parent's onComplete. The legacy
@@ -123,14 +139,31 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (submitting) return;
     setSubmitting(true);
     try {
-      await completeOnboarding(targetBand, currentBand);
+      // Sprint 4D — optional fields are passed via the extras
+      // parameter on completeOnboarding. The backend's manual
+      // destructure validator (no zod) silently drops unknown body
+      // fields, so this is forward-compat with the Sprint 4E.1
+      // migration 0057 + controller extend without 400-ing today.
+      await completeOnboarding(targetBand, currentBand, {
+        exam_date: examDate,
+        study_hours_per_week: studyHours,
+        exam_type: examType,
+      });
     } catch {
       /* silent — failure surfaces via the gate re-prompting on next mount */
     }
     analytics.onboardingComplete(targetBand, currentBand);
     setSubmitting(false);
     onComplete();
-  }, [targetBand, currentBand, submitting, onComplete]);
+  }, [
+    targetBand,
+    currentBand,
+    examDate,
+    studyHours,
+    examType,
+    submitting,
+    onComplete,
+  ]);
 
   const goToStep2 = useCallback(() => setStep(2), []);
   const goBackToStep1 = useCallback(() => setStep(1), []);
@@ -244,6 +277,19 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     showUnknownEscape={false}
                     mode="cream"
                     ariaLabel="Band IELTS mục tiêu"
+                  />
+                </div>
+
+                <div className="w-full mt-8">
+                  <OptionalSection
+                    expanded={optionalExpanded}
+                    onToggle={toggleOptional}
+                    examDate={examDate}
+                    studyHours={studyHours}
+                    examType={examType}
+                    onExamDateChange={setExamDate}
+                    onStudyHoursChange={setStudyHours}
+                    onExamTypeChange={setExamType}
                   />
                 </div>
 

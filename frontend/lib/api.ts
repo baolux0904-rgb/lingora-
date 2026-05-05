@@ -778,13 +778,27 @@ export async function deleteMyAccount(confirmText: string): Promise<unknown> {
   return json;
 }
 
+/**
+ * Sprint 4D — optional personalisation extras. Forwarded as additional
+ * fields in the POST body. The backend's manual destructure validator
+ * (no zod) silently drops unknown fields today; once Sprint 4E.1 ships
+ * migration 0057 + extends the controller these become durable.
+ */
+export interface OnboardingExtras {
+  exam_date?: "1m" | "2-3m" | "4-6m" | "no_plan" | null;
+  study_hours_per_week?: "3-5h" | "6-10h" | "10h+" | null;
+  exam_type?: "academic" | "general" | null;
+}
+
 export async function completeOnboarding(
   targetBand: number | null,
   selfReportedBand: number | null = null,
+  extras?: OnboardingExtras,
 ): Promise<unknown> {
   return apiPostAuth<unknown>("/users/onboarding/complete", {
     target_band:         targetBand,
     self_reported_band:  selfReportedBand,
+    ...(extras ?? {}),
   });
 }
 
