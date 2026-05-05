@@ -58,28 +58,12 @@ router.post("/logout",   authController.logout);
  *  initial pass and existing-pass users rotating. */
 router.post("/change-password", verifyToken, authController.handleChangePassword);
 
-// ─── Wave 6 Sprint 3D — username backfill (NULL → first-set + autogen) ──────
-// 10 req/min/IP — modest throttle on the hybrid pick UX (manual + autogen
-// taps both endpoints). Public availability check uses a separate limiter
-// in publicRoutes.js so the backfill flow can't starve it (or vice versa).
-const usernameUpdateLimiter = rateLimit({
-  windowMs:        60 * 1000,
-  max:             10,
-  standardHeaders: true,
-  legacyHeaders:   false,
-  message: {
-    success: false,
-    message: "Quá nhiều lần thử — đợi tí 🐙",
-  },
-});
-
-/** PATCH — set / update authenticated user's username. Backfill modal +
- *  future settings rename both call this. */
-router.patch("/me/username", verifyToken, usernameUpdateLimiter, authController.patchMyUsername);
-
-/** POST — generate a username candidate from the user's email prefix.
- *  Client previews + can edit before confirming via PATCH above. */
-router.post("/me/autogen-username", verifyToken, usernameUpdateLimiter, authController.postAutogenUsername);
+// Wave 6 Sprint 5K execute — Sprint 3D username-backfill block removed.
+// The PATCH /me/username + POST /me/autogen-username routes + the
+// usernameUpdateLimiter rate limiter were dead code after Sprint 4.5
+// commit 1aba1f6 deleted UsernameBackfillModal.tsx (the only caller).
+// Sprint 4.5 register form now auto-generates usernames at /register
+// via lib/usernameHelper.autogenUsername — no manual edit surface.
 
 // ─── Wave 2.10 — Email change ────────────────────────────────────────────────
 

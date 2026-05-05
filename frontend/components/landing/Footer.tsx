@@ -78,22 +78,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link
-                  href="/blog"
-                  className="hover:text-teal transition-colors duration-150"
-                >
-                  Blog
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/help"
-                  className="hover:text-teal transition-colors duration-150"
-                >
-                  Help
-                </Link>
-              </li>
-              <li>
                 <a
                   href="https://facebook.com/lingona.app"
                   target="_blank"

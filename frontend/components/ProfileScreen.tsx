@@ -477,18 +477,7 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
       {/* SECTION 4: Achievements (full system) */}
       <AchievementsSection />
 
-      {/* SECTION 5: Leaderboard + Pro */}
-      <button onClick={() => router.push("/leaderboard")} className="w-full text-left rounded-lg p-4 transition-all active:scale-[0.98]"
-        style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl" style={{ background: "rgba(245,158,11,0.10)" }}>🏆</div>
-          <div className="flex-1">
-            <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Leaderboard</div>
-            <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>Top {lb.percentile}% · Level {g.level}</div>
-          </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-tertiary)" }}><polyline points="9 18 15 12 9 6"/></svg>
-        </div>
-      </button>
+      {/* SECTION 5: Leaderboard removed Sprint 5K execute (root /leaderboard page deleted; Battle subsystem covers ranking). */}
 
       {/* Email change (Wave 2.10) — placed above Log out for natural account-settings ordering */}
       <button
