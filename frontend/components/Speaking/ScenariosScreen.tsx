@@ -9,7 +9,7 @@
  */
 
 import { useRouter } from "next/navigation";
-import ScenarioList from "@/components/ScenarioList";
+import ScenarioList from "./ScenarioList";
 import type { Scenario } from "@/lib/types";
 
 export default function ScenariosScreen() {

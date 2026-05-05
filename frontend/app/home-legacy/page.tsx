@@ -12,8 +12,8 @@ import RewardOverlay from "@/components/Rewards/RewardOverlay";
 import StreakMilestoneHandler from "@/components/Rewards/StreakMilestoneHandler";
 
 const GrammarTab = dynamic(() => import("@/components/Grammar").then(m => ({ default: m.GrammarTab })), { ssr: false });
-const ScenarioConversation = dynamic(() => import("@/components/ScenarioConversation"), { ssr: false });
-const IeltsConversationV2 = dynamic(() => import("@/components/IeltsConversationV2"), { ssr: false });
+const ScenarioConversation = dynamic(() => import("@/components/Speaking/ScenarioConversation"), { ssr: false });
+const IeltsConversationV2 = dynamic(() => import("@/components/Speaking/IeltsConversationV2"), { ssr: false });
 const ExamScreen = dynamic(() => import("@/components/ExamScreen"), { ssr: false });
 const WritingTab = dynamic(() => import("@/components/Writing/WritingTab"), { ssr: false });
 const ReadingTab = dynamic(() => import("@/components/Reading/ReadingTab"), { ssr: false });

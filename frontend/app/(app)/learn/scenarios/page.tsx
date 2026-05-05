@@ -2,7 +2,7 @@
 
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Topbar from "@/components/Topbar";
-import ScenariosScreen from "@/components/screens/ScenariosScreen";
+import ScenariosScreen from "@/components/Speaking/ScenariosScreen";
 import { useAppData } from "@/contexts/AppDataContext";
 
 export default function LearnScenariosPage() {
