@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { accordionExpand, easeOutExpo } from "@/lib/motionVariants";
 import PresetButtonGroup, { type PresetOption } from "./PresetButtonGroup";
 
 /**
@@ -84,7 +85,7 @@ export default function OptionalSection({
         <motion.span
           aria-hidden="true"
           animate={{ rotate: expanded ? 180 : 0 }}
-          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.2, ease: easeOutExpo }}
           className="inline-flex"
         >
           <ChevronDown className="w-4 h-4" />
@@ -96,10 +97,10 @@ export default function OptionalSection({
           <motion.div
             id="optional-section-content"
             key="optional-content"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            variants={accordionExpand}
+            initial="collapsed"
+            animate="expanded"
+            exit="collapsed"
             className="overflow-hidden"
           >
             <div className="mt-4 flex flex-col gap-6 text-left bg-cream-warm border border-gray-200 rounded-lg p-6">

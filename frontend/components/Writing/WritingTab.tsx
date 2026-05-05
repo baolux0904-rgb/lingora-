@@ -8,10 +8,12 @@
  * submit button, usage indicator, countdown timer, and navigation between phases.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { submitWritingEssay, startWritingFullTest, submitWritingFullTestTask, getInProgressWritingFullTest } from "@/lib/api";
 import { useWritingResult } from "@/hooks/useWritingResult";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
+import { useOnboardingStatus } from "@/lib/hooks/useOnboardingStatus";
+import OnboardingGateModal from "@/components/Onboarding/OnboardingGateModal";
 import UpgradeTrigger from "@/components/Pro/UpgradeTrigger";
 import RemainingBadge from "@/components/Pro/RemainingBadge";
 import ProUpgradeModal from "@/components/Pro/ProUpgradeModal";
@@ -183,6 +185,15 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
     [timerStarted, taskType]
   );
 
+  // Wave 6 Sprint 4E.2 — onboarding soft-gate. Fires once per submit
+  // attempt when the user hasn't completed onboarding (and hasn't
+  // already chosen "Bỏ qua" this session). Backend AI scorer falls
+  // back to band 5.0 / exam_type 'academic' when fields are NULL, so
+  // skipping is safe — the gate is a nudge, not a blocker.
+  const onboarding = useOnboardingStatus();
+  const [gateOpen, setGateOpen] = useState(false);
+  const gateSkipped = useRef(false);
+
   // Submit essay
   const handleSubmit = useCallback(async () => {
     if (!isValid || submitting) return;
@@ -190,6 +201,15 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
     // open the Pro modal instead of calling the API.
     if (!limits.isPro && !limits.writing.allowed) {
       setProModalOpen(true);
+      return;
+    }
+    // Onboarding soft-gate.
+    if (
+      !gateSkipped.current &&
+      onboarding.status &&
+      !onboarding.status.has_completed_onboarding
+    ) {
+      setGateOpen(true);
       return;
     }
     setSubmitting(true);
@@ -245,7 +265,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
     } finally {
       setSubmitting(false);
     }
-  }, [isValid, submitting, taskType, questionText, essayText, activePrompt, limits, mode, fullTestId, showToast]);
+  }, [isValid, submitting, taskType, questionText, essayText, activePrompt, limits, mode, fullTestId, showToast, onboarding.status]);
 
   // Timer reaching 0 — Practice shows a toast, Full Test auto-submits once.
   useEffect(() => {
@@ -1041,6 +1061,22 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
           setProModalOpen(false);
           limits.refetch();
         }}
+      />
+
+      <OnboardingGateModal
+        open={gateOpen}
+        onComplete={() => {
+          setGateOpen(false);
+          window.dispatchEvent(new Event("lingona:open-onboarding"));
+        }}
+        onSkip={() => {
+          setGateOpen(false);
+          gateSkipped.current = true;
+          // Caller should re-trigger submit now that gate is dismissed.
+          void handleSubmit();
+        }}
+        headline="Lintopus cần biết band mục tiêu"
+        body="Để chấm bài Writing chính xác hơn theo cấp độ của bạn."
       />
     </div>
   );

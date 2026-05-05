@@ -1029,6 +1029,12 @@ export interface OnboardingStatus {
   has_completed_onboarding: boolean;
   target_band: number | null;
   onboarding_skipped: boolean;
+  /** Wave 6 Sprint 4E.1 — derived boolean from
+   *  users.onboarding_deferred_at IS NOT NULL. Drives the /home
+   *  banner conditional render in Sprint 4E.2. */
+  has_deferred_onboarding?: boolean;
+  /** Wave 6 Sprint 4E.1 — ISO timestamp string or null. For analytics. */
+  deferred_at?: string | null;
 }
 
 // ---------------------------------------------------------------------------

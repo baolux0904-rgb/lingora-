@@ -54,10 +54,12 @@
  */
 
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { completeOnboarding, skipOnboarding } from "@/lib/api";
+import { motion, AnimatePresence } from "framer-motion";
+import { completeOnboarding, deferOnboarding } from "@/lib/api";
 import { analytics } from "@/lib/analytics";
 import Mascot from "@/components/ui/Mascot";
+import { pageEnter, stepCrossfade } from "@/lib/motionVariants";
+import { invalidateOnboardingStatus } from "@/lib/hooks/useOnboardingStatus";
 import BandGrid from "./BandGrid";
 import OptionalSection, {
   type ExamDateBucket,
@@ -72,31 +74,9 @@ interface OnboardingFlowProps {
 type Step = 1 | 2;
 const TOTAL_STEPS = 2;
 
-// Inlined per skill module note — frontend/lib/motionVariants.ts is a
-// Sprint 4E.2 deliverable. Once it ships, swap `pageEnter` and
-// `stepCrossfade` to imports without touching component logic.
-const pageEnter: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-  },
-};
-
-const stepCrossfade: Variants = {
-  hidden: { opacity: 0, y: 4 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.3, ease: [0.16, 1, 0.3, 1] },
-  },
-  exit: {
-    opacity: 0,
-    y: -4,
-    transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-  },
-};
+// Sprint 4E.2 — variants relocated to frontend/lib/motionVariants.ts
+// (single source of truth per 06-motion/framer-variants.md). pageEnter
+// and stepCrossfade now imported above. No behavior change.
 
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [step, setStep] = useState<Step>(1);
@@ -116,19 +96,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const toggleOptional = useCallback(() => setOptionalExpanded((v) => !v), []);
 
   const handleDefer = useCallback(async () => {
-    // Sprint 4C — client-side defer only. Closes the modal + navigates
-    // back to /home via the parent's onComplete. The legacy
-    // skipOnboarding endpoint is still called so layout.tsx's
-    // has_completed_onboarding gate doesn't re-prompt on refresh —
-    // semantic split between "skipped" and "deferred" is a Sprint 4E
-    // backend change.
-    // TODO 4E.1: replace skipOnboarding() with a new POST
-    //   /api/v1/users/onboarding/defer that sets onboarding_deferred_at
-    //   without flipping has_completed_onboarding. The /home banner
-    //   (Sprint 4E.2) reads onboarding_deferred_at to decide whether to
-    //   prompt resumption.
+    // Sprint 4E.2 — swapped from legacy skipOnboarding() to the new
+    // POST /onboarding/defer (4E.1 backend). The two endpoints are
+    // semantically distinct: defer leaves has_completed_onboarding
+    // false so the /home banner shows the resumption CTA; skip flips
+    // it to true and was the legacy "I never want this" path.
     try {
-      await skipOnboarding();
+      await deferOnboarding();
+      invalidateOnboardingStatus();
     } catch {
       /* silent — local defer succeeds even if network drops */
     }
@@ -139,16 +114,16 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     if (submitting) return;
     setSubmitting(true);
     try {
-      // Sprint 4D — optional fields are passed via the extras
-      // parameter on completeOnboarding. The backend's manual
-      // destructure validator (no zod) silently drops unknown body
-      // fields, so this is forward-compat with the Sprint 4E.1
-      // migration 0057 + controller extend without 400-ing today.
+      // Sprint 4E.2 — body field name canonicalised to
+      // exam_date_bucket (matches migration 0057 column). The 4E.1
+      // backend accepts both `exam_date` (legacy 4D ship alias) and
+      // `exam_date_bucket` so this rename is non-breaking.
       await completeOnboarding(targetBand, currentBand, {
-        exam_date: examDate,
+        exam_date_bucket: examDate,
         study_hours_per_week: studyHours,
         exam_type: examType,
       });
+      invalidateOnboardingStatus();
     } catch {
       /* silent — failure surfaces via the gate re-prompting on next mount */
     }

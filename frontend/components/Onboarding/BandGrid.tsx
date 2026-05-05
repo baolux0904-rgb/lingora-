@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion, type Variants } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { HelpCircle } from "lucide-react";
+import { cardEnter, listStagger, easeOutExpo } from "@/lib/motionVariants";
 
 /**
  * BandGrid — radio-button grid replacement for the native <select>
@@ -68,25 +69,9 @@ export interface BandGridProps {
   ariaLabel?: string;
 }
 
-// Stagger variants inlined per top-of-file note.
-const containerVariants: Variants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.04, // tight stagger — 12 cells render in <500ms
-      delayChildren: 0.05,
-    },
-  },
-};
-
-const cellVariants: Variants = {
-  hidden: { opacity: 0, y: 8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.2, ease: [0.16, 1, 0.3, 1] },
-  },
-};
+// Sprint 4E.2 — stagger + cell variants relocated to
+// frontend/lib/motionVariants.ts (listStagger + cardEnter). Imported
+// above. No behavior change.
 
 export default function BandGrid({
   value,
@@ -111,7 +96,7 @@ export default function BandGrid({
       role="radiogroup"
       aria-label={ariaLabel}
       className="grid grid-cols-4 gap-2 sm:gap-3 w-full max-w-md mx-auto"
-      variants={reduce ? undefined : containerVariants}
+      variants={reduce ? undefined : listStagger}
       initial={reduce ? false : "hidden"}
       animate="visible"
     >
@@ -127,9 +112,9 @@ export default function BandGrid({
             tabIndex={tabIndex}
             onClick={() => onChange(band)}
             className={cellClasses(mode, selected)}
-            variants={reduce ? undefined : cellVariants}
+            variants={reduce ? undefined : cardEnter}
             whileTap={reduce ? undefined : { scale: 0.95 }}
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.15, ease: easeOutExpo }}
             aria-label={`Band ${band.toFixed(1)}`}
           >
             <span className="font-display italic text-2xl leading-none">

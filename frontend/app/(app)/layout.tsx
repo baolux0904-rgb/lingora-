@@ -134,6 +134,18 @@ export default function AppGroupLayout({ children }: { children: ReactNode }) {
       .finally(() => setOnboardingChecked(true));
   }, [user, onboardingChecked]);
 
+  // Wave 6 Sprint 4E.2 — re-open onboarding modal when banner / gate
+  // dispatches 'lingona:open-onboarding'. Decoupled event so HomeBanner
+  // and OnboardingGateModal don't have to thread state through 4
+  // components.
+  useEffect(() => {
+    function handleOpen() {
+      setShowOnboarding(true);
+    }
+    window.addEventListener("lingona:open-onboarding", handleOpen);
+    return () => window.removeEventListener("lingona:open-onboarding", handleOpen);
+  }, []);
+
   if (authLoading || !user) return null;
 
   // Wave 6 Sprint 3D — username backfill gate. Block every authenticated

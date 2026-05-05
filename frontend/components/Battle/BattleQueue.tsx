@@ -8,6 +8,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { joinBattleQueue, getBattleMatch, leaveBattleQueue } from "@/lib/api";
+import { useOnboardingStatus } from "@/lib/hooks/useOnboardingStatus";
+import OnboardingGateModal from "@/components/Onboarding/OnboardingGateModal";
 
 interface BattleQueueProps {
   onMatched: (matchId: string) => void;
@@ -20,6 +22,14 @@ export default function BattleQueue({ onMatched, onCancel }: BattleQueueProps) {
   const [error, setError] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Wave 6 Sprint 4E.2 — onboarding soft-gate. Pauses the auto-join
+  // useEffect until the user either completes onboarding or skips the
+  // gate. Skip continues to queue join; backend matchmaker handles
+  // null estimated_band by defaulting to 5.0 for fairness banding.
+  const onboarding = useOnboardingStatus();
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateResolved, setGateResolved] = useState(false);
 
   // Wall-clock elapsed (Wave 4.11 pattern). Display only here, but keep
   // the same shape as BattleMatch so a hidden tab doesn't show a frozen
@@ -35,9 +45,22 @@ export default function BattleQueue({ onMatched, onCancel }: BattleQueueProps) {
     if (timerRef.current) clearInterval(timerRef.current);
   }, []);
 
-  // Join queue on mount
+  // Join queue on mount — but pause if onboarding gate needs to fire.
   useEffect(() => {
     let cancelled = false;
+
+    // Wait for onboarding status to load before deciding.
+    if (onboarding.loading) return;
+    // Open the gate once and bail; user choice flips gateResolved
+    // which re-runs this useEffect.
+    if (
+      !gateResolved &&
+      onboarding.status &&
+      !onboarding.status.has_completed_onboarding
+    ) {
+      setGateOpen(true);
+      return;
+    }
 
     (async () => {
       try {
@@ -66,7 +89,8 @@ export default function BattleQueue({ onMatched, onCancel }: BattleQueueProps) {
     })();
 
     return () => { cancelled = true; };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onboarding.loading, onboarding.status?.has_completed_onboarding, gateResolved]);
 
   // Poll match status + elapsed timer
   useEffect(() => {
@@ -160,6 +184,24 @@ export default function BattleQueue({ onMatched, onCancel }: BattleQueueProps) {
       >
         Cancel
       </button>
+
+      <OnboardingGateModal
+        open={gateOpen}
+        onComplete={() => {
+          setGateOpen(false);
+          setGateResolved(true);
+          // User chose to complete onboarding — bail out of queue.
+          window.dispatchEvent(new Event("lingona:open-onboarding"));
+          onCancel();
+        }}
+        onSkip={() => {
+          setGateOpen(false);
+          // gateResolved flip re-runs the auto-join useEffect.
+          setGateResolved(true);
+        }}
+        headline="Cần biết band hiện tại để ghép trận"
+        body="Lintopus muốn đảm bảo trận đấu công bằng cho cả hai bên."
+      />
     </div>
   );
 }

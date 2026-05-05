@@ -6,6 +6,7 @@ import AnimatedBackground from "@/components/AnimatedBackground";
 import Topbar from "@/components/Topbar";
 import HomeDashboard from "@/components/HomeDashboard";
 import WelcomeBanner from "@/components/dashboard/WelcomeBanner";
+import HomeBanner from "@/components/home/HomeBanner";
 import { useAppData } from "@/contexts/AppDataContext";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { getScenarios } from "@/lib/api";
@@ -58,6 +59,10 @@ export default function HomePage() {
         <Suspense fallback={null}>
           <WelcomeBanner />
         </Suspense>
+        {/* Wave 6 Sprint 4E.2 — onboarding resumption banner. Renders
+            only when has_completed_onboarding === false; dismissible
+            per-session. */}
+        <HomeBanner />
         <HomeDashboard
           userName={user.name}
           gamification={gamification}

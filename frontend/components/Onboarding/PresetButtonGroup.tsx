@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { tapScale, tapTransition } from "@/lib/motionVariants";
 
 /**
  * PresetButtonGroup — chip-style preset picker. Generic over T so the
@@ -68,8 +69,8 @@ export default function PresetButtonGroup<T extends string>({
               role="radio"
               aria-checked={selected}
               onClick={() => onChange(opt.value)}
-              whileTap={{ scale: 0.97 }}
-              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+              whileTap={tapScale}
+              transition={tapTransition}
               className={chipClasses(selected)}
             >
               {opt.label}

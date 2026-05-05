@@ -779,13 +779,15 @@ export async function deleteMyAccount(confirmText: string): Promise<unknown> {
 }
 
 /**
- * Sprint 4D — optional personalisation extras. Forwarded as additional
- * fields in the POST body. The backend's manual destructure validator
- * (no zod) silently drops unknown fields today; once Sprint 4E.1 ships
- * migration 0057 + extends the controller these become durable.
+ * Sprint 4D extras, canonicalised in Sprint 4E.2.
+ *
+ * Body field rename: `exam_date` → `exam_date_bucket` to match the
+ * migration 0057 column name. The 4E.1 backend accepts both names
+ * (backwards-compat alias for already-deployed 4D clients); the alias
+ * becomes dead code after this commit and can be dropped Sprint 5+.
  */
 export interface OnboardingExtras {
-  exam_date?: "1m" | "2-3m" | "4-6m" | "no_plan" | null;
+  exam_date_bucket?: "1m" | "2-3m" | "4-6m" | "no_plan" | null;
   study_hours_per_week?: "3-5h" | "6-10h" | "10h+" | null;
   exam_type?: "academic" | "general" | null;
 }
@@ -804,6 +806,17 @@ export async function completeOnboarding(
 
 export async function skipOnboarding(): Promise<unknown> {
   return apiPostAuth<unknown>("/users/onboarding/skip", {});
+}
+
+/**
+ * Wave 6 Sprint 4E.2 — defer is the new "Để sau" path. Sets
+ * users.onboarding_deferred_at without flipping
+ * has_completed_onboarding. The /home banner reads
+ * has_deferred_onboarding from /onboarding/status to decide whether
+ * to prompt resumption.
+ */
+export async function deferOnboarding(): Promise<unknown> {
+  return apiPostAuth<unknown>("/users/onboarding/defer", {});
 }
 
 // ---------------------------------------------------------------------------

@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useScenarios } from "@/hooks/useScenarios";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
+import { useOnboardingStatus } from "@/lib/hooks/useOnboardingStatus";
+import OnboardingGateModal from "@/components/Onboarding/OnboardingGateModal";
 import Badge from "@/components/ui/Badge";
 import UpgradeTrigger from "@/components/Pro/UpgradeTrigger";
 import RemainingBadge from "@/components/Pro/RemainingBadge";
@@ -88,16 +90,31 @@ export default function ScenarioList({ onSelect, excludeExam }: ScenarioListProp
   const [activeCategory, setActiveCategory] = useState<string | undefined>(undefined);
   const { scenarios: rawScenarios, loading, error } = useScenarios(activeCategory);
   const limits = useDailyLimits();
+  const onboarding = useOnboardingStatus();
   const [proModalOpen, setProModalOpen] = useState(false);
+  const [gateOpen, setGateOpen] = useState(false);
+  const pendingScenarioRef = useRef<Scenario | null>(null);
+  const gateSkipped = useRef(false);
 
   const scenarios = excludeExam
     ? rawScenarios.filter((s) => s.exam_type !== "ielts")
     : rawScenarios;
 
-  // Gate speaking scenarios: if the free user hit their limit, block the card click.
+  // Gate speaking scenarios: free-user daily-limit gate first, then
+  // Wave 6 Sprint 4E.2 onboarding soft-gate before the scenario session
+  // starts (cheapest insertion point — fires before any LLM round-trip).
   const handleSelect = (scenario: Scenario) => {
     if (!limits.isPro && !limits.speaking.allowed) {
       setProModalOpen(true);
+      return;
+    }
+    if (
+      !gateSkipped.current &&
+      onboarding.status &&
+      !onboarding.status.has_completed_onboarding
+    ) {
+      pendingScenarioRef.current = scenario;
+      setGateOpen(true);
       return;
     }
     onSelect(scenario);
@@ -136,6 +153,24 @@ export default function ScenarioList({ onSelect, excludeExam }: ScenarioListProp
           setProModalOpen(false);
           limits.refetch();
         }}
+      />
+
+      <OnboardingGateModal
+        open={gateOpen}
+        onComplete={() => {
+          setGateOpen(false);
+          pendingScenarioRef.current = null;
+          window.dispatchEvent(new Event("lingona:open-onboarding"));
+        }}
+        onSkip={() => {
+          setGateOpen(false);
+          gateSkipped.current = true;
+          const pending = pendingScenarioRef.current;
+          pendingScenarioRef.current = null;
+          if (pending) onSelect(pending);
+        }}
+        headline="Lintopus cần biết band hiện tại"
+        body="Để chọn cuộc hội thoại phù hợp với trình độ của bạn."
       />
 
       {/* Category filter pills */}
