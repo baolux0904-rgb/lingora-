@@ -13,7 +13,7 @@ import { getScenarios } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
 import type { Scenario } from "@/lib/types";
 
-const ScenarioList = dynamic(() => import("./ScenarioList"), { ssr: false });
+const ScenarioList = dynamic(() => import("./Speaking/ScenarioList"), { ssr: false });
 
 interface ExamScreenProps {
   onStartIelts: (scenario: Scenario) => void;

@@ -39,7 +39,7 @@ import type {
   BandRange,
   ExaminerPersona,
 } from "@/lib/types";
-import IeltsDiagnosticReport from "./IeltsDiagnosticReport";
+import IeltsDiagnosticReport from "../IeltsDiagnosticReport";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useFireBadgesFromResponse, type BadgeResponse } from "@/hooks/useFireBadgesFromResponse";
 
