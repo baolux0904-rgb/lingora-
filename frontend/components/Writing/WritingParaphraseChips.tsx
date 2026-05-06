@@ -11,6 +11,11 @@
  *
  * Silently hides itself when suggestions is empty or missing so it
  * never leaves an empty header on the page.
+ *
+ * Wave 6 Sprint 5C.1e — restyled to cream canon (bg-cream-warm,
+ * border-navy/10, text-navy, font-sans DM Sans). Open chip uses
+ * teal canon accent (was off-brand purple #7E4EC1) so chip clusters
+ * across Writing/ feel unified with WritingPromptSelector.
  */
 
 import { useState } from "react";
@@ -27,7 +32,7 @@ export default function WritingParaphraseChips({ suggestions }: WritingParaphras
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
+      <div className="text-xs font-semibold uppercase tracking-widest text-navy-light/70 font-sans">
         Gợi ý từ / cụm từ thay thế
       </div>
       <div className="flex flex-wrap gap-2">
@@ -40,12 +45,12 @@ export default function WritingParaphraseChips({ suggestions }: WritingParaphras
               onClick={() => setOpenIndex(open ? null : i)}
               aria-expanded={open}
               title={s.alternatives.slice(0, 3).join(" · ")}
-              className="text-sm px-3 py-1.5 rounded-full transition-all cursor-pointer"
-              style={{
-                background: open ? "rgba(126,78,193,0.12)" : "var(--color-bg-secondary)",
-                color: open ? "#7E4EC1" : "var(--color-text)",
-                border: `1px solid ${open ? "rgba(126,78,193,0.35)" : "var(--color-border)"}`,
-              }}
+              className={
+                "text-sm px-3 py-1.5 rounded-full transition-all cursor-pointer font-sans border " +
+                (open
+                  ? "bg-teal/10 text-teal border-teal/35"
+                  : "bg-cream-warm text-navy border-navy/10 hover:border-teal/30")
+              }
             >
               {s.phrase}
             </button>
@@ -54,23 +59,15 @@ export default function WritingParaphraseChips({ suggestions }: WritingParaphras
       </div>
 
       {openIndex !== null && list[openIndex] && (
-        <div
-          className="rounded-xl p-4 flex flex-col gap-3"
-          style={{
-            background: "var(--color-bg-card)",
-            border: "1px solid var(--color-border)",
-            boxShadow: "var(--surface-shadow)",
-          }}
-        >
+        <div className="rounded-xl p-4 flex flex-col gap-3 bg-cream-warm border border-navy/10 shadow-sm">
           <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
+            <div className="text-sm font-semibold text-navy font-sans">
               “{list[openIndex].phrase}”
             </div>
             <button
               type="button"
               onClick={() => setOpenIndex(null)}
-              className="text-xs"
-              style={{ color: "var(--color-text-tertiary)" }}
+              className="text-xs text-navy-light/70 hover:text-navy transition-colors font-sans"
               aria-label="Đóng"
             >
               Đóng
@@ -81,12 +78,7 @@ export default function WritingParaphraseChips({ suggestions }: WritingParaphras
             {list[openIndex].alternatives.map((alt, j) => (
               <span
                 key={j}
-                className="text-sm px-2.5 py-1 rounded-full"
-                style={{
-                  background: "rgba(0,168,150,0.10)",
-                  color: "#00A896",
-                  border: "1px solid rgba(0,168,150,0.25)",
-                }}
+                className="text-sm px-2.5 py-1 rounded-full bg-teal/10 text-teal border border-teal/25 font-sans"
               >
                 {alt}
               </span>
@@ -94,7 +86,7 @@ export default function WritingParaphraseChips({ suggestions }: WritingParaphras
           </div>
 
           {list[openIndex].context && (
-            <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+            <p className="text-sm leading-relaxed text-navy-light font-sans">
               {list[openIndex].context}
             </p>
           )}
