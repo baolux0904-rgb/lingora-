@@ -4,8 +4,10 @@
  * SpeakingHub — IELTS Speaking scenario picker.
  *
  * Filters the global scenario list to exam_type === "ielts" and routes
- * selection to /home-legacy for the conversation session (legacy god-component
- * still owns the multi-turn session state until PR5 + Mode Selection).
+ * selection to the Sprint 5L (1/3) /exam/speaking/[id] runner route.
+ * Pre-5L this pushed to /home-legacy?tab=speaking&scenario=...; the
+ * legacy mount stays alive through Sprint 5L (3/3) for backwards compat
+ * but no live caller targets it from here anymore.
  */
 
 import { useRouter } from "next/navigation";
@@ -19,7 +21,7 @@ export default function SpeakingHub() {
   const scenarios = rawScenarios.filter((s) => s.exam_type === "ielts");
 
   const handleSelect = (scenario: Scenario) => {
-    router.push(`/home-legacy?tab=speaking&scenario=${scenario.id}`);
+    router.push(`/exam/speaking/${scenario.id}`);
   };
 
   return (

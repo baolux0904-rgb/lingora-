@@ -3,9 +3,11 @@
 /**
  * ScenariosScreen — non-IELTS conversation scenarios.
  *
- * Reuses ScenarioList (which already supports excludeExam filter) and routes
- * selection back to /home-legacy for the ScenarioConversation session (legacy
- * god-component still owns multi-turn state until PR5).
+ * Reuses ScenarioList (excludeExam filter) and routes selection to the
+ * Sprint 5L (1/3) /learn/scenarios/[id] runner route. Pre-5L this
+ * pushed to /home-legacy?tab=scenarios&scenario=...; the legacy mount
+ * stays alive through 5L (3/3) for backwards compat but no live caller
+ * targets it from here anymore.
  */
 
 import { useRouter } from "next/navigation";
@@ -16,7 +18,7 @@ export default function ScenariosScreen() {
   const router = useRouter();
 
   const handleSelect = (scenario: Scenario) => {
-    router.push(`/home-legacy?tab=scenarios&scenario=${scenario.id}`);
+    router.push(`/learn/scenarios/${scenario.id}`);
   };
 
   return (
