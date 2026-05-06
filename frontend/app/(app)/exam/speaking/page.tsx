@@ -40,14 +40,13 @@ export default function ExamSpeakingPage() {
             locked: !isPro,
             onClick: () => {
               if (!isPro) { setShowPro(true); return; }
-              // Wave 6 Sprint 5L (1/3) — drops the silent-fail
-              // mode=full_test param (Bug C: speaking branch never had
-              // a mode handler). Lands on /home-legacy ExamScreen which
-              // renders the IELTS picker → user clicks a scenario →
-              // SpeakingHub.tsx pushes to the new /exam/speaking/[id]
-              // runner. Sprint 5L (3/3) replaces the /home-legacy hop
-              // with a direct picker page.
-              router.push("/home-legacy?tab=speaking");
+              // Wave 6 Sprint 5L (3/3) — push to /exam (the IELTS
+              // picker that ExamScreen mounts via onStartIelts).
+              // Replaces the 5L (1/3) /home-legacy?tab=speaking hop
+              // now that legacy is gone. User clicks a scenario in
+              // ExamScreen → onStartIelts pushes to
+              // /exam/speaking/[id] (5L 1/3 runner).
+              router.push("/exam");
             },
           }}
           practiceCTA={{

@@ -4,10 +4,10 @@
  * (app) route group layout.
  *
  * Hosts every authenticated route that renders inside the shared shell
- * (sidebar + bottomnav). Anything requiring a fullscreen/no-shell layout
- * (active Writing/Reading/Speaking session, etc.) currently still lives
- * under /home-legacy and will be migrated in PR5 when the Mode Selection
- * design locks the session state contract.
+ * (sidebar + bottomnav). Active sessions (Writing / Reading / Speaking)
+ * mount at dedicated runner sub-routes (/exam/<skill>/full-test,
+ * /exam/<skill>/practice, /exam/speaking/[id], /learn/scenarios/[id])
+ * — see Sprint 5L (1-3/3) for the IA-refactor history.
  *
  * Responsibilities:
  *   - Auth guard: redirect unauthenticated users to /login
@@ -18,9 +18,7 @@
  *     intra-group navigation reuses the same React tree, so hooks do not
  *     re-fire. No SWR required for this scope.
  *   - Active nav id derived from usePathname + searchParams via
- *     matchActiveNavId(), preserving highlight when users hit /home-legacy
- *     URLs that still exist for Writing/Reading/Speaking/Listening/Grammar/
- *     Scenarios.
+ *     matchActiveNavId().
  */
 
 import { Suspense, useEffect, useState, type ReactNode } from "react";

@@ -21,16 +21,18 @@ export default function ExamPage() {
       </div>
       <div className="mx-auto px-5 py-6 max-w-2xl lg:max-w-4xl animate-fadeSlideUp">
         <ExamScreen
+          // Wave 6 Sprint 5L (3/3) — direct runner routes. Was
+          // /home-legacy?tab=speaking&scenario=${s.id} (3 sites).
           onStartIelts={(s: Scenario) =>
-            router.push(`/home-legacy?tab=speaking&scenario=${s.id}`)
+            router.push(`/exam/speaking/${s.id}`)
           }
           onStartWriting={() => router.push("/exam/writing")}
           onStartReading={() => router.push("/exam/reading")}
           onScenarioSelect={(s: Scenario) => {
             if (s.exam_type === "ielts") {
-              router.push(`/home-legacy?tab=speaking&scenario=${s.id}`);
+              router.push(`/exam/speaking/${s.id}`);
             } else {
-              router.push(`/home-legacy?tab=scenarios&scenario=${s.id}`);
+              router.push(`/learn/scenarios/${s.id}`);
             }
           }}
         />

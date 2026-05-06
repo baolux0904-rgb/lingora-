@@ -22,8 +22,9 @@ export type NavItem = {
   icon: NavIcon;
   /** Navigate target. Groups without href do not navigate — they only toggle expand. */
   href?: string;
-  /** Temporary: legacy tab key if the screen still lives in /home-legacy (not used in PR3). */
-  legacyTab?: string;
+  // Wave 6 Sprint 5L (3/3) — `legacyTab` field dropped along with
+  // /home-legacy/page.tsx. All nav items now use direct `href` to
+  // dedicated (app)/ routes; no items in NAV_ITEMS ever set legacyTab.
   children?: NavItem[];
   showIn: NavSurface[];
   proOnly?: boolean;
@@ -122,7 +123,7 @@ export function itemsForSurface(surface: NavSurface): NavItem[] {
 /** Resolve the destination for a nav item click. Groups without href return ''. */
 export function navHref(item: NavItem): string {
   if (item.href) return item.href;
-  if (item.legacyTab) return `/home-legacy?tab=${item.legacyTab}`;
+  // Sprint 5L (3/3) — legacyTab fallback dropped along with /home-legacy.
   return "";
 }
 
@@ -155,26 +156,10 @@ export function matchActiveNavId(
   if (pathname.startsWith("/learn/grammar"))   return "learn.grammar";
   if (pathname.startsWith("/learn/scenarios")) return "learn.scenarios";
 
-  // Legacy fallback (still mapped for /home-legacy god-component until PR5)
-  if (pathname === "/home-legacy" || pathname.startsWith("/home-legacy")) {
-    const tab = searchParams?.get("tab");
-    const tabToNav: Record<string, string> = {
-      speaking: "exam.speaking",
-      writing: "exam.writing",
-      reading: "exam.reading",
-      listening: "exam.listening",
-      grammar: "learn.grammar",
-      scenarios: "learn.scenarios",
-      exam: "exam",
-      battle: "battle",
-      social: "friends",
-      friends: "friends",
-      profile: "profile",
-      home: "home",
-    };
-    return (tab && tabToNav[tab]) || "home";
-  }
-
+  // Sprint 5L (3/3) — /home-legacy fallback removed. Legacy page
+  // deleted; matchActiveNavId no longer needs the searchParams arg
+  // for any active branch but the signature is preserved to avoid
+  // call-site churn.
   return "home";
 }
 

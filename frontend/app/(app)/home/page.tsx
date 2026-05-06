@@ -26,9 +26,19 @@ export default function HomePage() {
       case "social":
       case "friends":   router.push("/friends"); return;
       case "profile":   router.push("/profile"); return;
+      // Wave 6 Sprint 5L (3/3) — direct skill-tab routes (was
+      // /home-legacy?tab=${id} fallback). Each maps to the
+      // dedicated mode-select page shipped Sprint 5K execute +
+      // 5L (1/3) + (2/3).
+      case "writing":   router.push("/exam/writing"); return;
+      case "reading":   router.push("/exam/reading"); return;
+      case "listening": router.push("/exam/listening"); return;
+      case "speaking":  router.push("/exam/speaking"); return;
+      case "grammar":   router.push("/learn/grammar"); return;
+      case "scenarios": router.push("/learn/scenarios"); return;
       default:
-        // Tab ids for skills still live in the legacy shell (Writing/Reading/etc).
-        router.push(`/home-legacy?tab=${id}`);
+        // Unknown skill id — fall back to /home (safe, never 404).
+        router.push("/home");
     }
   };
 
@@ -38,7 +48,9 @@ export default function HomePage() {
         const scenarios = await getScenarios();
         const match = scenarios.find((s) => s.id === rec.scenarioId);
         if (match) {
-          router.push(`/home-legacy?tab=speaking&scenario=${match.id}`);
+          // Wave 6 Sprint 5L (3/3) — direct runner route. Was
+          // /home-legacy?tab=speaking&scenario=${match.id}.
+          router.push(`/exam/speaking/${match.id}`);
           return;
         }
       } catch { /* fall through */ }

@@ -77,13 +77,14 @@ const nextConfig = {
       { source: "/home", has: [{ type: "query", key: "tab", value: "listening" }], destination: "/exam/listening",  permanent: true },
       { source: "/home", has: [{ type: "query", key: "tab", value: "grammar" }],   destination: "/learn/grammar",   permanent: true },
       { source: "/home", has: [{ type: "query", key: "tab", value: "scenarios" }], destination: "/learn/scenarios", permanent: true },
-      // Speaking sessions still live in /home-legacy until PR5 (multi-turn state persistence).
-      { source: "/home", has: [{ type: "query", key: "tab", value: "speaking" }],  destination: "/home-legacy?tab=speaking", permanent: false },
-      // Also redirect /home-legacy Hub/listing tabs to the new (app) routes.
-      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "writing" }],   destination: "/exam/writing",    permanent: true },
-      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "reading" }],   destination: "/exam/reading",    permanent: true },
-      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "listening" }], destination: "/exam/listening",  permanent: true },
-      { source: "/home-legacy", has: [{ type: "query", key: "tab", value: "grammar" }],   destination: "/learn/grammar",   permanent: true },
+      // Wave 6 Sprint 5L (3/3) — dropped 5 /home-legacy redirect rules
+      // (1 inbound from /home?tab=speaking, 4 outbound from
+      // /home-legacy?tab=X). /home-legacy/page.tsx deleted in this same
+      // commit; old /home?tab=speaking → /home-legacy redirect target
+      // no longer exists. /home?tab=speaking now becomes a 404 (no live
+      // caller per Sprint 5L (1/3) audit; ScenarioConversation /
+      // IeltsConversationV2 reachable via /exam/speaking/[id] +
+      // /learn/scenarios/[id] runners).
 
       // Wave 6 Sprint 3.5C-3 commit 2 — legacy legal route redirects.
       // 308 permanent for SEO + bookmark preservation.
