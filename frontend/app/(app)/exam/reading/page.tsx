@@ -36,12 +36,16 @@ export default function ExamReadingPage() {
             locked: !isPro,
             onClick: () => {
               if (!isPro) { setShowPro(true); return; }
-              router.push("/home-legacy?tab=reading&mode=full_test");
+              // Wave 6 Sprint 5L (2/3) — direct mount runner. Was
+              // /home-legacy?tab=reading&mode=full_test which had a
+              // perceived no-op due to AppShell layout collision (Bug B).
+              router.push("/exam/reading/full-test");
             },
           }}
           practiceCTA={{
             label: "Luyện tập ngay →",
-            onClick: () => router.push("/home-legacy?tab=reading&mode=practice"),
+            // Sprint 5L (2/3) — same pattern, was /home-legacy.
+            onClick: () => router.push("/exam/reading/practice"),
           }}
         />
       </div>

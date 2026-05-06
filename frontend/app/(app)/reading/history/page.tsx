@@ -35,7 +35,7 @@ export default function ReadingHistoryPage() {
           <HistoryEmptyState
             message="Bạn chưa luyện Reading."
             ctaLabel="Bắt đầu luyện"
-            ctaHref="/home-legacy?tab=reading&mode=practice"
+            ctaHref="/exam/reading/practice"
           />
         }
         renderRow={(r) => (

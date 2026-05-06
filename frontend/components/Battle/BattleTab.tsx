@@ -72,7 +72,7 @@ export default function BattleTab() {
           </div>
         </div>
         <button
-          onClick={() => router.push("/home-legacy?tab=reading&mode=practice")}
+          onClick={() => router.push("/exam/reading/practice")}
           className="w-full py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.98] cursor-pointer"
           style={{
             background: "linear-gradient(135deg, #00A896, #00C4B0)",
