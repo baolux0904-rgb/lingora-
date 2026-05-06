@@ -1,6 +1,6 @@
 "use client";
 
-import { IconMic } from "./Icons";
+import { IconMic } from "../Icons";
 import Button from "@/components/ui/Button";
 import Mascot from "@/components/ui/Mascot";
 

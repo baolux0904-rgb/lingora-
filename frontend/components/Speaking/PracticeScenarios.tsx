@@ -1,6 +1,6 @@
 "use client";
 
-import { IconArrowRight } from "./Icons";
+import { IconArrowRight } from "../Icons";
 
 const HIGHLIGHTS = [
   { emoji: "☕", label: "Café" },
