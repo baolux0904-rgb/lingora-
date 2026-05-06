@@ -10,6 +10,13 @@
  *
  * Full Test mode bypasses this component (WritingTab calls startWritingFullTest
  * directly).
+ *
+ * Wave 6 Sprint 5C.1c — restyled to cream canon (bg-cream-warm,
+ * border-navy/10, font-display Playfair, font-sans DM Sans) matching
+ * WritingResult.tsx (Sprint 5C.1b ship). All var(--color-*) +
+ * var(--surface-*) refs eliminated. Hover transform handled via Tailwind
+ * (hover:-translate-y-0.5 hover:border-teal) instead of inline mouse
+ * handlers — same visual, less imperative.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -135,10 +142,7 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
   return (
     <div className="flex flex-col gap-4">
       {/* Task type toggle */}
-      <div
-        className="flex rounded-xl overflow-hidden"
-        style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
-      >
+      <div className="flex rounded-xl overflow-hidden bg-cream-warm border border-navy/10">
         {(["task1", "task2"] as WritingTaskType[]).map((t) => {
           const active = taskType === t;
           return (
@@ -146,11 +150,10 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
               key={t}
               type="button"
               onClick={() => setTaskType(t)}
-              className="flex-1 py-2.5 text-sm font-medium transition-all cursor-pointer"
-              style={{
-                background: active ? "var(--color-accent)" : "transparent",
-                color: active ? "#fff" : "var(--color-text-secondary)",
-              }}
+              className={
+                "flex-1 py-2.5 text-sm font-medium transition-all cursor-pointer font-sans " +
+                (active ? "bg-teal text-white" : "bg-transparent text-navy-light")
+              }
             >
               {t === "task1" ? "Task 1 (~20 min)" : "Task 2 (~40 min)"}
             </button>
@@ -163,12 +166,7 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
         <select
           value={topic}
           onChange={(e) => setTopic(e.target.value)}
-          className="rounded-lg px-3 py-2 text-sm focus:outline-none"
-          style={{
-            background: "var(--color-bg-secondary)",
-            border: "1px solid var(--color-border)",
-            color: "var(--color-text)",
-          }}
+          className="rounded-lg px-3 py-2 text-sm focus:outline-none bg-cream-warm border border-navy/10 text-navy font-sans"
           aria-label="Chọn chủ đề"
         >
           <option value="">Tất cả chủ đề</option>
@@ -179,12 +177,7 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
         <select
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value as WritingDifficulty | "")}
-          className="rounded-lg px-3 py-2 text-sm focus:outline-none"
-          style={{
-            background: "var(--color-bg-secondary)",
-            border: "1px solid var(--color-border)",
-            color: "var(--color-text)",
-          }}
+          className="rounded-lg px-3 py-2 text-sm focus:outline-none bg-cream-warm border border-navy/10 text-navy font-sans"
           aria-label="Chọn độ khó"
         >
           {DIFFICULTY_OPTIONS.map((o) => (
@@ -192,22 +185,20 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
           ))}
         </select>
         <label
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer"
-          style={{
-            background: onlyUnattempted ? "rgba(0,168,150,0.10)" : "var(--color-bg-secondary)",
-            color: onlyUnattempted ? "#00A896" : "var(--color-text-secondary)",
-            border: "1px solid var(--color-border)",
-          }}
+          className={
+            "flex items-center gap-2 px-3 py-2 rounded-lg text-sm cursor-pointer font-sans border border-navy/10 transition-colors " +
+            (onlyUnattempted ? "bg-teal/10 text-teal" : "bg-cream-warm text-navy-light")
+          }
         >
           <input
             type="checkbox"
             checked={onlyUnattempted}
             onChange={(e) => setOnlyUnattempted(e.target.checked)}
-            className="accent-teal-600"
+            className="accent-teal"
           />
           Chưa làm
         </label>
-        <span className="text-xs ml-auto" style={{ color: "var(--color-text-tertiary)" }}>
+        <span className="text-xs ml-auto text-navy-light/70 font-sans">
           {loading ? "Đang tải..." : `${questions.length} đề`}
         </span>
       </div>
@@ -215,7 +206,7 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
       {/* Error / empty / list */}
       {error && (
         <div
-          className="rounded-lg px-4 py-3 text-sm"
+          className="rounded-lg px-4 py-3 text-sm font-sans"
           style={{ background: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}
         >
           {error}
@@ -223,10 +214,7 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
       )}
 
       {!loading && !error && questions.length === 0 && (
-        <div
-          className="rounded-xl px-4 py-8 text-center text-sm"
-          style={{ background: "var(--surface-primary)", color: "var(--color-text-tertiary)", border: "1px solid var(--surface-border)" }}
-        >
+        <div className="rounded-xl px-4 py-8 text-center text-sm bg-cream-warm border border-navy/10 text-navy-light/70 font-sans">
           Chưa có đề phù hợp với bộ lọc này.
         </div>
       )}
@@ -236,8 +224,7 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div
               key={i}
-              className="rounded-xl p-4 h-40 animate-pulse"
-              style={{ background: "var(--surface-skeleton)" }}
+              className="rounded-xl p-4 h-40 animate-pulse bg-cream-warm border border-navy/10"
             />
           ))}
         </div>
@@ -257,19 +244,16 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
                 type="button"
                 onClick={() => void handleSelect(q.id)}
                 disabled={isSelecting}
-                className="relative text-left rounded-xl p-4 flex flex-col gap-3 transition-all cursor-pointer disabled:opacity-60"
-                style={{
-                  background: "var(--surface-primary)",
-                  border: `1px solid ${q.attempted ? "rgba(0,168,150,0.3)" : "var(--surface-border)"}`,
-                  boxShadow: "var(--surface-shadow)",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.borderColor = "#00A896"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.borderColor = q.attempted ? "rgba(0,168,150,0.3)" : "var(--surface-border)"; }}
+                className={
+                  "relative text-left rounded-xl p-4 flex flex-col gap-3 cursor-pointer disabled:opacity-60 " +
+                  "bg-cream-warm border transition-all duration-200 " +
+                  "hover:-translate-y-0.5 hover:border-teal " +
+                  (q.attempted ? "border-teal/30" : "border-navy/10")
+                }
               >
                 {q.attempted && (
                   <span
-                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
-                    style={{ background: "#00A896", color: "#fff" }}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center bg-teal text-white"
                     aria-label="Đã làm"
                     title="Đã làm"
                   >
@@ -279,35 +263,23 @@ export default function WritingPromptSelector({ onSelect }: WritingPromptSelecto
                   </span>
                 )}
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                    style={{ background: "rgba(0,168,150,0.08)", color: "#00A896" }}
-                  >
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider bg-teal/10 text-teal font-sans">
                     {q.topic}
                   </span>
-                  <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                    style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
-                  >
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider bg-cream-soft text-navy-light border border-navy/10 font-sans">
                     {DIFFICULTY_LABEL[q.difficulty]}
                   </span>
                   {secondary && (
-                    <span
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                      style={{ background: "rgba(27,43,75,0.08)", color: "#1B2B4B" }}
-                    >
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider bg-navy/10 text-navy font-sans">
                       {secondary}
                     </span>
                   )}
                 </div>
-                <p
-                  className="text-sm leading-snug"
-                  style={{ color: "var(--color-text)" }}
-                >
+                <p className="text-sm leading-snug text-navy font-sans">
                   {headline}
                 </p>
                 {isSelecting && (
-                  <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
+                  <span className="text-xs text-navy-light/70 font-sans">
                     Đang mở đề...
                   </span>
                 )}
