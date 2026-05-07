@@ -24,6 +24,7 @@ import WritingTimerBar from "./WritingTimerBar";
 import WritingNotesModal from "./WritingNotesModal";
 import WritingPromptSelector from "./WritingPromptSelector";
 import WritingChartRenderer from "./WritingChartRenderer";
+import WritingEditorCore from "./WritingEditorCore";
 import type { WritingTaskType, WritingQuestionDetail, WritingFullTestInProgress } from "@/lib/types";
 
 // localStorage slot the resume-banner uses as a belt-and-braces hint.
@@ -746,48 +747,17 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                   </span>
                   </div>
                 </div>
-                <textarea
+                <WritingEditorCore
                   value={essayText}
                   onChange={handleEssayChange}
                   onPaste={(e) => { e.preventDefault(); showToast("Thi thật không cho phép paste"); }}
                   onContextMenu={(e) => e.preventDefault()}
-                  spellCheck={false}
-                  autoCorrect="off"
-                  autoCapitalize="off"
                   readOnly={paused || Boolean(fullTestSubmitted[taskType])}
+                  paused={paused}
                   placeholder={`Start writing your ${taskType === "task1" ? "Task 1" : "Task 2"} response...\n\nMinimum ${minRequired} words required. Timer starts on first keystroke.`}
-                  rows={16}
-                  maxLength={5000}
-                  className="w-full rounded-lg px-4 py-3 text-sm leading-[1.8] resize-none transition-colors focus:outline-none flex-1"
-                  style={{
-                    background: "var(--color-bg-secondary)",
-                    border: `1px solid ${wordCount > 0 && wordCount < minRequired ? "rgba(239,68,68,0.3)" : "var(--color-border)"}`,
-                    color: "var(--color-text)",
-                    minHeight: "360px",
-                    opacity: paused ? 0.5 : 1,
-                    cursor: paused ? "not-allowed" : "text",
-                  }}
-                  onFocus={(e) => {
-                    if (!(wordCount > 0 && wordCount < minRequired)) {
-                      e.currentTarget.style.borderColor = "#00A896";
-                      e.currentTarget.style.boxShadow = "0 0 0 3px rgba(0,168,150,0.1)";
-                    }
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.borderColor = wordCount > 0 && wordCount < minRequired ? "rgba(239,68,68,0.3)" : "var(--color-border)";
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
+                  wordCount={wordCount}
+                  minRequired={minRequired}
                 />
-                {/* Word count progress bar */}
-                <div className="h-1 rounded-full overflow-hidden" style={{ background: "var(--surface-skeleton)" }}>
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${Math.min((wordCount / minRequired) * 100, 100)}%`,
-                      background: wordCount >= minRequired ? "#16A34A" : wordCount > minRequired * 0.5 ? "#F59E0B" : "#EF4444",
-                    }}
-                  />
-                </div>
               </div>
             </div>
             )}
