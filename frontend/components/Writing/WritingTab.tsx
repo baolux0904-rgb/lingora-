@@ -392,32 +392,22 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
   // ---------------------------------------------------------------------------
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: "var(--color-bg)" }}
-    >
+    <div className="fixed inset-0 z-50 flex flex-col bg-cream font-sans">
       {/* Header */}
-      <div
-        className="flex items-center gap-3 px-4 py-3 shrink-0"
-        style={{
-          background: "var(--color-bg-card)",
-          borderBottom: "1px solid var(--color-border)",
-        }}
-      >
+      <div className="flex items-center gap-3 px-4 py-3 shrink-0 bg-cream-warm border-b border-navy/10">
         <button
           onClick={onClose}
-          className="w-9 h-9 rounded-lg flex items-center justify-center"
-          style={{ background: "var(--color-bg-secondary)" }}
+          className="w-9 h-9 rounded-lg flex items-center justify-center bg-cream-soft text-navy hover:bg-cream transition-colors"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text)" }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
         </button>
         <div className="flex-1">
-          <div className="font-semibold text-base" style={{ color: "var(--color-text)" }}>
+          <div className="font-semibold text-base text-navy">
             IELTS Writing
           </div>
-          <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+          <div className="text-xs text-navy-light">
             {phase === "intro" && "Đang chuẩn bị..."}
             {phase === "editor" && "Viết bài luận"}
             {phase === "pending" && "Đang phân tích bài viết..."}
@@ -430,11 +420,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
         {phase === "editor" && (
           <a
             href="/writing/progress"
-            className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5"
-            style={{
-              background: "var(--color-bg-secondary)",
-              color: "var(--color-text-secondary)",
-            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-cream-soft text-navy-light hover:text-navy transition-colors"
             aria-label="Tiến độ Writing"
             title="Tiến độ Writing"
           >
@@ -450,11 +436,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
         {phase === "editor" && (
           <button
             onClick={() => setPhase("history")}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{
-              background: "var(--color-bg-secondary)",
-              color: "var(--color-text-secondary)",
-            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-cream-soft text-navy-light hover:text-navy transition-colors"
           >
             Lịch sử
           </button>
