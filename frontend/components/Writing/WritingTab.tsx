@@ -26,6 +26,7 @@ import WritingPromptSelector from "./WritingPromptSelector";
 import WritingChartRenderer from "./WritingChartRenderer";
 import WritingEditorCore from "./WritingEditorCore";
 import WritingFullTestShell from "./WritingFullTestShell";
+import WritingExamChrome from "./WritingExamChrome";
 import type { WritingTaskType, WritingQuestionDetail, WritingFullTestInProgress } from "@/lib/types";
 
 // localStorage slot the resume-banner uses as a belt-and-braces hint.
@@ -500,7 +501,8 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
         )}
 
         {/* ── EDITOR PHASE ── */}
-        {phase === "editor" && (
+        {phase === "editor" && (() => {
+          const editorContent = (
           <div className="flex flex-col gap-4 max-w-[1400px] mx-auto">
             {/* Remaining-count badge (free users only, hides for Pro) */}
             {!limits.loading && !limits.isPro && limits.writing.allowed && (
@@ -755,15 +757,15 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
               </div>
             )}
 
-            {/* Submit Button — Full Test with time remaining asks for confirmation first */}
-            {activePrompt && (
+            {/* Submit Button — Full Test with time remaining asks for confirmation first.
+                Sprint 5C.2b4 (R2a): hidden in Full Test mode — WritingExamChrome footer
+                owns the Submit CTA there. Practice mode keeps the inline button. */}
+            {activePrompt && mode === "practice" && (
               <button
                 onClick={() => {
-                  if (mode === "full_test" && timerStarted && timeLeft !== null && timeLeft > 0) {
-                    setSubmitConfirmOpen(true);
-                  } else {
-                    void handleSubmit();
-                  }
+                  // Practice has no mid-session confirm — submit immediately.
+                  // Full Test confirmation lives in WritingExamChrome.onSubmit (R2a).
+                  void handleSubmit();
                 }}
                 disabled={!isValid || submitting}
                 className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
@@ -778,7 +780,32 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
               </button>
             )}
           </div>
-        )}
+          );
+          // Sprint 5C.2b4 (R2a): wrap editorContent in WritingExamChrome for Full Test
+          // post-launch (activePrompt set). Practice mode and Full Test pre-launch
+          // (launch panel via WritingFullTestShell) render editorContent directly.
+          // Chrome.onComplete is no-op — WritingTab's existing timeout handler (line ~273)
+          // owns auto-submit during R2a transient state. R2b will rewire.
+          if (mode === "full_test" && activePrompt) {
+            return (
+              <WritingExamChrome
+                durationSeconds={3600}
+                onComplete={() => { /* R2a no-op — see comment above */ }}
+                onSubmit={() => {
+                  if (timerStarted && timeLeft !== null && timeLeft > 0) {
+                    setSubmitConfirmOpen(true);
+                  } else {
+                    void handleSubmit();
+                  }
+                }}
+                wordCount={wordCount}
+              >
+                {editorContent}
+              </WritingExamChrome>
+            );
+          }
+          return editorContent;
+        })()}
 
         {/* ── PENDING PHASE ── */}
         {phase === "pending" && !resultTimedOut && (
