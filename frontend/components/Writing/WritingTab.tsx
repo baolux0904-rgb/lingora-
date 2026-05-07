@@ -25,6 +25,7 @@ import WritingNotesModal from "./WritingNotesModal";
 import WritingPromptSelector from "./WritingPromptSelector";
 import WritingChartRenderer from "./WritingChartRenderer";
 import WritingEditorCore from "./WritingEditorCore";
+import WritingFullTestShell from "./WritingFullTestShell";
 import type { WritingTaskType, WritingQuestionDetail, WritingFullTestInProgress } from "@/lib/types";
 
 // localStorage slot the resume-banner uses as a belt-and-braces hint.
@@ -609,32 +610,11 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             )}
 
             {!activePrompt && mode === "full_test" && (
-              <div
-                className="rounded-xl p-6 flex flex-col items-center gap-4 text-center"
-                style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
-              >
-                <div className="text-3xl">🎯</div>
-                <div>
-                  <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
-                    Full Test — 60 phút, cả Task 1 và Task 2
-                  </p>
-                  <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-                    Hệ thống tự chọn một đề Task 1 và một đề Task 2. Không pause, không cảnh báo thời gian.
-                  </p>
-                </div>
-                {fullTestError && (
-                  <div className="text-sm" style={{ color: "#EF4444" }}>{fullTestError}</div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => void handleStartFullTest()}
-                  disabled={fullTestLoading}
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white cursor-pointer disabled:opacity-60"
-                  style={{ background: "#1B2B4B" }}
-                >
-                  {fullTestLoading ? "Đang tải đề..." : "Bắt đầu Full Test"}
-                </button>
-              </div>
+              <WritingFullTestShell
+                error={fullTestError}
+                loading={fullTestLoading}
+                onStart={() => void handleStartFullTest()}
+              />
             )}
 
             {/* Split view: prompt panel (left) + answer panel (right) — only when a prompt is loaded */}
