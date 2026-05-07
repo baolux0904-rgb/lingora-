@@ -149,12 +149,15 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
+    // Sprint 5C.2b4 (R2b): Full Test timer owned by WritingExamChrome.
+    // WritingTab countdown narrowed to Practice mode only.
+    if (mode !== "practice") return;
     if (!timerStarted || paused || timeLeft === null || timeLeft <= 0) return;
     const interval = setInterval(() => {
       setTimeLeft((t) => (t !== null ? t - 1 : null));
     }, 1000);
     return () => clearInterval(interval);
-  }, [timerStarted, paused, timeLeft]);
+  }, [mode, timerStarted, paused, timeLeft]);
 
   // When polling completes, move to result phase
   if (phase === "pending" && submission && submission.status !== "pending") {
@@ -175,17 +178,20 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
     setNotesOpen(false);
   }, []);
 
-  // Essay change — starts the combined 60-min pool on first keystroke in either task.
+  // Essay change — starts the combined 60-min pool on first keystroke (Practice).
+  // Sprint 5C.2b4 (R2b): Full Test timer is owned by WritingExamChrome, which
+  // mounts when the user clicks "Bắt đầu Full Test". Don't double-start a
+  // WritingTab countdown for Full Test mode.
   const handleEssayChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const newText = e.target.value;
-      if (!timerStarted && newText.length > 0) {
+      if (mode === "practice" && !timerStarted && newText.length > 0) {
         setTimeLeft(TOTAL_TIMER_SECONDS);
         setTimerStarted(true);
       }
       setEssayTexts((prev) => ({ ...prev, [taskType]: newText }));
     },
-    [timerStarted, taskType]
+    [mode, timerStarted, taskType]
   );
 
   // Wave 6 Sprint 4E.2 — onboarding soft-gate. Fires once per submit
@@ -270,16 +276,15 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
     }
   }, [isValid, submitting, taskType, questionText, essayText, activePrompt, limits, mode, fullTestId, showToast, onboarding.status]);
 
-  // Timer reaching 0 — Practice shows a toast, Full Test auto-submits once.
+  // Timer reaching 0 — Practice shows a toast, user decides next step.
+  // Sprint 5C.2b4 (R2b): Full Test auto-submit owned by WritingExamChrome.onComplete.
+  // This handler narrowed to Practice scope to avoid double-fire.
   useEffect(() => {
+    if (mode !== "practice") return;
     if (!timerStarted || timeLeft === null || timeLeft > 0 || timeOutFired) return;
     setTimeOutFired(true);
-    if (mode === "practice") {
-      showToast("Hết giờ — tùy bạn quyết tiếp");
-    } else {
-      void handleSubmit();
-    }
-  }, [timerStarted, timeLeft, timeOutFired, mode, showToast, handleSubmit]);
+    showToast("Hết giờ — tùy bạn quyết tiếp");
+  }, [mode, timerStarted, timeLeft, timeOutFired, showToast]);
 
   // View a submission from history
   const handleHistorySelect = useCallback((submissionId: string) => {
@@ -468,13 +473,14 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
         )}
       </div>
 
-      {/* Global Timer Bar — combined 60-min pool shared across both tasks */}
-      {phase === "editor" && timerStarted && (
+      {/* Global Timer Bar — Practice mode only. Sprint 5C.2b4 (R2b):
+          Full Test timing is owned by WritingExamChrome (chrome's own
+          stopwatch in the top bar), so WritingTimerBar suppresses here. */}
+      {phase === "editor" && timerStarted && mode === "practice" && (
         <WritingTimerBar
           timerSeconds={timeLeft}
           totalSeconds={TOTAL_TIMER_SECONDS}
-          modeBadge={mode === "full_test" ? "Full Test" : undefined}
-          canPause={mode === "practice" && timeLeft !== null && timeLeft > 0}
+          canPause={timeLeft !== null && timeLeft > 0}
           paused={paused}
           onPauseToggle={() => {
             if (paused) setPaused(false);
@@ -790,13 +796,21 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             return (
               <WritingExamChrome
                 durationSeconds={3600}
-                onComplete={() => { /* R2a no-op — see comment above */ }}
-                onSubmit={() => {
-                  if (timerStarted && timeLeft !== null && timeLeft > 0) {
-                    setSubmitConfirmOpen(true);
-                  } else {
+                onComplete={() => {
+                  // Sprint 5C.2b4 (R2b): chrome owns Full Test timing.
+                  // Auto-submit on stopwatch 0 with timeOutFired guard so
+                  // double-clicks/re-renders don't double-fire handleSubmit.
+                  if (!timeOutFired) {
+                    setTimeOutFired(true);
                     void handleSubmit();
                   }
+                }}
+                onSubmit={() => {
+                  // Sprint 5C.2b4 (R2b): chrome stopwatch is the source of
+                  // truth — no WritingTab timeLeft to gate confirmation on.
+                  // User clicks "Nộp bài" in chrome footer → submit confirm
+                  // modal asks for explicit confirmation before scoring.
+                  setSubmitConfirmOpen(true);
                 }}
                 wordCount={wordCount}
               >
