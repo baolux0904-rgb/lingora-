@@ -10,6 +10,14 @@
  * Fetches GET /writing/analytics/trend on mount + whenever controls
  * change. Empty state shows a friendly nudge to start writing instead
  * of an empty chart box.
+ *
+ * Wave 6 Sprint 5C.3a — restyled to cream canon (bg-cream-warm,
+ * border-navy/10, text-navy / text-navy-light, font-sans DM Sans)
+ * matching Sprint 5C.1 series. All 11 functional var(--*) refs
+ * eliminated. PALETTE (line ~45) preserved verbatim per Lesson 3 —
+ * the 5 colors are semantic series-identification colors for chart
+ * lines, not Soul-rule band scores; mixing brand teal/navy with
+ * coral/amber/purple maximises visual distinction between series.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -42,6 +50,9 @@ const BREAKDOWN_OPTIONS: { key: WritingTrendBreakdown; label: string }[] = [
   { key: "by_task",  label: "Task 1 / 2" },
 ];
 
+// Recharts series-identification palette. Lesson 3 preserve: each color
+// distinguishes a chart line, not a band score. Migrating to all-brand
+// would lose visual distinction between series.
 const PALETTE = ["#00A896", "#1B2B4B", "#F07167", "#F9A826", "#7E4EC1"];
 
 interface SeriesDef {
@@ -94,55 +105,44 @@ export default function WritingTrendChart() {
   const series = useMemo(() => seriesFor(breakdown), [breakdown]);
 
   return (
-    <div
-      className="rounded-xl p-4 flex flex-col gap-3"
-      style={{
-        background: "var(--color-bg-card)",
-        border: "1px solid var(--color-border)",
-        boxShadow: "var(--surface-shadow)",
-      }}
-    >
+    <div className="rounded-xl p-4 flex flex-col gap-3 bg-cream-warm border border-navy/10 shadow-sm font-sans">
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+          <div className="text-xs font-semibold uppercase tracking-wider text-navy-light/70">
             Xu hướng band
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div
-            className="flex rounded-lg overflow-hidden"
-            style={{ border: "1px solid var(--color-border)", background: "var(--color-bg-secondary)" }}
-          >
+          <div className="flex rounded-lg overflow-hidden border border-navy/10 bg-cream-soft">
             {RANGE_OPTIONS.map((r) => (
               <button
                 key={r.key}
                 type="button"
                 onClick={() => setRange(r.key)}
-                className="px-2.5 py-1 text-xs font-medium transition-all cursor-pointer"
-                style={{
-                  background: range === r.key ? "var(--color-accent)" : "transparent",
-                  color: range === r.key ? "#fff" : "var(--color-text-secondary)",
-                }}
+                className={
+                  "px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer " +
+                  (range === r.key
+                    ? "bg-teal text-white"
+                    : "bg-transparent text-navy-light hover:text-navy")
+                }
               >
                 {r.label}
               </button>
             ))}
           </div>
-          <div
-            className="flex rounded-lg overflow-hidden"
-            style={{ border: "1px solid var(--color-border)", background: "var(--color-bg-secondary)" }}
-          >
+          <div className="flex rounded-lg overflow-hidden border border-navy/10 bg-cream-soft">
             {BREAKDOWN_OPTIONS.map((b) => (
               <button
                 key={b.key}
                 type="button"
                 onClick={() => setBreakdown(b.key)}
-                className="px-2.5 py-1 text-xs font-medium transition-all cursor-pointer"
-                style={{
-                  background: breakdown === b.key ? "#1B2B4B" : "transparent",
-                  color: breakdown === b.key ? "#fff" : "var(--color-text-secondary)",
-                }}
+                className={
+                  "px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer " +
+                  (breakdown === b.key
+                    ? "bg-navy text-white"
+                    : "bg-transparent text-navy-light hover:text-navy")
+                }
               >
                 {b.label}
               </button>
@@ -160,18 +160,12 @@ export default function WritingTrendChart() {
 
       {!error && loading && (
         <div className="h-64 flex items-center justify-center">
-          <div
-            className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin"
-            style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }}
-          />
+          <div className="w-6 h-6 border-2 border-teal border-t-transparent rounded-full animate-spin" />
         </div>
       )}
 
       {!error && !loading && points.length === 0 && (
-        <div
-          className="h-64 flex items-center justify-center text-sm text-center px-4"
-          style={{ color: "var(--color-text-tertiary)" }}
-        >
+        <div className="h-64 flex items-center justify-center text-sm text-center px-4 text-navy-light/70">
           Chưa có dữ liệu cho khoảng thời gian này. Viết thêm một bài để thấy xu hướng.
         </div>
       )}
