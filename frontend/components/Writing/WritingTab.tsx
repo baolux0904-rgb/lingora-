@@ -601,33 +601,23 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             {activePrompt && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* ── PROMPT PANEL (left) ── */}
-              <div
-                className="rounded-xl p-5 flex flex-col gap-3"
-                style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
-              >
+              <div className="rounded-xl p-5 flex flex-col gap-3 bg-cream-warm border border-navy/10 shadow-sm">
                 <div className="flex items-center justify-between flex-wrap gap-2">
-                  <label className="block text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-navy-light/70">
                     Question / Prompt
                   </label>
                   <div className="flex items-center gap-1.5">
-                    <span
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                      style={{ background: "rgba(0,168,150,0.08)", color: "#00A896" }}
-                    >
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider bg-teal/10 text-teal">
                       {taskType === "task1" ? "Task 1" : "Task 2"}
                     </span>
-                    <span
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider"
-                      style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
-                    >
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider bg-cream-soft text-navy-light border border-navy/10">
                       {activePrompt.topic}
                     </span>
                     {mode === "practice" && !timerStarted && (
                       <button
                         type="button"
                         onClick={handleChangePrompt}
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider cursor-pointer"
-                        style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider cursor-pointer bg-cream-soft text-navy-light border border-navy/10 hover:text-navy hover:border-teal/30 transition-colors"
                         title="Chọn đề khác"
                       >
                         Đổi đề
@@ -637,7 +627,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                 </div>
 
                 {activePrompt.title && (
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
+                  <p className="text-sm font-semibold text-navy">
                     {activePrompt.title}
                   </p>
                 )}
@@ -651,60 +641,53 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                 )}
 
                 <div
-                  className="rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap flex-1 overflow-auto"
-                  style={{
-                    background: "var(--color-bg-secondary)",
-                    border: "1px solid var(--color-border)",
-                    color: "var(--color-text)",
-                    minHeight: "120px",
-                  }}
+                  className="rounded-lg px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap flex-1 overflow-auto bg-cream-soft border border-navy/10 text-navy"
+                  style={{ minHeight: "120px" }}
                 >
                   {questionText}
                 </div>
               </div>
 
               {/* ── ANSWER PANEL (right) ── */}
-              <div
-                className="rounded-xl p-5 flex flex-col gap-3"
-                style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
-              >
+              <div className="rounded-xl p-5 flex flex-col gap-3 bg-cream-warm border border-navy/10 shadow-sm">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <label className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--color-text-tertiary)" }}>
+                  <label className="text-xs font-semibold uppercase tracking-widest text-navy-light/70">
                     Your Essay
                   </label>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setNotesOpen(true)}
-                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer"
-                      style={{
-                        background: notes[taskType].length > 0 ? "rgba(0,168,150,0.10)" : "var(--color-bg-secondary)",
-                        color: notes[taskType].length > 0 ? "#00A896" : "var(--color-text-secondary)",
-                        border: "1px solid var(--color-border)",
-                      }}
+                      className={
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer border border-navy/10 " +
+                        (notes[taskType].length > 0
+                          ? "bg-teal/10 text-teal"
+                          : "bg-cream-soft text-navy-light hover:text-navy")
+                      }
                       aria-label="Mở ghi chú"
                     >
                       <span>📝</span>
                       <span>Ghi chú{notes[taskType].length > 0 ? ` (${notes[taskType].length})` : ""}</span>
                     </button>
-                    {/* Live word count badge */}
+                    {/* Live word count badge — semantic emerald (at target) /
+                        coral (below target) preserved per Sprint 5C.2b5b2 lesson 3. */}
                     <span
-                    className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
-                    style={{
-                      background: wordCount >= minRequired
-                        ? "rgba(22,163,74,0.08)"
-                        : wordCount > 0
-                          ? "rgba(239,68,68,0.08)"
-                          : "var(--surface-subtle)",
-                      color: wordCount >= minRequired
-                        ? "#16A34A"
-                        : wordCount > 0
-                          ? "#EF4444"
-                          : "var(--color-text-tertiary)",
-                    }}
-                  >
-                    {wordCount} / {minRequired} words
-                  </span>
+                      className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                      style={{
+                        background: wordCount >= minRequired
+                          ? "rgba(22,163,74,0.08)"
+                          : wordCount > 0
+                            ? "rgba(239,68,68,0.08)"
+                            : undefined,
+                        color: wordCount >= minRequired
+                          ? "#16A34A"
+                          : wordCount > 0
+                            ? "#EF4444"
+                            : undefined,
+                      }}
+                    >
+                      {wordCount} / {minRequired} words
+                    </span>
                   </div>
                 </div>
                 <WritingEditorCore
@@ -722,11 +705,11 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             </div>
             )}
 
-            {/* Submit Error */}
+            {/* Submit Error — semantic red preserved (error indicator, not a band score). */}
             {activePrompt && submitError && (
               <div
-                className="rounded-xl px-4 py-3 text-sm flex items-center gap-2"
-                style={{ background: "rgba(239,68,68,0.08)", color: "#EF4444", border: "1px solid rgba(239,68,68,0.2)" }}
+                className="rounded-xl px-4 py-3 text-sm flex items-center gap-2 border"
+                style={{ background: "rgba(239,68,68,0.08)", color: "#EF4444", borderColor: "rgba(239,68,68,0.2)" }}
               >
                 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
                   <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
@@ -737,7 +720,9 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
 
             {/* Submit Button — Full Test with time remaining asks for confirmation first.
                 Sprint 5C.2b4 (R2a): hidden in Full Test mode — WritingExamChrome footer
-                owns the Submit CTA there. Practice mode keeps the inline button. */}
+                owns the Submit CTA there. Practice mode keeps the inline button.
+                Sprint 5C.2b5b3a: teal gradient preserved for enabled state (brand
+                primary CTA gradient — semantic), cream-warm fallback for disabled. */}
             {activePrompt && mode === "practice" && (
               <button
                 onClick={() => {
@@ -746,13 +731,16 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                   void handleSubmit();
                 }}
                 disabled={!isValid || submitting}
-                className="w-full py-3.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer"
-                style={{
-                  background: isValid ? "linear-gradient(135deg, #00A896, #00C4B0)" : "var(--surface-primary)",
-                  color: isValid ? "#fff" : "var(--color-text-tertiary)",
-                  border: isValid ? "none" : "1px solid var(--surface-border)",
-                  boxShadow: isValid ? "0 4px 16px rgba(0,168,150,0.25)" : "var(--surface-shadow)",
-                }}
+                className={
+                  "w-full py-3.5 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] cursor-pointer " +
+                  (isValid
+                    ? "text-white shadow-md"
+                    : "bg-cream-warm text-navy-light/70 border border-navy/10")
+                }
+                style={isValid ? {
+                  background: "linear-gradient(135deg, #00A896, #00C4B0)",
+                  boxShadow: "0 4px 16px rgba(0,168,150,0.25)",
+                } : undefined}
               >
                 {submitting ? "Đang nộp..." : `Nộp bài chấm điểm (${wordCount} từ)`}
               </button>
