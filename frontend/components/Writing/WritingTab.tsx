@@ -512,15 +512,12 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             {/* Resume-Full-Test banner — shown when the backend says the user
                 has an unfinished run and they haven't dismissed or resumed yet. */}
             {resumeData && !fullTestId && (
-              <div
-                className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
-                style={{ background: "rgba(27,43,75,0.06)", border: "1px solid rgba(27,43,75,0.25)", color: "var(--color-text)" }}
-              >
+              <div className="rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-navy/5 border border-navy/25 text-navy">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-semibold">
                     Bạn có 1 Full Test chưa hoàn thành
                   </span>
-                  <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                  <span className="text-xs text-navy-light">
                     Còn {Math.max(1, Math.round(resumeData.time_remaining_seconds / 60))} phút.
                     {resumeData.task1_submitted ? " Task 1 đã nộp." : ""}
                     {resumeData.task2_submitted ? " Task 2 đã nộp." : ""}
@@ -530,16 +527,14 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                   <button
                     type="button"
                     onClick={handleDismissResume}
-                    className="px-3 py-1.5 rounded-lg text-sm cursor-pointer"
-                    style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+                    className="px-3 py-1.5 rounded-lg text-sm cursor-pointer bg-cream-soft text-navy-light border border-navy/10 hover:text-navy transition-colors"
                   >
                     Bỏ
                   </button>
                   <button
                     type="button"
                     onClick={handleResumeFullTest}
-                    className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white cursor-pointer"
-                    style={{ background: "#1B2B4B" }}
+                    className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white cursor-pointer bg-navy hover:bg-navy-dark transition-colors"
                   >
                     Tiếp tục
                   </button>
@@ -548,10 +543,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             )}
 
             {/* Mode Selector — locked once the timer starts */}
-            <div
-              className="flex rounded-xl overflow-hidden"
-              style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
-            >
+            <div className="flex rounded-xl overflow-hidden bg-cream-warm border border-navy/10 shadow-sm">
               {(["practice", "full_test"] as WritingMode[]).map((m) => {
                 const active = mode === m;
                 return (
@@ -560,12 +552,12 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                     type="button"
                     onClick={() => !timerStarted && setMode(m)}
                     disabled={timerStarted}
-                    className="flex-1 py-2.5 text-sm font-medium transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                    style={{
-                      background: active ? (m === "full_test" ? "#1B2B4B" : "var(--color-accent)") : "transparent",
-                      color: active ? "#fff" : "var(--color-text-secondary)",
-                      cursor: timerStarted ? "not-allowed" : "pointer",
-                    }}
+                    className={
+                      "flex-1 py-2.5 text-sm font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed " +
+                      (active
+                        ? (m === "full_test" ? "bg-navy text-white" : "bg-teal text-white")
+                        : "bg-transparent text-navy-light hover:text-navy")
+                    }
                     title={timerStarted ? "Không đổi mode khi đang làm bài" : undefined}
                   >
                     {m === "practice" ? "Luyện tập" : "Bắt đầu Full Test"}
@@ -575,19 +567,17 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
             </div>
 
             {/* Task Type Toggle */}
-            <div
-              className="flex rounded-xl overflow-hidden"
-              style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)", boxShadow: "var(--surface-shadow)" }}
-            >
+            <div className="flex rounded-xl overflow-hidden bg-cream-warm border border-navy/10 shadow-sm">
               {(["task1", "task2"] as WritingTaskType[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => handleTaskSwitch(t)}
-                  className="flex-1 py-2.5 text-sm font-medium transition-all cursor-pointer"
-                  style={{
-                    background: taskType === t ? "var(--color-accent)" : "transparent",
-                    color: taskType === t ? "#fff" : "var(--color-text-secondary)",
-                  }}
+                  className={
+                    "flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer " +
+                    (taskType === t
+                      ? "bg-teal text-white"
+                      : "bg-transparent text-navy-light hover:text-navy")
+                  }
                 >
                   {t === "task1" ? "Task 1 (~20 min)" : "Task 2 (~40 min)"}
                 </button>
