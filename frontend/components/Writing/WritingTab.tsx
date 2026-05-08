@@ -821,7 +821,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                 <button
                   type="button"
                   onClick={() => refetchResult()}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-sm font-semibold text-white cursor-pointer shadow-md hover:shadow-lg transition-shadow"
                   style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)" }}
                 >
                   Thử lại
@@ -829,8 +829,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
                 <button
                   type="button"
                   onClick={handleNewEssay}
-                  className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer"
-                  style={{ background: "var(--color-bg-secondary)", color: "var(--color-text)", border: "1px solid var(--color-border)" }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium cursor-pointer bg-cream-soft text-navy border border-navy/10 hover:bg-cream transition-colors"
                 >
                   Quay lại Writing
                 </button>
@@ -851,10 +850,7 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
 
         {phase === "result" && resultLoading && !submission && (
           <div className="flex items-center justify-center py-16">
-            <div
-              className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-              style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }}
-            />
+            <div className="w-8 h-8 border-2 border-teal border-t-transparent rounded-full animate-spin" />
           </div>
         )}
 
@@ -876,29 +872,25 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
         )}
       </div>
 
-      {/* Full Test manual submit confirmation (time remaining > 0) */}
+      {/* Full Test manual submit confirmation (time remaining > 0).
+          Sprint 5C.2b5b3b: Pattern 5 branded scrim (bg-navy/50 + backdrop-blur-sm)
+          replaces raw rgba(0,0,0,0.5). */}
       {submitConfirmOpen && (
         <div
-          className="fixed inset-0 z-[65] flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.5)" }}
+          className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm"
           onClick={() => setSubmitConfirmOpen(false)}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="w-full max-w-sm rounded-xl p-5 flex flex-col gap-4"
-            style={{
-              background: "var(--color-bg-card)",
-              border: "1px solid var(--color-border)",
-              boxShadow: "0 20px 48px rgba(0,0,0,0.25)",
-            }}
+            className="w-full max-w-sm rounded-xl p-5 flex flex-col gap-4 bg-cream-warm border border-navy/10 shadow-xl font-sans"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <div className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+              <div className="text-base font-semibold text-navy">
                 Bạn muốn kiểm tra lại bài không?
               </div>
-              <p className="text-sm mt-1.5" style={{ color: "var(--color-text-secondary)" }}>
+              <p className="text-sm mt-1.5 text-navy-light">
                 Còn thời gian để xem lại trước khi nộp.
               </p>
             </div>
@@ -906,19 +898,14 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
               <button
                 type="button"
                 onClick={() => setSubmitConfirmOpen(false)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium cursor-pointer"
-                style={{
-                  background: "var(--color-bg-secondary)",
-                  color: "var(--color-text)",
-                  border: "1px solid var(--color-border)",
-                }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium cursor-pointer bg-cream-soft text-navy border border-navy/10 hover:bg-cream transition-colors"
               >
                 Xem lại
               </button>
               <button
                 type="button"
                 onClick={() => { setSubmitConfirmOpen(false); void handleSubmit(); }}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer"
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer shadow-md hover:shadow-lg transition-shadow"
                 style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)" }}
               >
                 Nộp bài
@@ -928,29 +915,24 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
         </div>
       )}
 
-      {/* Pause-confirmation modal (Practice mode) */}
+      {/* Pause-confirmation modal (Practice mode).
+          Sprint 5C.2b5b3b: Pattern 5 branded scrim + #1B2B4B literal → bg-navy. */}
       {pauseConfirmOpen && (
         <div
-          className="fixed inset-0 z-[65] flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.5)" }}
+          className="fixed inset-0 z-[65] flex items-center justify-center p-4 bg-navy/50 backdrop-blur-sm"
           onClick={() => setPauseConfirmOpen(false)}
           role="dialog"
           aria-modal="true"
         >
           <div
-            className="w-full max-w-sm rounded-xl p-5 flex flex-col gap-4"
-            style={{
-              background: "var(--color-bg-card)",
-              border: "1px solid var(--color-border)",
-              boxShadow: "0 20px 48px rgba(0,0,0,0.25)",
-            }}
+            className="w-full max-w-sm rounded-xl p-5 flex flex-col gap-4 bg-cream-warm border border-navy/10 shadow-xl font-sans"
             onClick={(e) => e.stopPropagation()}
           >
             <div>
-              <div className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+              <div className="text-base font-semibold text-navy">
                 Tạm dừng luyện tập?
               </div>
-              <p className="text-sm mt-1.5" style={{ color: "var(--color-text-secondary)" }}>
+              <p className="text-sm mt-1.5 text-navy-light">
                 Đây chỉ là luyện tập. Nếu bận thì dừng lại, xong quay lại tiếp tục.
               </p>
             </div>
@@ -958,20 +940,14 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
               <button
                 type="button"
                 onClick={() => setPauseConfirmOpen(false)}
-                className="flex-1 py-2.5 rounded-lg text-sm font-medium cursor-pointer"
-                style={{
-                  background: "var(--color-bg-secondary)",
-                  color: "var(--color-text)",
-                  border: "1px solid var(--color-border)",
-                }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-medium cursor-pointer bg-cream-soft text-navy border border-navy/10 hover:bg-cream transition-colors"
               >
                 Tiếp tục làm
               </button>
               <button
                 type="button"
                 onClick={() => { setPaused(true); setPauseConfirmOpen(false); }}
-                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer"
-                style={{ background: "#1B2B4B" }}
+                className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white cursor-pointer bg-navy hover:bg-navy-dark transition-colors"
               >
                 Tạm dừng
               </button>
