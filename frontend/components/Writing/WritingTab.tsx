@@ -478,10 +478,10 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
           <div className="flex flex-col items-center justify-center py-20 gap-6">
             <div className="text-4xl">📋</div>
             <div className="text-center">
-              <p className="text-lg font-bold" style={{ color: "var(--color-text)" }}>
+              <p className="text-lg font-bold text-navy">
                 Examiner is preparing your test...
               </p>
-              <p className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>
+              <p className="text-sm mt-2 text-navy-light">
                 Please wait a moment
               </p>
             </div>
@@ -789,14 +789,14 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
               style={{ borderColor: "#F59E0B", borderTopColor: "transparent", borderWidth: "3px" }}
             />
             <div className="text-center">
-              <p className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+              <p className="text-base font-semibold text-navy">
                 Analyzing your essay
               </p>
-              <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
+              <p className="text-sm mt-1 text-navy-light">
                 Our AI examiner is scoring your writing...
               </p>
               {polling && (
-                <p className="text-xs mt-2" style={{ color: "var(--color-text-tertiary)" }}>
+                <p className="text-xs mt-2 text-navy-light/70">
                   This usually takes 10-30 seconds
                 </p>
               )}
@@ -811,10 +811,10 @@ export default function WritingTab({ onClose, initialMode }: WritingTabProps) {
               className="rounded-xl p-5 flex flex-col gap-3 w-full"
               style={{ background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.25)" }}
             >
-              <div className="text-base font-semibold" style={{ color: "var(--color-text)" }}>
+              <div className="text-base font-semibold text-navy">
                 Việc chấm điểm mất nhiều thời gian hơn dự kiến
               </div>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+              <p className="text-sm leading-relaxed text-navy-light">
                 Bạn có thể thử lại hoặc quay lại sau ít phút — bài viết đã được nộp và sẽ tiếp tục chấm ở nền.
               </p>
               <div className="flex gap-2 flex-wrap">
