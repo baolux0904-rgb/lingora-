@@ -9,6 +9,15 @@
  *
  * Polls while either submission is still status='pending' so the UI
  * catches up with the fire-and-forget AI scoring pipeline.
+ *
+ * Wave 6 Sprint 5C.3b — restyled to cream canon (bg-cream-warm,
+ * border-navy/10, text-navy / text-navy-light, font-sans DM Sans)
+ * matching Sprint 5C.1 series. All 21 functional var(--*) refs
+ * eliminated. Pattern 1 bandColor() already applied (existing) for
+ * band score + per-task + per-criteria displays — preserved as inline
+ * style={{ color }} since bandColor() returns hex strings, not class
+ * names. Null-band fallback color migrated from var(--color-text-tertiary)
+ * to slate `#64748B` (matches Soul-rule sub-5.0 dignified neutral).
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -24,6 +33,9 @@ interface WritingFullTestResultProps {
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 20; // 60s budget — matches existing useWritingResult
+
+// Soul-rule slate fallback for null band values (matches bandColor sub-5.0).
+const NULL_BAND_COLOR = "#64748B";
 
 export default function WritingFullTestResult({ fullTestId, onBack }: WritingFullTestResultProps) {
   const [detail, setDetail] = useState<WritingFullTestDetail | null>(null);
@@ -64,12 +76,9 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
 
   if (loading && !detail) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <div
-          className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-          style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }}
-        />
-        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+      <div className="flex flex-col items-center justify-center py-20 gap-3 font-sans">
+        <div className="w-8 h-8 border-2 border-teal border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm text-navy-light">
           Đang tổng hợp kết quả Full Test…
         </p>
       </div>
@@ -78,9 +87,9 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
 
   if (error && !detail) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <div className="flex flex-col items-center justify-center py-20 gap-3 font-sans">
         <p className="text-sm" style={{ color: "#EF4444" }}>{error}</p>
-        <button onClick={onBack} className="px-4 py-2 rounded-lg text-sm" style={{ background: "var(--color-accent)", color: "#fff" }}>
+        <button onClick={onBack} className="px-4 py-2 rounded-lg text-sm bg-teal text-white hover:bg-teal-dark transition-colors">
           Quay lại
         </button>
       </div>
@@ -90,7 +99,7 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
   if (!detail) return null;
 
   const { full_test, task1_submission, task2_submission, overall_band, per_criteria_avg } = detail;
-  const color = overall_band != null ? bandColor(overall_band) : "var(--color-text-tertiary)";
+  const color = overall_band != null ? bandColor(overall_band) : NULL_BAND_COLOR;
   const durationMin =
     full_test.total_time_used_seconds != null
       ? Math.round(full_test.total_time_used_seconds / 60)
@@ -101,11 +110,10 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
     task1_submission?.status === "pending" || task2_submission?.status === "pending";
 
   return (
-    <div className="flex flex-col gap-5 pb-8">
+    <div className="flex flex-col gap-5 pb-8 font-sans">
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-sm font-medium self-start"
-        style={{ color: "var(--color-accent)" }}
+        className="flex items-center gap-2 text-sm font-medium self-start text-teal hover:text-teal-dark transition-colors"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 18 9 12 15 6" />
@@ -114,25 +122,21 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
       </button>
 
       {/* Hero summary */}
-      <div
-        className="rounded-xl p-6 text-center flex flex-col gap-2"
-        style={{
-          background: "var(--color-bg-card)",
-          border: "1px solid var(--color-border)",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        }}
-      >
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+      <div className="rounded-xl p-6 text-center flex flex-col gap-2 bg-cream-warm border border-navy/10 shadow-sm">
+        <div className="text-xs font-semibold uppercase tracking-wider text-navy-light/70">
           Kết quả Full Test
         </div>
         <div className="text-5xl font-bold" style={{ color }}>
           {overall_band != null ? overall_band.toFixed(1) : "—"}
         </div>
-        <div className="text-xs flex items-center justify-center flex-wrap gap-2" style={{ color: "var(--color-text-tertiary)" }}>
+        <div className="text-xs flex items-center justify-center flex-wrap gap-2 text-navy-light/70">
           <span>Overall band · Task 2 ×2 + Task 1 ×1</span>
           {durationMin != null && <span>· {durationMin} phút</span>}
           {pending && (
-            <span className="px-1.5 py-0.5 rounded text-xs" style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B" }}>
+            <span
+              className="px-1.5 py-0.5 rounded text-xs"
+              style={{ background: "rgba(245,158,11,0.15)", color: "#F59E0B" }}
+            >
               Đang chấm…
             </span>
           )}
@@ -148,18 +152,17 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
           <button
             key={x.key}
             onClick={() => setActiveTab(x.key)}
-            className="rounded-lg p-4 text-left transition-all cursor-pointer"
-            style={{
-              background: "var(--color-bg-card)",
-              border: `1px solid ${activeTab === x.key ? "var(--color-accent)" : "var(--color-border)"}`,
-            }}
+            className={
+              "rounded-lg p-4 text-left transition-colors cursor-pointer bg-cream-warm border " +
+              (activeTab === x.key ? "border-teal" : "border-navy/10 hover:border-teal/30")
+            }
           >
-            <div className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+            <div className="text-xs uppercase tracking-wider text-navy-light/70">
               {x.label}
             </div>
             <div
               className="text-3xl font-bold mt-1"
-              style={{ color: x.band != null ? bandColor(x.band) : "var(--color-text-tertiary)" }}
+              style={{ color: x.band != null ? bandColor(x.band) : NULL_BAND_COLOR }}
             >
               {x.band != null ? x.band.toFixed(1) : "—"}
             </div>
@@ -169,10 +172,7 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
 
       {/* Per-criteria weighted averages */}
       {per_criteria_avg && (
-        <div
-          className="rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3"
-          style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-        >
+        <div className="rounded-xl p-4 grid grid-cols-2 md:grid-cols-4 gap-3 bg-cream-warm border border-navy/10">
           {([
             { k: "task",      label: "Task Response" },
             { k: "coherence", label: "Coherence" },
@@ -180,7 +180,7 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
             { k: "grammar",   label: "Grammar" },
           ] as const).map((c) => (
             <div key={c.k} className="flex flex-col items-center gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-navy-light/70">
                 {c.label}
               </span>
               <span className="text-xl font-bold" style={{ color: bandColor(per_criteria_avg[c.k]) }}>
@@ -192,10 +192,7 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
       )}
 
       {/* Tab toggle: overview / task1 / task2 */}
-      <div
-        className="flex rounded-xl overflow-hidden"
-        style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-      >
+      <div className="flex rounded-xl overflow-hidden bg-cream-warm border border-navy/10">
         {([
           { key: "overview", label: "Tổng quan" },
           { key: "task1",    label: "Task 1" },
@@ -207,11 +204,10 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
               key={t.key}
               type="button"
               onClick={() => setActiveTab(t.key)}
-              className="flex-1 py-2.5 text-sm font-medium transition-all cursor-pointer"
-              style={{
-                background: active ? "var(--color-accent)" : "transparent",
-                color: active ? "#fff" : "var(--color-text-secondary)",
-              }}
+              className={
+                "flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer " +
+                (active ? "bg-teal text-white" : "bg-transparent text-navy-light hover:text-navy")
+              }
             >
               {t.label}
             </button>
@@ -221,7 +217,7 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
 
       {/* Tab content */}
       {activeTab === "overview" && (
-        <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
+        <p className="text-sm leading-relaxed text-navy-light">
           Chọn Task 1 hoặc Task 2 để xem toàn bộ feedback chi tiết — gạch chân lỗi, icon paragraph, gợi ý paraphrase, sample band 7+.
         </p>
       )}
@@ -230,7 +226,7 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
         <WritingResult submission={task1_submission} onBack={() => setActiveTab("overview")} />
       )}
       {activeTab === "task1" && !task1_submission && (
-        <p className="text-sm italic text-center py-8" style={{ color: "var(--color-text-tertiary)" }}>
+        <p className="text-sm italic text-center py-8 text-navy-light/70">
           Không có bài Task 1 trong Full Test này.
         </p>
       )}
@@ -239,7 +235,7 @@ export default function WritingFullTestResult({ fullTestId, onBack }: WritingFul
         <WritingResult submission={task2_submission} onBack={() => setActiveTab("overview")} />
       )}
       {activeTab === "task2" && !task2_submission && (
-        <p className="text-sm italic text-center py-8" style={{ color: "var(--color-text-tertiary)" }}>
+        <p className="text-sm italic text-center py-8 text-navy-light/70">
           Không có bài Task 2 trong Full Test này.
         </p>
       )}
