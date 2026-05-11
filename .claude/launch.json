@@ -2,18 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "backend",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["src/server.js"],
-      "port": 4000,
-      "cwd": "backend"
-    },
-    {
       "name": "frontend",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["../node_modules/next/dist/bin/next", "dev", "--port", "3000"],
-      "port": 3000,
-      "cwd": "frontend"
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
+      "port": 3000
     }
   ]
 }

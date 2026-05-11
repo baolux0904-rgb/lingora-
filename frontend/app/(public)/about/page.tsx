@@ -241,6 +241,32 @@ export default function AboutPage() {
         <div className="mt-16 flex justify-center" aria-hidden="true">
           <Mascot size={120} mood="happy" />
         </div>
+
+        <nav
+          aria-label="Liên kết phụ"
+          className="mt-20 lg:mt-24 font-sans text-sm text-navy/70 flex justify-center items-center gap-3"
+        >
+          <Link
+            href="/"
+            className="hover:text-teal transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 rounded"
+          >
+            Trang chủ
+          </Link>
+          <span aria-hidden="true" className="text-navy/30">·</span>
+          <Link
+            href="/help"
+            className="hover:text-teal transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 rounded"
+          >
+            Trợ giúp
+          </Link>
+          <span aria-hidden="true" className="text-navy/30">·</span>
+          <Link
+            href="/legal"
+            className="hover:text-teal transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 rounded"
+          >
+            Pháp lý
+          </Link>
+        </nav>
       </section>
     </main>
   );
