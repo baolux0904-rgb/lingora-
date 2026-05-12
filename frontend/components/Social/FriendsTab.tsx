@@ -11,8 +11,11 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { Search } from "lucide-react";
 import Mascot from "@/components/ui/Mascot";
 import { usePresence } from "@/contexts/PresenceContext";
+import { formatRelativeTime } from "@/lib/utils/time";
 import {
   getFriends,
   removeFriend,
@@ -71,6 +74,32 @@ function Avatar({ name, size = 40, online }: { name: string; size?: number; onli
 // Activity Feed (right panel when no chat selected — desktop only)
 // ---------------------------------------------------------------------------
 
+function BigEmpty() {
+  return (
+    <div className="max-w-[480px] mx-auto py-24 text-center flex flex-col items-center gap-6">
+      <Mascot size={120} mood="default" />
+      <h2
+        className="font-display italic text-[24px] sm:text-[28px] leading-tight"
+        style={{ color: "var(--color-text)" }}
+      >
+        Chưa có ai cả
+      </h2>
+      <p
+        className="text-[15px] sm:text-[16px] max-w-[400px] leading-relaxed"
+        style={{ color: "var(--color-text-secondary)" }}
+      >
+        Mời bạn bè cùng luyện IELTS — học một mình lâu rồi cũng chán.
+      </p>
+      <Link
+        href="/friends/add"
+        className="inline-flex items-center justify-center px-6 py-3 rounded-full bg-teal text-cream font-semibold text-sm shadow-colored hover:bg-teal-light transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-card)]"
+      >
+        Mời bạn bè
+      </Link>
+    </div>
+  );
+}
+
 function ActivityFeed({ friends }: { friends: Friend[] }) {
   const activeFriends = friends.filter(f => f.practiced_today);
   const inactiveFriends = friends.filter(f => !f.practiced_today);
@@ -83,65 +112,57 @@ function ActivityFeed({ friends }: { friends: Friend[] }) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
-        {friends.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <Mascot size={56} mood="thinking" />
-            <p className="text-sm mb-1 mt-2" style={{ color: "var(--color-text-secondary)" }}>Chưa có bạn bè!</p>
-            <p className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>Mời bạn cùng luyện IELTS 🐙</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {/* Active today */}
-            {activeFriends.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5"
-                  style={{ color: "var(--color-text-tertiary)" }}>
-                  <span className="w-2 h-2 rounded-full bg-green-400" />
-                  Active Today ({activeFriends.length})
-                </div>
-                <div className="flex flex-col gap-2">
-                  {activeFriends.map(f => (
-                    <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl"
-                      style={{ background: "rgba(34,197,94,0.04)", border: "1px solid rgba(34,197,94,0.1)" }}>
-                      <div className="relative">
-                        <Avatar name={f.name} size={36} />
-                        <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
-                          style={{ background: "#22C55E", borderColor: "var(--color-bg-card)" }} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{f.name}</div>
-                        <div className="text-xs" style={{ color: "#22C55E" }}>Practiced today</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        <div className="flex flex-col gap-4">
+          {/* Active today */}
+          {activeFriends.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5"
+                style={{ color: "var(--color-text-tertiary)" }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: "#5DCAA5" }} />
+                Hoạt động hôm nay ({activeFriends.length})
               </div>
-            )}
-
-            {/* Inactive — nudge */}
-            {inactiveFriends.length > 0 && (
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5"
-                  style={{ color: "var(--color-text-tertiary)" }}>
-                  <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-text-tertiary)" }} />
-                  Not Yet Today ({inactiveFriends.length})
-                </div>
-                <div className="flex flex-col gap-2">
-                  {inactiveFriends.map(f => (
-                    <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl"
-                      style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
+              <div className="flex flex-col gap-2">
+                {activeFriends.map(f => (
+                  <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl"
+                    style={{ background: "rgba(93,202,165,0.06)", border: "1px solid rgba(93,202,165,0.15)" }}>
+                    <div className="relative">
                       <Avatar name={f.name} size={36} />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{f.name}</div>
-                        {f.username && <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>@{f.username}</div>}
-                      </div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
+                        style={{ background: "#5DCAA5", borderColor: "var(--color-bg-card)" }} />
                     </div>
-                  ))}
-                </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{f.name}</div>
+                      <div className="text-xs" style={{ color: "#5DCAA5" }}>Đã luyện hôm nay</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* Inactive — nudge */}
+          {inactiveFriends.length > 0 && (
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1.5"
+                style={{ color: "var(--color-text-tertiary)" }}>
+                <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-text-tertiary)" }} />
+                Chưa luyện hôm nay ({inactiveFriends.length})
+              </div>
+              <div className="flex flex-col gap-2">
+                {inactiveFriends.map(f => (
+                  <div key={f.id} className="flex items-center gap-3 p-3 rounded-xl"
+                    style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
+                    <Avatar name={f.name} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{f.name}</div>
+                      {f.username && <div className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>@{f.username}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -172,9 +193,24 @@ function ConversationSidebar({ conversations, activeId, onSelect, loading, subTa
       {/* PR7.1 — horizontal sub-tab bar removed; FriendsShell kebab menu replaces it. */}
       <div className="px-4 pt-4 pb-2 shrink-0">
         {subTab === "chat" && (
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Tìm kiếm tin nhắn…"
-            className="w-full rounded-lg px-3 py-2 text-sm"
-            style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }} />
+          <div className="relative">
+            <Search
+              aria-hidden="true"
+              className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2"
+              style={{ color: "var(--color-text-tertiary)" }}
+            />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm kiếm tin nhắn..."
+              className="w-full rounded-full pl-9 pr-3 py-2 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--color-bg-card)]"
+              style={{
+                background: "var(--color-bg-secondary)",
+                border: "1px solid var(--color-border)",
+                color: "var(--color-text)",
+              }}
+            />
+          </div>
         )}
       </div>
 
@@ -190,10 +226,11 @@ function ConversationSidebar({ conversations, activeId, onSelect, loading, subTa
         ) : loading ? (
           <div className="px-4"><Skeleton.List count={4} /></div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-2xl mb-2">💬</div>
-            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
-              {search ? "Không tìm thấy" : "Chưa có tin nhắn nào"}
+          <div className="px-6 py-10 text-center">
+            <p className="text-sm" style={{ color: "var(--color-text-tertiary)" }}>
+              {search
+                ? "Không tìm thấy"
+                : "Thêm bạn bè để bắt đầu"}
             </p>
           </div>
         ) : (
@@ -214,12 +251,17 @@ function ConversationSidebar({ conversations, activeId, onSelect, loading, subTa
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{c.friend_name}</span>
-                  <span className="text-xs shrink-0 ml-2" style={{ color: "var(--color-text-tertiary)" }}>
-                    {c.last_message_at ? timeAgo(c.last_message_at) : ""}
+                  <span className="text-xs shrink-0 ml-2 tabular-nums" style={{ color: "var(--color-text-tertiary)" }}>
+                    {c.last_message_at ? formatRelativeTime(c.last_message_at) : ""}
                   </span>
                 </div>
-                <span className="text-xs truncate block" style={{ color: "var(--color-text-tertiary)" }}>
-                  {c.last_type === "voice" ? "🎤 Voice note" : c.last_content?.slice(0, 35) || "Start chatting"}
+                <span
+                  className={`text-xs truncate block${c.last_type === "voice" ? " italic" : ""}`}
+                  style={{ color: "var(--color-text-tertiary)" }}
+                >
+                  {c.last_type === "voice"
+                    ? "[Tin nhắn thoại]"
+                    : c.last_content?.slice(0, 35) || "Bắt đầu trò chuyện"}
                 </span>
               </div>
             </button>
@@ -230,17 +272,6 @@ function ConversationSidebar({ conversations, activeId, onSelect, loading, subTa
   );
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "now";
-  if (mins < 60) return `${mins}m`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  if (days === 1) return "Yesterday";
-  return `${days}d`;
-}
 
 // ---------------------------------------------------------------------------
 // Friends List (kept intact)
@@ -271,7 +302,7 @@ function FriendsList() {
   };
 
   const handleRemove = async (friendId: string) => {
-    if (!confirm("Remove this friend?")) return;
+    if (!confirm("Bỏ kết bạn?")) return;
     try {
       await removeFriend(friendId);
       setFriends((prev) => prev.filter((f) => f.id !== friendId));
@@ -282,9 +313,11 @@ function FriendsList() {
 
   if (friends.length === 0) {
     return (
-      <div className="text-center py-12">
+      <div className="text-center py-12 flex flex-col items-center gap-2">
         <Mascot size={56} mood="thinking" />
-        <p className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>Chưa có bạn bè! Thêm bạn 🐙</p>
+        <p className="text-sm mt-2" style={{ color: "var(--color-text-secondary)" }}>
+          Chưa có ai cả. Thêm bạn để bắt đầu.
+        </p>
       </div>
     );
   }
@@ -297,7 +330,7 @@ function FriendsList() {
           <div className="relative">
             <Avatar name={f.name} size={40} />
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2"
-              style={{ background: f.practiced_today ? "#22C55E" : "#9CA3AF", borderColor: "var(--color-bg-card)" }} />
+              style={{ background: f.practiced_today ? "#5DCAA5" : "#9CA3AF", borderColor: "var(--color-bg-card)" }} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{f.name}</div>
@@ -307,12 +340,12 @@ function FriendsList() {
             <button onClick={() => handlePing(f.id)} disabled={pinging === f.id}
               className="px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
               style={{ background: "rgba(245,158,11,0.10)", color: "#F59E0B", border: "1px solid rgba(245,158,11,0.2)" }}>
-              {pinging === f.id ? "..." : "Ping"}
+              {pinging === f.id ? "..." : "Nhắc nhẹ"}
             </button>
           )}
           <button onClick={() => handleRemove(f.id)}
             className="w-8 h-8 rounded-full flex items-center justify-center text-xs cursor-pointer"
-            style={{ color: "var(--color-text-tertiary)" }} title="Remove friend">
+            style={{ color: "var(--color-text-tertiary)" }} title="Bỏ kết bạn">
             ···
           </button>
         </div>
@@ -358,10 +391,10 @@ function RequestsList() {
     <div className="flex flex-col gap-4">
       <div>
         <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
-          Incoming ({incoming.length})
+          Lời mời đến ({incoming.length})
         </div>
         {incoming.length === 0 ? (
-          <p className="text-sm py-3" style={{ color: "var(--color-text-secondary)" }}>No pending requests</p>
+          <p className="text-sm py-3" style={{ color: "var(--color-text-secondary)" }}>Chưa có lời mời nào</p>
         ) : (
           <div className="flex flex-col gap-2">
             {incoming.map((r) => (
@@ -372,9 +405,9 @@ function RequestsList() {
                   <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{r.sender_name}</div>
                 </div>
                 <button onClick={() => handleAccept(r.id)} className="px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer"
-                  style={{ background: "#00A896", color: "#fff" }}>Accept</button>
+                  style={{ background: "#00A896", color: "#fff" }}>Đồng ý</button>
                 <button onClick={() => handleReject(r.id)} className="px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer"
-                  style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>Reject</button>
+                  style={{ background: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>Từ chối</button>
               </div>
             ))}
           </div>
@@ -382,10 +415,10 @@ function RequestsList() {
       </div>
       <div>
         <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>
-          Sent ({outgoing.length})
+          Đã gửi ({outgoing.length})
         </div>
         {outgoing.length === 0 ? (
-          <p className="text-sm py-3" style={{ color: "var(--color-text-secondary)" }}>No outgoing requests</p>
+          <p className="text-sm py-3" style={{ color: "var(--color-text-secondary)" }}>Chưa gửi lời mời nào</p>
         ) : (
           <div className="flex flex-col gap-2">
             {outgoing.map((r) => (
@@ -395,8 +428,8 @@ function RequestsList() {
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate" style={{ color: "var(--color-text)" }}>{r.receiver_name}</div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B" }}>Pending</span>
-                <button onClick={() => handleCancel(r.id)} className="text-xs font-medium cursor-pointer" style={{ color: "var(--color-text-tertiary)" }}>Cancel</button>
+                <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ background: "rgba(245,158,11,0.12)", color: "#F59E0B" }}>Đang chờ</span>
+                <button onClick={() => handleCancel(r.id)} className="text-xs font-medium cursor-pointer" style={{ color: "var(--color-text-tertiary)" }}>Hủy</button>
               </div>
             ))}
           </div>
@@ -439,77 +472,77 @@ function AddFriend() {
   const handleSearchAdd = async () => {
     if (!searchUsername.trim()) return;
     setSending(true); setMessage(null);
-    try { await sendFriendRequest({ username: searchUsername.trim() }); setMessage({ text: "Friend request sent!", ok: true }); setSearchUsername(""); }
-    catch (err) { setMessage({ text: err instanceof Error ? err.message : "Failed", ok: false }); }
+    try { await sendFriendRequest({ username: searchUsername.trim() }); setMessage({ text: "Đã gửi lời mời!", ok: true }); setSearchUsername(""); }
+    catch (err) { setMessage({ text: err instanceof Error ? err.message : "Thất bại", ok: false }); }
     setSending(false);
   };
 
   const handleQrAdd = async () => {
     if (!qrInput.trim()) return;
     setSending(true); setMessage(null);
-    try { await sendFriendRequest({ qrToken: qrInput.trim() }); setMessage({ text: "Friend request sent!", ok: true }); setQrInput(""); }
-    catch (err) { setMessage({ text: err instanceof Error ? err.message : "Failed", ok: false }); }
+    try { await sendFriendRequest({ qrToken: qrInput.trim() }); setMessage({ text: "Đã gửi lời mời!", ok: true }); setQrInput(""); }
+    catch (err) { setMessage({ text: err instanceof Error ? err.message : "Thất bại", ok: false }); }
     setSending(false);
   };
 
   const handleSetUsername = async () => {
     if (!newUsername.trim()) return;
     try { await setSocialUsername(newUsername.trim()); setProfile((p) => p ? { ...p, username: newUsername.trim() } : p); setEditingUsername(false); }
-    catch (err) { setMessage({ text: err instanceof Error ? err.message : "Failed", ok: false }); }
+    catch (err) { setMessage({ text: err instanceof Error ? err.message : "Thất bại", ok: false }); }
   };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-lg p-4" style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
-        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Your Username</div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Username của bạn</div>
         {editingUsername ? (
           <div className="flex gap-2">
-            <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="3-20 chars, letters/numbers/_"
+            <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="3-20 ký tự, chữ/số/_"
               className="flex-1 rounded-lg px-3 py-2 text-sm"
               style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }} />
-            <button onClick={handleSetUsername} className="px-3 py-2 rounded-lg text-xs font-medium cursor-pointer" style={{ background: "#00A896", color: "#fff" }}>Save</button>
+            <button onClick={handleSetUsername} className="px-3 py-2 rounded-lg text-xs font-medium cursor-pointer" style={{ background: "#00A896", color: "#fff" }}>Lưu</button>
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{profile?.username ? `@${profile.username}` : "Not set"}</span>
+            <span className="text-sm font-medium" style={{ color: "var(--color-text)" }}>{profile?.username ? `@${profile.username}` : "Chưa đặt"}</span>
             <button onClick={() => { setEditingUsername(true); setNewUsername(profile?.username || ""); }} className="text-xs font-medium cursor-pointer" style={{ color: "#00A896" }}>
-              {profile?.username ? "Edit" : "Set username"}
+              {profile?.username ? "Sửa" : "Đặt username"}
             </button>
           </div>
         )}
       </div>
 
       <div className="rounded-lg p-4" style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
-        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Search by Username</div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--color-text-tertiary)" }}>Tìm theo username</div>
         <div className="flex gap-2">
-          <input value={searchUsername} onChange={(e) => setSearchUsername(e.target.value)} placeholder="Enter username..."
+          <input value={searchUsername} onChange={(e) => setSearchUsername(e.target.value)} placeholder="Nhập username..."
             className="flex-1 rounded-lg px-3 py-2 text-sm"
             style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }}
             onKeyDown={(e) => e.key === "Enter" && handleSearchAdd()} />
           <button onClick={handleSearchAdd} disabled={sending || !searchUsername.trim()}
-            className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-50 cursor-pointer" style={{ background: "#00A896", color: "#fff" }}>Add</button>
+            className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-50 cursor-pointer" style={{ background: "#00A896", color: "#fff" }}>Thêm</button>
         </div>
       </div>
 
       <div className="rounded-lg p-4" style={{ background: "var(--surface-primary)", border: "1px solid var(--surface-border)" }}>
-        <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>Your QR Code</div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--color-text-tertiary)" }}>Mã QR của bạn</div>
         {qrDataUrl ? (
           <div className="flex justify-center mb-3">
-            <img src={qrDataUrl} alt="Your QR Code" className="w-40 h-40 rounded-lg" style={{ background: "#fff" }} />
+            <img src={qrDataUrl} alt="Mã QR của bạn" className="w-40 h-40 rounded-lg" style={{ background: "#fff" }} />
           </div>
         ) : (
           <div className="flex justify-center py-6">
             <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
           </div>
         )}
-        <p className="text-xs text-center mb-3" style={{ color: "var(--color-text-secondary)" }}>Share this QR code with friends</p>
-        <div className="text-xs font-semibold uppercase tracking-wider mb-2 mt-4" style={{ color: "var(--color-text-tertiary)" }}>Enter Friend&apos;s QR Token</div>
+        <p className="text-xs text-center mb-3" style={{ color: "var(--color-text-secondary)" }}>Chia sẻ mã QR với bạn bè</p>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-2 mt-4" style={{ color: "var(--color-text-tertiary)" }}>Nhập mã QR của bạn bè</div>
         <div className="flex gap-2">
-          <input value={qrInput} onChange={(e) => setQrInput(e.target.value)} placeholder="Paste QR token..."
+          <input value={qrInput} onChange={(e) => setQrInput(e.target.value)} placeholder="Dán mã QR..."
             className="flex-1 rounded-lg px-3 py-2 text-sm"
             style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)", color: "var(--color-text)" }} />
           <button onClick={handleQrAdd} disabled={sending || !qrInput.trim()}
-            className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-50 cursor-pointer" style={{ background: "#00A896", color: "#fff" }}>Add</button>
+            className="px-4 py-2 rounded-lg text-xs font-semibold disabled:opacity-50 cursor-pointer" style={{ background: "#00A896", color: "#fff" }}>Thêm</button>
         </div>
       </div>
 
@@ -603,10 +636,12 @@ export default function FriendsTab({ activeSubTab }: FriendsTabProps = {}) {
         />
       </div>
 
-      {/* Right panel — chat or activity feed */}
+      {/* Right panel — chat, activity feed, or unified empty state */}
       <div className="flex-1 flex flex-col min-w-0">
         {activeConversation && subTab === "chat" ? (
           <ChatTab externalConversation={activeConversation} onBack={() => setActiveConversation(null)} />
+        ) : friends.length === 0 && conversations.length === 0 && subTab === "chat" ? (
+          <BigEmpty />
         ) : (
           <ActivityFeed friends={friends} />
         )}
