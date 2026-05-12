@@ -254,6 +254,13 @@ export default function AboutPage() {
           </Link>
           <span aria-hidden="true" className="text-navy/30">·</span>
           <Link
+            href="/blog"
+            className="hover:text-teal transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 rounded"
+          >
+            Blog
+          </Link>
+          <span aria-hidden="true" className="text-navy/30">·</span>
+          <Link
             href="/help"
             className="hover:text-teal transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 rounded"
           >
