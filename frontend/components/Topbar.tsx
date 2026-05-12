@@ -2,11 +2,13 @@
 
 // Sprint 5K execute — useRouter dropped along with the /leaderboard
 // trophy button (root /leaderboard page deleted).
+import { Menu } from "lucide-react";
 import { IconFire } from "./Icons";
 import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./Social/NotificationBell";
 import Mascot from "@/components/ui/Mascot";
 import { useAuthStore } from "@/lib/stores/authStore";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 interface TopbarProps {
   streak?: number;
@@ -14,6 +16,7 @@ interface TopbarProps {
 
 export default function Topbar({ streak = 0 }: TopbarProps) {
   const user = useAuthStore((s) => s.user);
+  const { setMobileOpen } = useSidebar();
   const initials = user?.name
     ? user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "?";
@@ -26,24 +29,36 @@ export default function Topbar({ streak = 0 }: TopbarProps) {
         borderBottom: "1px solid var(--color-border)",
       }}
     >
-      {/* Left — Streak badge */}
-      <div
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
-        style={{
-          background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))",
-          border: "1px solid rgba(245,158,11,0.2)",
-          color: "#F59E0B",
-          ...(streak > 0 ? { boxShadow: "0 0 10px rgba(245,158,11,0.2)" } : {}),
-        }}
-      >
-        <span
-          className="inline-flex"
-          style={streak > 0 ? { animation: "streakPulse 2s ease-in-out infinite" } : undefined}
+      {/* Left — Hamburger + Streak badge */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Mở menu"
+          className="lg:hidden w-11 h-11 rounded-md flex items-center justify-center transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-card)] hover:bg-[var(--color-bg-hover)]"
+          style={{ color: "var(--color-text-secondary)" }}
         >
-          <IconFire className="text-amber-500" />
-        </span>
-        <span className="text-base font-semibold">{streak}</span>
-        <span className="text-xs font-medium opacity-80">Day{streak !== 1 ? "s" : ""}</span>
+          <Menu className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+        </button>
+
+        <div
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold"
+          style={{
+            background: "linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.08))",
+            border: "1px solid rgba(245,158,11,0.2)",
+            color: "#F59E0B",
+            ...(streak > 0 ? { boxShadow: "0 0 10px rgba(245,158,11,0.2)" } : {}),
+          }}
+        >
+          <span
+            className="inline-flex"
+            style={streak > 0 ? { animation: "streakPulse 2s ease-in-out infinite" } : undefined}
+          >
+            <IconFire className="text-amber-500" />
+          </span>
+          <span className="text-base font-semibold">{streak}</span>
+          <span className="text-xs font-medium opacity-80">Day{streak !== 1 ? "s" : ""}</span>
+        </div>
       </div>
 
       {/* Center — Brand with mascot logomark */}

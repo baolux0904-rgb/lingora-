@@ -1140,6 +1140,7 @@ body {
 /* ── Sidebar tokens — Light: solid white, no glassmorphism ── */
 :root {
   --sidebar-width: 240px;
+  --sidebar-width-collapsed: 72px;
   --sidebar-bg: #FFFFFF;
   --sidebar-border: #E8E8E4;
   --sidebar-item-hover: rgba(0, 0, 0, 0.03);

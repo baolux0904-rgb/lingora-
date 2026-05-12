@@ -51,7 +51,9 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<SocialNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLButtonElement>(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -121,14 +123,29 @@ export default function NotificationBell() {
 
   if (!user) return null;
 
+  const handleToggle = () => {
+    if (!isOpen) {
+      // Position dropdown above the bell if it sits in the lower half of the
+      // viewport — fixes AppSidebar bottom-left clipping (Session 1 backlog).
+      if (bellRef.current) {
+        const rect = bellRef.current.getBoundingClientRect();
+        setOpenUpward(rect.top > window.innerHeight / 2);
+      }
+      fetchNotifications();
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* Bell button */}
       <button
-        onClick={() => { setIsOpen(!isOpen); if (!isOpen) fetchNotifications(); }}
-        className="w-9 h-9 rounded-full flex items-center justify-center relative transition-all active:scale-95"
+        ref={bellRef}
+        onClick={handleToggle}
+        aria-label="Thông báo"
+        aria-expanded={isOpen}
+        className="w-9 h-9 rounded-full flex items-center justify-center relative transition-all active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-1"
         style={{ background: "var(--color-bg-secondary)", border: "1px solid var(--color-border)" }}
-        title="Notifications"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-secondary)" }}>
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -144,10 +161,12 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown */}
+      {/* Dropdown — opens upward when bell is in lower half of viewport */}
       {isOpen && (
         <div
-          className="absolute right-0 top-12 w-80 max-h-96 overflow-y-auto rounded-xl shadow-lg z-50"
+          className={`absolute right-0 w-80 max-h-96 overflow-y-auto rounded-xl shadow-lg z-50 ${
+            openUpward ? "bottom-12" : "top-12"
+          }`}
           style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
         >
           {/* Header */}

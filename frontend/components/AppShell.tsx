@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import AppSidebar from "./AppSidebar";
 import BottomNav from "./BottomNav";
+import { useSidebar } from "@/contexts/SidebarContext";
 import type { GamificationData, BattleRankTier } from "@/lib/types";
 
 interface AppShellProps {
@@ -43,12 +44,18 @@ export default function AppShell({
   hideNav = false,
 }: AppShellProps) {
   const isDesktop = useIsDesktop();
+  const { collapsed, mobileOpen, setMobileOpen } = useSidebar();
+
+  const desktopWidthVar = collapsed
+    ? "var(--sidebar-width-collapsed)"
+    : "var(--sidebar-width)";
 
   return (
     <div className="min-h-dvh relative bg-deep-gradient noise-overlay">
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar rail */}
       {!hideNav && isDesktop && (
         <AppSidebar
+          mode="desktop-rail"
           active={activeTab}
           onChange={onTabChange}
           gamification={gamification}
@@ -58,13 +65,33 @@ export default function AppShell({
         />
       )}
 
+      {/* Mobile overlay sidebar */}
+      {!hideNav && !isDesktop && mobileOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-40 bg-black/40 motion-reduce:transition-none"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          <AppSidebar
+            mode="mobile-overlay"
+            active={activeTab}
+            onChange={onTabChange}
+            gamification={gamification}
+            rankTier={rankTier}
+            userName={userName}
+            displayStreak={displayStreak}
+          />
+        </>
+      )}
+
       {/* Main content */}
       <main
-        className="min-h-dvh overflow-y-auto"
+        className="min-h-dvh overflow-y-auto motion-reduce:transition-none"
         style={{
-          marginLeft: !hideNav && isDesktop ? "var(--sidebar-width)" : 0,
+          marginLeft: !hideNav && isDesktop ? desktopWidthVar : 0,
           paddingBottom: !hideNav && !isDesktop ? 68 : 0,
-          transition: "margin-left 0.2s ease",
+          transition: "margin-left 200ms ease-out",
         }}
       >
         <div className="relative z-10">

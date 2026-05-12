@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Mascot from "@/components/ui/Mascot";
 import ThemeToggle from "./ThemeToggle";
 import NotificationBell from "./Social/NotificationBell";
 import useSound from "@/hooks/useSound";
 import { itemsForSurface, parentGroupId, type NavItem } from "@/config/nav";
+import { useSidebar } from "@/contexts/SidebarContext";
 import type { GamificationData } from "@/lib/types";
 import type { BattleRankTier } from "@/lib/types";
 
@@ -41,8 +43,9 @@ const RANK_CONFIG: Record<string, { label: string; color: string; glow: string }
   challenger: { label: "Challenger", color: "#FF6B35", glow: "rgba(255,107,53,0.2)" },
 };
 
-/* Nav items now sourced from @/config/nav (shared with BottomNav). */
 const SIDEBAR_ITEMS = itemsForSurface("sidebar");
+
+export type SidebarMode = "desktop-rail" | "mobile-overlay";
 
 interface AppSidebarProps {
   active: string;
@@ -52,11 +55,27 @@ interface AppSidebarProps {
   userName?: string;
   /** Fallback streak count when gamification data hasn't loaded yet */
   displayStreak?: number;
+  /** Render variant — desktop fixed rail with collapse, or mobile overlay (always expanded) */
+  mode?: SidebarMode;
 }
 
-export default function AppSidebar({ active, onChange, gamification, rankTier = "iron", userName, displayStreak }: AppSidebarProps) {
+export default function AppSidebar({
+  active,
+  onChange,
+  gamification,
+  rankTier = "iron",
+  userName,
+  displayStreak,
+  mode = "desktop-rail",
+}: AppSidebarProps) {
   const { play } = useSound();
+  const { collapsed, toggleCollapsed, setMobileOpen } = useSidebar();
   const [expanded, setExpanded] = useState<Set<string>>(loadExpanded);
+
+  // In mobile-overlay mode, force the visual state to expanded regardless of
+  // the persisted desktop-rail collapsed preference.
+  const isMobileOverlay: boolean = mode === "mobile-overlay";
+  const isCollapsed: boolean = !isMobileOverlay && collapsed;
 
   // Auto-expand the parent of the active child whenever active changes.
   const activeParent = parentGroupId(active);
@@ -93,8 +112,16 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
 
   const handleRowClick = (item: NavItem) => {
     play("click", 0.2);
+    // In collapsed mode, top-level items always navigate (children unreachable
+    // without expanding the sidebar first).
+    if (isCollapsed) {
+      onChange(item.id);
+      if (isMobileOverlay) setMobileOpen(false);
+      return;
+    }
     if (item.href) {
       onChange(item.id);
+      if (isMobileOverlay) setMobileOpen(false);
       return;
     }
     if (item.children && item.children.length > 0) {
@@ -102,11 +129,13 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
       return;
     }
     onChange(item.id);
+    if (isMobileOverlay) setMobileOpen(false);
   };
 
   const handleChildClick = (item: NavItem) => {
     play("click", 0.15);
     onChange(item.id);
+    if (isMobileOverlay) setMobileOpen(false);
   };
 
   /** Top-level item is "active" when active === item.id OR active is one of its children. */
@@ -116,33 +145,84 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
     return false;
   };
 
+  const asideClassName =
+    mode === "desktop-rail"
+      ? "hidden lg:flex flex-col fixed top-0 left-0 h-dvh z-40"
+      : "flex flex-col fixed top-0 left-0 h-dvh w-72 z-50 shadow-xl";
+
+  const asideStyle: React.CSSProperties = {
+    width:
+      mode === "desktop-rail"
+        ? `var(${isCollapsed ? "--sidebar-width-collapsed" : "--sidebar-width"})`
+        : undefined,
+    backgroundColor: "var(--sidebar-bg)",
+    backdropFilter: "blur(24px)",
+    WebkitBackdropFilter: "blur(24px)",
+    borderRight: "1px solid var(--sidebar-border)",
+    transition: "width 200ms ease-out",
+  };
+
   return (
-    <aside
-      className="hidden lg:flex flex-col fixed top-0 left-0 h-dvh z-50"
-      style={{
-        width: "var(--sidebar-width)",
-        backgroundColor: "var(--sidebar-bg)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        borderRight: "1px solid var(--sidebar-border)",
-      }}
-    >
+    <aside className={asideClassName} style={asideStyle}>
       {/* ── Brand ── */}
       <div
-        className="flex items-center gap-2.5 px-5 h-16 flex-shrink-0"
+        className={`flex items-center h-16 flex-shrink-0 ${
+          isCollapsed ? "justify-center px-2" : "gap-2.5 px-5"
+        }`}
         style={{ borderBottom: "1px solid var(--sidebar-border)" }}
       >
         <Mascot size={28} />
-        <span
-          className="font-display font-bold text-lg tracking-tighter"
-          style={{ color: "var(--color-text)" }}
-        >
-          Lingona
-        </span>
+        {!isCollapsed && (
+          <span
+            className="font-display font-bold text-lg tracking-tighter"
+            style={{ color: "var(--color-text)" }}
+          >
+            Lingona
+          </span>
+        )}
+        {/* Mobile overlay close button — only in overlay mode */}
+        {mode === "mobile-overlay" && (
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Đóng menu"
+            className="ml-auto w-9 h-9 rounded-md flex items-center justify-center hover:bg-[var(--sidebar-item-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)]"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            <X className="w-5 h-5" strokeWidth={2} aria-hidden="true" />
+          </button>
+        )}
       </div>
 
+      {/* ── Toggle button (desktop-rail only, Notion-style edge button) ── */}
+      {mode === "desktop-rail" && (
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+          className="absolute -right-3 top-20 w-6 h-6 rounded-full flex items-center justify-center shadow-sm transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] z-50"
+          style={{
+            background: "var(--sidebar-bg)",
+            border: "1px solid var(--sidebar-border)",
+            color: "var(--color-text-secondary)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--sidebar-item-hover)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--sidebar-bg)";
+          }}
+        >
+          {collapsed ? (
+            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
+          ) : (
+            <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
+          )}
+        </button>
+      )}
+
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto overflow-x-visible px-3 py-4 space-y-0.5">
         {SIDEBAR_ITEMS.map((item) => {
           const { id, label, icon: Icon, children } = item;
           const hasChildren = !!children && children.length > 0;
@@ -151,10 +231,12 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
           const isSelfActive = active === id;
 
           return (
-            <div key={id}>
+            <div key={id} className="group/nav-item relative">
               <button
                 onClick={() => handleRowClick(item)}
-                className="relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer"
+                className={`relative w-full flex items-center rounded-lg text-left transition-colors cursor-pointer ${
+                  isCollapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5"
+                }`}
                 style={{
                   backgroundColor: isSelfActive ? "var(--sidebar-item-active-bg)" : "transparent",
                   color: isActive ? "var(--sidebar-active-indicator)" : "var(--color-text-secondary)",
@@ -166,8 +248,8 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
                   if (!isSelfActive) e.currentTarget.style.backgroundColor = "transparent";
                 }}
               >
-                {/* Active left bar */}
-                {isSelfActive && (
+                {/* Active left bar — only when expanded (icon-only mode has its own background highlight) */}
+                {isSelfActive && !isCollapsed && (
                   <span
                     className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full sidebar-nav-glow"
                     style={{ backgroundColor: "var(--sidebar-active-indicator)" }}
@@ -177,15 +259,17 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
                 <span className="w-5 h-5 flex items-center justify-center flex-shrink-0">
                   <Icon size={20} />
                 </span>
-                <span className="text-sm font-medium flex-1">{label}</span>
 
-                {/* Group chevron — toggles expand independently of row navigation */}
-                {hasChildren && (
+                {!isCollapsed && (
+                  <span className="text-sm font-medium flex-1">{label}</span>
+                )}
+
+                {/* Group chevron — hidden when collapsed */}
+                {hasChildren && !isCollapsed && (
                   <span
                     role={item.href ? "button" : undefined}
                     onClick={(e) => {
                       if (!item.href) return;
-                      // When the row also navigates, the chevron is a secondary target.
                       e.stopPropagation();
                       toggleGroup(id);
                     }}
@@ -203,8 +287,23 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
                 )}
               </button>
 
-              {/* Group children */}
-              {hasChildren && isExpanded && (
+              {/* Tooltip — collapsed mode only, keyboard-focusable via focus-within */}
+              {isCollapsed && (
+                <span
+                  className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 px-2.5 py-1.5 rounded text-xs font-medium whitespace-nowrap opacity-0 group-hover/nav-item:opacity-100 group-focus-within/nav-item:opacity-100 transition-opacity duration-fast shadow-md"
+                  style={{
+                    background: "var(--color-text)",
+                    color: "var(--color-bg-card)",
+                    zIndex: 60,
+                  }}
+                  role="tooltip"
+                >
+                  {label}
+                </span>
+              )}
+
+              {/* Group children — only render when expanded mode AND group expanded */}
+              {hasChildren && isExpanded && !isCollapsed && (
                 <div className="animate-sub-nav ml-5 mt-0.5 mb-1 pl-3 space-y-0.5"
                   style={{ borderLeft: "1px solid var(--sidebar-border)" }}
                 >
@@ -240,116 +339,126 @@ export default function AppSidebar({ active, onChange, gamification, rankTier = 
         })}
       </nav>
 
-      {/* ── Quick links (standalone routes outside the tab system) ── */}
-      <div className="px-3 pb-2 flex-shrink-0">
-        <a
-          href="/writing/progress"
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors cursor-pointer"
-          style={{ color: "var(--color-text-tertiary)", fontSize: "13px" }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
-        >
-          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-            <polyline points="17 6 23 6 23 12" />
-          </svg>
-          <span className="font-medium">Tiến độ Writing</span>
-        </a>
-      </div>
-
-      {/* ── Bottom section: identity anchors ── */}
-      <div
-        className="flex-shrink-0 px-4 py-4 space-y-3"
-        style={{ borderTop: "1px solid var(--sidebar-border)" }}
-      >
-        {/* Streak + Shields */}
-        <div className="flex items-center gap-2.5">
-          <span className="text-base" style={{ color: "#F59E0B" }}>
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2c0 0-7 7-7 13a7 7 0 0 0 14 0c0-6-7-13-7-13z" />
-            </svg>
-          </span>
-          <span className="text-sm font-semibold" style={{ color: "#F59E0B" }}>
-            {streak?.currentStreak ?? displayStreak ?? 0}
-          </span>
-          <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
-            day streak
-          </span>
-        </div>
-
-        {/* Rank */}
-        <div className="flex items-center gap-2.5">
-          <span
-            className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black"
-            style={{
-              backgroundColor: `${rank.color}20`,
-              color: rank.color,
-              boxShadow: `0 0 8px ${rank.glow}`,
-            }}
+      {/* ── Quick links (only when expanded) ── */}
+      {!isCollapsed && (
+        <div className="px-3 pb-2 flex-shrink-0">
+          <a
+            href="/writing/progress"
+            className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-left transition-colors cursor-pointer"
+            style={{ color: "var(--color-text-tertiary)", fontSize: "13px" }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--sidebar-item-hover)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
           >
-            {rank.label[0]}
-          </span>
-          <span className="text-sm font-semibold" style={{ color: rank.color }}>
-            {rank.label}
-          </span>
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+              <polyline points="17 6 23 6 23 12" />
+            </svg>
+            <span className="font-medium">Tiến độ Writing</span>
+          </a>
         </div>
+      )}
 
-        {/* XP bar — easeOutCubic animated fill */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>
-              Lv {xp?.level ?? 1}
+      {/* ── Bottom section — identity anchors (HIDDEN when collapsed) ── */}
+      {!isCollapsed && (
+        <div
+          className="flex-shrink-0 px-4 py-4 space-y-3"
+          style={{ borderTop: "1px solid var(--sidebar-border)" }}
+        >
+          {/* Streak */}
+          <div className="flex items-center gap-2.5">
+            <span className="text-base" style={{ color: "#F59E0B" }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2c0 0-7 7-7 13a7 7 0 0 0 14 0c0-6-7-13-7-13z" />
+              </svg>
+            </span>
+            <span className="text-sm font-semibold" style={{ color: "#F59E0B" }}>
+              {streak?.currentStreak ?? displayStreak ?? 0}
             </span>
             <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
-              {xp?.xpInLevel ?? 0} / {xp?.xpToNextLevel ?? 100} XP
+              day streak
             </span>
           </div>
-          <div
-            className="h-2 rounded-full overflow-hidden"
-            style={{ backgroundColor: "var(--sidebar-xp-track)" }}
-          >
-            <div
-              className="h-full rounded-full xp-bar-animated"
-              style={{
-                width: `${xpPercent}%`,
-                background: "var(--sidebar-xp-fill)",
-              }}
-            />
-          </div>
-        </div>
 
-        {/* Utility row */}
-        <div className="flex items-center gap-2 pt-1">
-          <NotificationBell />
-          <ThemeToggle />
-          <div className="flex-1" />
-          {/* Settings gear */}
-          <button
-            onClick={() => onChange("settings")}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
-            style={{
-              backgroundColor: active === "settings" ? "var(--sidebar-item-active-bg)" : "transparent",
-              color: active === "settings" ? "var(--sidebar-active-indicator)" : "var(--color-text-tertiary)",
-            }}
-            title="Settings"
-          >
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-          {/* Avatar */}
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center font-sans font-semibold text-xs text-white cursor-pointer"
-            style={{
-              background: "linear-gradient(135deg, var(--color-avatar-from), var(--color-avatar-to))",
-              border: "2px solid rgba(0,168,150,0.3)",
-            }}
-            onClick={() => onChange("profile")}
-          >
-            {initials}
+          {/* Rank */}
+          <div className="flex items-center gap-2.5">
+            <span
+              className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-black"
+              style={{
+                backgroundColor: `${rank.color}20`,
+                color: rank.color,
+                boxShadow: `0 0 8px ${rank.glow}`,
+              }}
+            >
+              {rank.label[0]}
+            </span>
+            <span className="text-sm font-semibold" style={{ color: rank.color }}>
+              {rank.label}
+            </span>
+          </div>
+
+          {/* XP bar */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-semibold" style={{ color: "var(--color-text-secondary)" }}>
+                Lv {xp?.level ?? 1}
+              </span>
+              <span className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>
+                {xp?.xpInLevel ?? 0} / {xp?.xpToNextLevel ?? 100} XP
+              </span>
+            </div>
+            <div
+              className="h-2 rounded-full overflow-hidden"
+              style={{ backgroundColor: "var(--sidebar-xp-track)" }}
+            >
+              <div
+                className="h-full rounded-full xp-bar-animated"
+                style={{
+                  width: `${xpPercent}%`,
+                  background: "var(--sidebar-xp-fill)",
+                }}
+              />
+            </div>
           </div>
         </div>
+      )}
+
+      {/* ── Utility row — always visible; compact in collapsed mode ── */}
+      <div
+        className={`flex-shrink-0 ${
+          isCollapsed ? "px-2 py-3 flex flex-col items-center gap-2" : "px-4 py-4 flex items-center gap-2"
+        }`}
+        style={{ borderTop: isCollapsed ? "1px solid var(--sidebar-border)" : "none" }}
+      >
+        <NotificationBell />
+        <ThemeToggle />
+        {!isCollapsed && <div className="flex-1" />}
+        {/* Settings gear */}
+        <button
+          onClick={() => onChange("settings")}
+          className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-1"
+          style={{
+            backgroundColor: active === "settings" ? "var(--sidebar-item-active-bg)" : "transparent",
+            color: active === "settings" ? "var(--sidebar-active-indicator)" : "var(--color-text-tertiary)",
+          }}
+          aria-label="Cài đặt"
+        >
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+        {/* Avatar */}
+        <button
+          onClick={() => onChange("profile")}
+          className="w-8 h-8 rounded-full flex items-center justify-center font-sans font-semibold text-xs text-white cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-1"
+          style={{
+            background: "linear-gradient(135deg, var(--color-avatar-from), var(--color-avatar-to))",
+            border: "2px solid rgba(0,168,150,0.3)",
+          }}
+          aria-label="Hồ sơ"
+        >
+          {initials}
+        </button>
       </div>
     </aside>
   );

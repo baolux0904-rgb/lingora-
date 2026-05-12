@@ -29,6 +29,7 @@ import { AppDataProvider, useAppData } from "@/contexts/AppDataContext";
 import { RewardProvider } from "@/contexts/RewardContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { PresenceProvider } from "@/contexts/PresenceContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import RewardOverlay from "@/components/Rewards/RewardOverlay";
 import StreakMilestoneHandler from "@/components/Rewards/StreakMilestoneHandler";
 import { useAuthStore } from "@/lib/stores/authStore";
@@ -166,10 +167,12 @@ export default function AppGroupLayout({ children }: { children: ReactNode }) {
       <AppDataProvider>
         <SocketProvider>
           <PresenceProvider>
-            <Suspense>
-              <AppShellInner>{children}</AppShellInner>
-            </Suspense>
-            <RewardOverlay />
+            <SidebarProvider>
+              <Suspense>
+                <AppShellInner>{children}</AppShellInner>
+              </Suspense>
+              <RewardOverlay />
+            </SidebarProvider>
           </PresenceProvider>
         </SocketProvider>
       </AppDataProvider>
