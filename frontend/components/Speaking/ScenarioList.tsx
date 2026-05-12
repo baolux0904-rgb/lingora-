@@ -17,14 +17,20 @@ interface ScenarioListProps {
 }
 
 const CATEGORIES = [
-  { key: undefined, label: "All" },
-  { key: "daily", label: "Daily" },
-  { key: "food", label: "Food" },
-  { key: "travel", label: "Travel" },
-  { key: "work", label: "Work" },
-  { key: "social", label: "Social" },
-  { key: "academic", label: "Academic" },
+  { key: undefined, label: "Tất cả" },
+  { key: "daily", label: "Hàng ngày" },
+  { key: "food", label: "Ăn uống" },
+  { key: "travel", label: "Du lịch" },
+  { key: "work", label: "Công việc" },
+  { key: "social", label: "Xã hội" },
+  { key: "academic", label: "Học thuật" },
 ] as const;
+
+const DIFFICULTY_LABEL: Record<string, string> = {
+  beginner: "cơ bản",
+  intermediate: "trung cấp",
+  advanced: "nâng cao",
+};
 
 function difficultyBadgeVariant(d: string): "success" | "warning" | "error" | "muted" {
   switch (d) {
@@ -71,10 +77,10 @@ const ScenarioCard = React.memo(function ScenarioCard({
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
           <Badge variant={difficultyBadgeVariant(scenario.difficulty)} size="sm">
-            {scenario.difficulty}
+            {DIFFICULTY_LABEL[scenario.difficulty] ?? scenario.difficulty}
           </Badge>
           <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            ~{scenario.expected_turns} turns
+            ~{scenario.expected_turns} lượt
           </span>
         </div>
       </div>

@@ -211,7 +211,7 @@ function EditProfileModal({ stats, onClose, onSaved }: { stats: ProfileStats; on
       <div className="w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 flex flex-col gap-4 max-h-[85vh] overflow-y-auto"
         style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}>
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>Edit Profile</h3>
+          <h3 className="text-base font-semibold" style={{ color: "var(--color-text)" }}>Sửa hồ sơ</h3>
           <button onClick={onClose} className="text-xs" style={{ color: "var(--color-text-tertiary)" }}>✕</button>
         </div>
 
@@ -428,30 +428,30 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
       <div className="flex gap-2">
         <button onClick={() => setShowEdit(true)} className="flex-1 py-2.5 rounded-lg text-xs font-medium"
           style={{ background: "var(--color-bg-card)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>
-          Edit Profile
+          Sửa hồ sơ
         </button>
         {u.username && (
           <button onClick={handleCopyLink} className="flex-1 py-2.5 rounded-lg text-xs font-medium"
             style={{ background: "var(--color-bg-card)", color: copied ? "#00A896" : "var(--color-text-secondary)", border: `1px solid ${copied ? "rgba(0,168,150,0.3)" : "var(--color-border)"}` }}>
-            {copied ? "Copied! 🔥" : "🔗 Copy Link"}
+            {copied ? "Đã sao chép 🔥" : "🔗 Sao chép link"}
           </button>
         )}
         <button onClick={() => setShowShareCard(true)} className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
           style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)", color: "#fff" }}>
-          Share 🎯
+          Chia sẻ 🎯
         </button>
       </div>
 
       {/* SECTION 2: Stats Grid */}
       <div className="grid grid-cols-4 gap-2 overflow-x-auto">
-        <StatCard icon="🔥" value={g.currentStreak} label="Streak" />
+        <StatCard icon="🔥" value={g.currentStreak} label="STREAK" />
         <StatCard icon="⚡" value={g.totalXp.toLocaleString()} label="XP" />
-        <StatCard icon="🏆" value={battle.rank_tier.charAt(0).toUpperCase() + battle.rank_tier.slice(1)} label="Rank" />
-        <StatCard icon="⚔" value={battle.wins} label="Wins" />
-        <StatCard icon="📚" value={g.level} label="Level" />
-        <StatCard icon="🎤" value={speaking.totalSessions} label="Speaking" />
-        <StatCard icon="✍" value={writing.totalSubmissions} label="Writing" />
-        <StatCard icon="👥" value={social.friendCount} label="Friends" />
+        <StatCard icon="🏆" value={(battle.rank_tier ?? "iron").replace(/^'|'$/g, "").replace(/^./, (c) => c.toUpperCase())} label="HẠNG" />
+        <StatCard icon="⚔" value={battle.wins} label="THẮNG" />
+        <StatCard icon="📚" value={g.level} label="LEVEL" />
+        <StatCard icon="🎤" value={speaking.totalSessions} label="SPEAKING" />
+        <StatCard icon="✍" value={writing.totalSubmissions} label="WRITING" />
+        <StatCard icon="👥" value={social.friendCount} label="BẠN BÈ" />
       </div>
 
       {/* SECTION 3: Band Progression */}

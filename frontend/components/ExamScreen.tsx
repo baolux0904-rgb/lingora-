@@ -40,7 +40,7 @@ const EXAM_MODULES: ExamModule[] = [
     Icon: IconMic,
     available: true,
     accentColor: "#00A896",
-    duration: "11-14 min",
+    duration: "11-14 phút",
   },
   {
     id: "listening",
@@ -58,7 +58,7 @@ const EXAM_MODULES: ExamModule[] = [
     Icon: IconOpenBook,
     available: true,
     accentColor: "#22C55E",
-    duration: "60 min",
+    duration: "60 phút",
   },
   {
     id: "writing",
@@ -67,7 +67,7 @@ const EXAM_MODULES: ExamModule[] = [
     Icon: IconPen,
     available: true,
     accentColor: "#F59E0B",
-    duration: "60 min",
+    duration: "60 phút",
   },
 ];
 
@@ -112,7 +112,7 @@ export default function ExamScreen({ onStartIelts, onStartWriting, onStartReadin
           Exam Practice
         </h2>
         <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-          Simulate real exam conditions with AI-powered assessment
+          Mô phỏng điều kiện thi thật với AI chấm điểm
         </p>
       </div>
 
@@ -188,7 +188,7 @@ export default function ExamScreen({ onStartIelts, onStartWriting, onStartReadin
                 </p>
                 <div className="flex items-center gap-3">
                   <Badge variant="primary" size="md">{mod.duration}</Badge>
-                  <Badge variant="primary" size="md">3 parts</Badge>
+                  <Badge variant="primary" size="md">3 phần</Badge>
                 </div>
               </div>
               <svg
@@ -209,7 +209,7 @@ export default function ExamScreen({ onStartIelts, onStartWriting, onStartReadin
         <div>
           <div className="text-xs font-semibold uppercase tracking-upper mb-3"
             style={{ color: "var(--color-text-tertiary)" }}>
-            Conversation Practice
+            Luyện hội thoại
           </div>
           <ScenarioList onSelect={onScenarioSelect} excludeExam />
         </div>

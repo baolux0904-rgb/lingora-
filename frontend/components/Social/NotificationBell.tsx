@@ -153,7 +153,7 @@ export default function NotificationBell() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
             <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
-              Notifications
+              Thông báo
             </span>
             {unreadCount > 0 && (
               <button
@@ -161,7 +161,7 @@ export default function NotificationBell() {
                 className="text-xs font-medium"
                 style={{ color: "#00A896" }}
               >
-                Mark all read
+                Đánh dấu đã đọc
               </button>
             )}
           </div>
@@ -170,7 +170,7 @@ export default function NotificationBell() {
           {notifications.length === 0 ? (
             <div className="px-4 py-8 text-center flex flex-col items-center gap-2">
               <Mascot size={40} />
-              <p className="text-sm" style={{ color: "var(--color-text-tertiary)" }}>Chưa có thông báo nào</p>
+              <p className="text-sm" style={{ color: "var(--color-text-tertiary)" }}>Không có thông báo mới</p>
             </div>
           ) : (
             <div>

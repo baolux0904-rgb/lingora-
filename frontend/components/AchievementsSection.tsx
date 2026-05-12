@@ -19,6 +19,18 @@ const RARITY_CONFIG: Record<string, { border: string; bg: string; glow: string; 
 
 const CATEGORIES = ["all", "streak", "xp", "speaking", "writing", "reading", "battle", "social", "learning"];
 
+const CATEGORY_LABEL: Record<string, string> = {
+  all: "Tất cả",
+  streak: "Streak",
+  xp: "XP",
+  speaking: "Speaking",
+  writing: "Writing",
+  reading: "Reading",
+  battle: "Battle",
+  social: "Xã hội",
+  learning: "Học tập",
+};
+
 export default function AchievementsSection() {
   const [data, setData] = useState<AchievementsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,13 +79,13 @@ export default function AchievementsSection() {
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
         {CATEGORIES.map((cat) => (
           <button key={cat} onClick={() => setFilter(cat)}
-            className="px-2.5 py-1 rounded-full text-xs font-medium capitalize shrink-0 transition-all"
+            className="px-2.5 py-1 rounded-full text-xs font-medium shrink-0 transition-all"
             style={{
               background: filter === cat ? "rgba(0,168,150,0.15)" : "rgba(255,255,255,0.03)",
               color: filter === cat ? "#00A896" : "var(--color-text-tertiary)",
               border: `1px solid ${filter === cat ? "rgba(0,168,150,0.3)" : "rgba(255,255,255,0.06)"}`,
             }}>
-            {cat}
+            {CATEGORY_LABEL[cat] ?? cat}
           </button>
         ))}
       </div>
@@ -82,7 +94,7 @@ export default function AchievementsSection() {
       {earned.length > 0 && (
         <div>
           <div className="text-xs font-semibold mb-2" style={{ color: "var(--color-text-secondary)" }}>
-            Earned ({earned.length})
+            Đã đạt ({earned.length})
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {earned.map((b) => {
@@ -152,7 +164,7 @@ export default function AchievementsSection() {
 
       {earned.length === 0 && locked.length === 0 && (
         <div className="text-center py-6">
-          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>No achievements in this category</p>
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Chưa có thành tích trong mục này</p>
         </div>
       )}
     </div>

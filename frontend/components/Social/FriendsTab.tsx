@@ -78,8 +78,8 @@ function ActivityFeed({ friends }: { friends: Friend[] }) {
   return (
     <div className="flex flex-col h-full">
       <div className="px-5 py-4 shrink-0" style={{ borderBottom: "1px solid var(--color-border)" }}>
-        <h3 className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Friend Activity</h3>
-        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>See who&apos;s learning today</p>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>Hoạt động bạn bè</h3>
+        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>Xem ai đang học hôm nay</p>
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4">
