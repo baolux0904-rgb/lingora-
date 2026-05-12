@@ -1,15 +1,34 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import {
+  Sun,
+  Utensils,
+  Plane,
+  Briefcase,
+  Users,
+  GraduationCap,
+  MessageSquare,
+  type LucideIcon,
+} from "lucide-react";
 import { useScenarios } from "@/hooks/useScenarios";
 import { useDailyLimits } from "@/hooks/useDailyLimits";
 import { useOnboardingStatus } from "@/lib/hooks/useOnboardingStatus";
 import OnboardingGateModal from "@/components/Onboarding/OnboardingGateModal";
-import Badge from "@/components/ui/Badge";
+import Mascot from "@/components/ui/Mascot";
 import UpgradeTrigger from "@/components/Pro/UpgradeTrigger";
 import RemainingBadge from "@/components/Pro/RemainingBadge";
 import ProUpgradeModal from "@/components/Pro/ProUpgradeModal";
 import type { Scenario } from "@/lib/types";
+
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  daily: Sun,
+  food: Utensils,
+  travel: Plane,
+  work: Briefcase,
+  social: Users,
+  academic: GraduationCap,
+};
 
 interface ScenarioListProps {
   onSelect: (scenario: Scenario) => void;
@@ -32,18 +51,11 @@ const DIFFICULTY_LABEL: Record<string, string> = {
   advanced: "nâng cao",
 };
 
-function difficultyBadgeVariant(d: string): "success" | "warning" | "error" | "muted" {
-  switch (d) {
-    case "beginner":
-      return "success";
-    case "intermediate":
-      return "warning";
-    case "advanced":
-      return "error";
-    default:
-      return "muted";
-  }
-}
+const DIFFICULTY_BADGE_CLASS: Record<string, string> = {
+  beginner: "bg-teal/10 text-teal",
+  intermediate: "bg-navy/10 text-navy",
+  advanced: "bg-amber-100 text-amber-700",
+};
 
 const ScenarioCard = React.memo(function ScenarioCard({
   scenario,
@@ -52,36 +64,47 @@ const ScenarioCard = React.memo(function ScenarioCard({
   scenario: Scenario;
   onSelect: (s: Scenario) => void;
 }) {
+  const Icon = CATEGORY_ICON[scenario.category ?? ""] ?? MessageSquare;
+  const diffClass =
+    DIFFICULTY_BADGE_CLASS[scenario.difficulty] ?? "bg-navy/5 text-navy/70";
+
   return (
     <button
       onClick={() => onSelect(scenario)}
-      className="flex items-center gap-4 p-4 rounded-lg text-left transition duration-normal card-hover"
+      className="flex items-center gap-4 p-4 sm:p-5 rounded-lg text-left transition-colors duration-fast card-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-cream"
       style={{
         background: "var(--color-bg-card)",
         border: "1px solid var(--color-border)",
       }}
     >
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0"
-        style={{ background: "var(--color-primary-soft)" }}
-      >
-        {scenario.emoji}
+      <div className="w-16 h-16 rounded-lg flex items-center justify-center shrink-0 bg-teal/10 text-teal-dark">
+        <Icon size={24} strokeWidth={2} aria-hidden="true" />
       </div>
 
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-base truncate" style={{ color: "var(--color-text)" }}>
+        <div
+          className="font-display italic text-[20px] sm:text-[22px] leading-tight truncate"
+          style={{ color: "var(--color-text)" }}
+        >
           {scenario.title}
         </div>
-        <div className="text-sm mt-0.5 line-clamp-1" style={{ color: "var(--color-text-secondary)" }}>
+        <div
+          className="text-[15px] sm:text-[16px] mt-1 line-clamp-2 leading-snug"
+          style={{ color: "var(--color-text-secondary)" }}
+        >
           {scenario.description}
         </div>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
-          <Badge variant={difficultyBadgeVariant(scenario.difficulty)} size="sm">
+        <div
+          className="flex items-center gap-2 mt-2.5 text-[13px] sm:text-[14px]"
+          style={{ color: "var(--color-text-tertiary)" }}
+        >
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${diffClass}`}
+          >
             {DIFFICULTY_LABEL[scenario.difficulty] ?? scenario.difficulty}
-          </Badge>
-          <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-            ~{scenario.expected_turns} lượt
           </span>
+          <span aria-hidden="true" className="opacity-60">·</span>
+          <span className="tabular-nums">~{scenario.expected_turns} lượt</span>
         </div>
       </div>
 
@@ -133,7 +156,7 @@ export default function ScenarioList({ onSelect, excludeExam }: ScenarioListProp
           className="text-xl font-bold"
           style={{ color: "var(--color-text)" }}
         >
-          Speak Scenarios
+          Tình huống nói
         </h2>
         <RemainingBadge
           type="speaking"
@@ -180,21 +203,22 @@ export default function ScenarioList({ onSelect, excludeExam }: ScenarioListProp
       />
 
       {/* Category filter pills */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-1 -mx-1 px-1">
         {CATEGORIES.map((cat) => {
           const isActive = activeCategory === cat.key;
           return (
             <button
               key={cat.label}
               onClick={() => setActiveCategory(cat.key)}
-              style={{
-                background: isActive
-                  ? "var(--color-primary)"
-                  : "var(--color-bg-card)",
-                color: isActive ? "#fff" : "var(--color-text-secondary)",
-                border: isActive ? "none" : "1px solid var(--color-border)",
-              }}
-              className="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap shrink-0 transition duration-normal"
+              aria-pressed={isActive}
+              className={[
+                "px-4 py-2.5 rounded-full text-sm font-medium whitespace-nowrap shrink-0 min-h-[44px]",
+                "transition-colors duration-fast",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-cream",
+                isActive
+                  ? "bg-teal text-cream shadow-colored"
+                  : "bg-navy/5 text-navy/70 hover:bg-navy/10 hover:text-navy",
+              ].join(" ")}
             >
               {cat.label}
             </button>
@@ -219,15 +243,26 @@ export default function ScenarioList({ onSelect, excludeExam }: ScenarioListProp
 
       {!loading && !error && (
         <div className="flex flex-col gap-3 stagger-children">
-          {scenarios.length === 0 && (
-            <div className="text-center py-10 text-base" style={{ color: "var(--color-text-secondary)" }}>
-              Không tìm thấy kịch bản nào cho danh mục này
+          {scenarios.length === 0 ? (
+            <div className="max-w-[480px] mx-auto py-16 text-center flex flex-col items-center gap-5">
+              <p className="text-base" style={{ color: "var(--color-text-secondary)" }}>
+                Chưa có tình huống trong nhóm này.
+              </p>
+              <Mascot size={80} mood="default" />
+              <button
+                type="button"
+                onClick={() => setActiveCategory(undefined)}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-teal hover:text-teal-dark transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-cream rounded-md px-2 py-1"
+              >
+                Xem tất cả tình huống
+                <span aria-hidden="true">→</span>
+              </button>
             </div>
+          ) : (
+            scenarios.map((scenario) => (
+              <ScenarioCard key={scenario.id} scenario={scenario} onSelect={handleSelect} />
+            ))
           )}
-
-          {scenarios.map((scenario) => (
-            <ScenarioCard key={scenario.id} scenario={scenario} onSelect={handleSelect} />
-          ))}
         </div>
       )}
     </div>
