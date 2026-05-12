@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import Mascot from "@/components/ui/Mascot";
 import { loginUser, migrateGuestProgress } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
@@ -53,6 +53,7 @@ function LoginPageContent() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -89,6 +90,7 @@ function LoginPageContent() {
       );
     } finally {
       setSubmitting(false);
+      setShowPassword(false);
     }
   }
 
@@ -140,16 +142,32 @@ function LoginPageContent() {
 
               <label className="block">
                 <span className="text-sm font-medium text-navy">Mật khẩu</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  placeholder="••••••••"
-                  disabled={submitting}
-                  className="mt-1.5 block w-full px-4 py-2.5 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
-                />
+                <div className="relative mt-1.5">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    placeholder="••••••••"
+                    disabled={submitting}
+                    className="block w-full pl-4 pr-12 py-2.5 rounded-button bg-cream border border-gray-300 focus:border-teal focus:ring-1 focus:ring-teal focus:outline-none text-base text-navy placeholder:text-gray-400 disabled:opacity-50 transition-colors duration-fast"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    disabled={submitting}
+                    aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    aria-pressed={showPassword}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-3 rounded-md text-navy/50 hover:text-navy/80 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-cream transition-colors duration-fast"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" aria-hidden="true" />
+                    ) : (
+                      <Eye className="w-5 h-5" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
                 <Link
                   href="/forgot-password"
                   className="mt-1.5 inline-block text-xs text-gray-600 hover:text-teal transition-colors duration-fast"
