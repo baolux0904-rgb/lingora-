@@ -8,11 +8,27 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import {
+  Flame,
+  Zap,
+  Swords,
+  BarChart3,
+  Mic,
+  PenLine,
+  Users,
+  Target,
+  MapPin,
+  Award,
+  type LucideIcon,
+} from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
+import Mascot from "@/components/ui/Mascot";
 import Skeleton from "@/components/ui/Skeleton";
+import RankChip from "@/components/Profile/RankChip";
 import { useAuthStore } from "@/lib/stores/authStore";
 import { logoutUser, getProfileStats, updateProfile, uploadAvatar, updateProfileVisibility, changeUsername } from "@/lib/api";
+import { formatJoinMonth } from "@/lib/utils/time";
 import type { SpeakingMetricsData, GamificationData, ProfileStats, ProfileVisibility } from "@/lib/types";
 
 const ShareCardModal = dynamic(() => import("./Social/ShareCardModal"), { ssr: false });
@@ -31,15 +47,83 @@ interface ProfileScreenProps {
 // Sub-components
 // ---------------------------------------------------------------------------
 
-function StatCard({ icon, value, label }: { icon: string; value: string | number; label: string }) {
+function StatCard({
+  Icon,
+  value,
+  label,
+}: {
+  Icon: LucideIcon;
+  value: string | number;
+  label: string;
+}) {
   return (
-    <div className="rounded-2xl p-3.5 flex flex-col items-center gap-1 min-w-[90px] transition-all hover:scale-[1.03]"
-      style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
-      <span className="text-base">{icon}</span>
-      <span className="text-xl font-display font-bold" style={{ color: "var(--color-text)" }}>{value}</span>
-      <span className="text-xs uppercase tracking-wider" style={{ color: "var(--color-text-tertiary)" }}>{label}</span>
+    <div
+      className="rounded-2xl p-3.5 sm:p-4 flex flex-col items-center gap-1.5 min-w-[90px] transition-all hover:scale-[1.02]"
+      style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <Icon
+        className="w-5 h-5"
+        strokeWidth={2}
+        style={{ color: "var(--color-text-tertiary)" }}
+        aria-hidden="true"
+      />
+      <span
+        className="font-display italic text-[26px] sm:text-[30px] leading-tight tabular-nums"
+        style={{ color: "var(--color-text)" }}
+      >
+        {value}
+      </span>
+      <span
+        className="text-[11px] sm:text-[12px] uppercase tracking-wider font-medium"
+        style={{ color: "var(--color-text-tertiary)" }}
+      >
+        {label}
+      </span>
     </div>
   );
+}
+
+/** Slot in the 8-grid for HẠNG — wraps RankChip so it visually pairs with siblings. */
+function RankSlot({ tier }: { tier: string | null | undefined }) {
+  return (
+    <div
+      className="rounded-2xl p-3.5 sm:p-4 flex flex-col items-center gap-1.5 min-w-[90px] transition-all hover:scale-[1.02]"
+      style={{
+        background: "rgba(255,255,255,0.03)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}
+    >
+      <div className="h-5 flex items-center" aria-hidden="true">
+        <RankChip tier={tier} />
+      </div>
+      <span className="font-display italic text-[15px] sm:text-[16px] mt-1" style={{ color: "var(--color-text-tertiary)" }}>
+        &nbsp;
+      </span>
+      <span
+        className="text-[11px] sm:text-[12px] uppercase tracking-wider font-medium"
+        style={{ color: "var(--color-text-tertiary)" }}
+      >
+        HẠNG
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Split a username like "duybaonguyen3009_37x4pe" into
+ * { prefix: "duybaonguyen3009", suffix: "_37x4pe" } when it matches the
+ * auto-generated pattern (lowercase + underscore + 4-6 alnum). For
+ * user-chosen handles (no suffix match) returns prefix only.
+ */
+function splitHandle(username: string): { prefix: string; suffix: string } {
+  if (/^[a-z0-9_]+_[a-z0-9]{4,6}$/.test(username)) {
+    const i = username.lastIndexOf("_");
+    return { prefix: username.slice(0, i), suffix: username.slice(i) };
+  }
+  return { prefix: username, suffix: "" };
 }
 
 /**
@@ -353,11 +437,11 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
   if (isGuest) {
     return (
       <div className="flex flex-col items-center gap-5 py-8">
-        <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold" style={{ background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)", color: "#fff", border: "3px solid #00A896" }}>G</div>
-        <h2 className="text-lg font-display font-bold" style={{ color: "var(--color-text)" }}>Guest Learner</h2>
+        <div className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold" style={{ background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)", color: "#fff", border: "3px solid #00A896" }}>K</div>
+        <h2 className="text-lg font-display italic" style={{ color: "var(--color-text)" }}>Người học khách</h2>
         <Card padding="lg" className="text-center w-full" style={{ background: "rgba(0,168,150,0.06)", border: "1px solid rgba(0,168,150,0.15)" }}>
-          <p className="text-base font-medium mb-1" style={{ color: "var(--color-text)" }}>Create an account to save your progress</p>
-          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Your scores, streaks, and badges will persist across devices</p>
+          <p className="text-base font-medium mb-1" style={{ color: "var(--color-text)" }}>Tạo tài khoản để lưu tiến độ</p>
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Điểm, streak, và huy hiệu của bạn sẽ được lưu trên mọi thiết bị</p>
         </Card>
       </div>
     );
@@ -370,16 +454,16 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
   if (statsError || !stats) {
     return (
       <div className="flex flex-col items-center gap-4 py-16">
-        <div className="text-4xl">😕</div>
-        <h3 className="text-base font-display font-semibold" style={{ color: "var(--color-text)" }}>
+        <Mascot size={80} mood="thinking" />
+        <h3 className="text-base font-display italic" style={{ color: "var(--color-text)" }}>
           Không tải được hồ sơ
         </h3>
         <p className="text-sm text-center max-w-xs" style={{ color: "var(--color-text-secondary)" }}>
-          Có vấn đề khi tải dữ liệu. Kiểm tra kết nối và thử lại 🐙
+          Có lỗi xảy ra khi tải dữ liệu. Kiểm tra kết nối và thử lại.
         </p>
         <button
           onClick={loadStats}
-          className="px-6 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-[0.97]"
+          className="px-6 py-2.5 rounded-full text-sm font-semibold transition-colors duration-fast hover:bg-teal-light focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-card)]"
           style={{ background: "#00A896", color: "#fff" }}
         >
           Thử lại
@@ -390,7 +474,8 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
 
   const { user: u, gamification: g, battle, speaking, writing, social, leaderboard: lb } = stats;
   const initials = u.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
-  const joinDate = new Date(u.joined_at).toLocaleDateString("vi-VN", { month: "short", year: "numeric" });
+  const joinDate = formatJoinMonth(u.joined_at);
+  const handle = u.username ? splitHandle(u.username) : null;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -399,59 +484,130 @@ export default function ProfileScreen({ userId, metrics, metricsLoading, gamific
   return (
     <div className="flex flex-col gap-5">
       {/* SECTION 1: Profile Header */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-        <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center font-display font-bold text-2xl text-white shrink-0"
-          style={{ background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)", border: "3px solid #00A896", boxShadow: "0 4px 16px rgba(27,43,75,0.3)" }}>
-          {u.avatar_url
-            ? <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover" />
-            : initials}
-        </div>
-        <div className="flex-1 text-center sm:text-left min-w-0">
-          <h2 className="text-xl font-display font-bold" style={{ color: "var(--color-text)" }}>{u.name}</h2>
-          {u.username && <p className="text-sm font-medium" style={{ color: "#00A896" }}>@{u.username}</p>}
-          {u.bio && <p className="text-sm italic mt-1" style={{ color: "var(--color-text-secondary)" }}>{u.bio}</p>}
-          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 mt-2 text-xs" style={{ color: "var(--color-text-tertiary)" }}>
-            {u.estimated_band && <span>📊 Band {u.estimated_band.toFixed(1)}</span>}
-            {u.target_band && <span>🎯 Target {u.target_band.toFixed(1)}</span>}
-            {u.location && <span>📍 {u.location}</span>}
-            <span>Since {joinDate}</span>
-          </div>
-          {lb.percentile <= 25 && (
-            <div className="inline-flex mt-2 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}>
-              🏅 Top {lb.percentile}% in Vietnam
-            </div>
+      <header className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div
+          className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden flex items-center justify-center font-display italic text-3xl text-white shrink-0"
+          style={{
+            background: "linear-gradient(135deg, #1B2B4B, #2D4A7A)",
+            border: "3px solid #00A896",
+            boxShadow: "0 4px 16px rgba(27,43,75,0.3)",
+          }}
+        >
+          {u.avatar_url ? (
+            <img src={u.avatar_url} alt={u.name} className="w-full h-full object-cover" />
+          ) : (
+            initials
           )}
         </div>
-      </div>
 
-      {/* Action buttons */}
-      <div className="flex gap-2">
-        <button onClick={() => setShowEdit(true)} className="flex-1 py-2.5 rounded-lg text-xs font-medium"
-          style={{ background: "var(--color-bg-card)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>
-          Sửa hồ sơ
-        </button>
-        {u.username && (
-          <button onClick={handleCopyLink} className="flex-1 py-2.5 rounded-lg text-xs font-medium"
-            style={{ background: "var(--color-bg-card)", color: copied ? "#00A896" : "var(--color-text-secondary)", border: `1px solid ${copied ? "rgba(0,168,150,0.3)" : "var(--color-border)"}` }}>
-            {copied ? "Đã sao chép 🔥" : "🔗 Sao chép link"}
-          </button>
-        )}
-        <button onClick={() => setShowShareCard(true)} className="flex-1 py-2.5 rounded-lg text-xs font-semibold"
-          style={{ background: "linear-gradient(135deg, #00A896, #00C4B0)", color: "#fff" }}>
-          Chia sẻ 🎯
-        </button>
-      </div>
+        <div className="flex-1 text-center sm:text-left min-w-0">
+          <h1
+            className="font-display italic text-[28px] sm:text-[34px] leading-tight"
+            style={{ color: "var(--color-text)" }}
+          >
+            {u.name}
+          </h1>
+
+          {handle && (
+            <p className="text-[14px] sm:text-[15px] font-medium mt-1 break-all">
+              <span style={{ color: "#00A896" }}>@{handle.prefix}</span>
+              {handle.suffix && (
+                <span style={{ color: "var(--color-text-tertiary)" }}>{handle.suffix}</span>
+              )}
+            </p>
+          )}
+
+          <div
+            className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 mt-3 text-[13px] sm:text-[14px]"
+            style={{ color: "var(--color-text-tertiary)" }}
+          >
+            {u.estimated_band && (
+              <span className="inline-flex items-center gap-1.5">
+                <BarChart3 className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+                Band {u.estimated_band.toFixed(1)}
+              </span>
+            )}
+            {u.target_band && (
+              <span className="inline-flex items-center gap-1.5">
+                <Target className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+                Mục tiêu {u.target_band.toFixed(1)}
+              </span>
+            )}
+            {u.location && (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+                {u.location}
+              </span>
+            )}
+            {joinDate && <span>Tham gia {joinDate}</span>}
+          </div>
+
+          {lb.percentile <= 25 && (
+            <div
+              className="inline-flex items-center gap-1.5 mt-3 px-2.5 py-1 rounded-full text-xs font-semibold"
+              style={{ background: "rgba(0,168,150,0.12)", color: "#00A896" }}
+            >
+              <Award className="w-3.5 h-3.5" strokeWidth={2} aria-hidden="true" />
+              Top {lb.percentile}% Việt Nam
+            </div>
+          )}
+
+          {u.bio && (
+            <p
+              className="text-[14px] sm:text-[15px] italic mt-3 max-w-[480px]"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
+              {u.bio}
+            </p>
+          )}
+
+          {/* Action buttons — pure typography, no decoration */}
+          <div className="flex flex-wrap gap-2 mt-5 justify-center sm:justify-start">
+            <button
+              onClick={() => setShowEdit(true)}
+              className="px-5 py-2.5 rounded-full text-sm font-medium transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] hover:bg-teal-light"
+              style={{ background: "#00A896", color: "#fff" }}
+            >
+              Sửa hồ sơ
+            </button>
+            {u.username && (
+              <button
+                onClick={handleCopyLink}
+                className="px-5 py-2.5 rounded-full text-sm font-medium transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] hover:bg-[rgba(27,43,75,0.05)]"
+                style={{
+                  background: "transparent",
+                  color: copied ? "#00A896" : "var(--color-text)",
+                  border: `1px solid ${copied ? "rgba(0,168,150,0.4)" : "rgba(27,43,75,0.2)"}`,
+                }}
+              >
+                {copied ? "Đã sao chép" : "Sao chép link"}
+              </button>
+            )}
+            <button
+              onClick={() => setShowShareCard(true)}
+              className="px-5 py-2.5 rounded-full text-sm font-medium transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] hover:bg-[rgba(27,43,75,0.05)]"
+              style={{
+                background: "transparent",
+                color: "var(--color-text)",
+                border: "1px solid rgba(27,43,75,0.2)",
+              }}
+            >
+              Chia sẻ
+            </button>
+          </div>
+        </div>
+      </header>
 
       {/* SECTION 2: Stats Grid */}
-      <div className="grid grid-cols-4 gap-2 overflow-x-auto">
-        <StatCard icon="🔥" value={g.currentStreak} label="STREAK" />
-        <StatCard icon="⚡" value={g.totalXp.toLocaleString()} label="XP" />
-        <StatCard icon="🏆" value={(battle.rank_tier ?? "iron").replace(/^'|'$/g, "").replace(/^./, (c) => c.toUpperCase())} label="HẠNG" />
-        <StatCard icon="⚔" value={battle.wins} label="THẮNG" />
-        <StatCard icon="📚" value={g.level} label="LEVEL" />
-        <StatCard icon="🎤" value={speaking.totalSessions} label="SPEAKING" />
-        <StatCard icon="✍" value={writing.totalSubmissions} label="WRITING" />
-        <StatCard icon="👥" value={social.friendCount} label="BẠN BÈ" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard Icon={Flame} value={g.currentStreak} label="STREAK" />
+        <StatCard Icon={Zap} value={g.totalXp.toLocaleString()} label="XP" />
+        <RankSlot tier={battle.rank_tier} />
+        <StatCard Icon={Swords} value={battle.wins} label="THẮNG" />
+        <StatCard Icon={BarChart3} value={g.level} label="LEVEL" />
+        <StatCard Icon={Mic} value={speaking.totalSessions} label="SPEAKING" />
+        <StatCard Icon={PenLine} value={writing.totalSubmissions} label="WRITING" />
+        <StatCard Icon={Users} value={social.friendCount} label="BẠN BÈ" />
       </div>
 
       {/* SECTION 3: Band Progression */}

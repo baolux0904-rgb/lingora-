@@ -24,6 +24,17 @@ function startOfDay(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
+/**
+ * Format a date as "tháng M/YYYY" — Vietnamese join-date style.
+ * Returns "" for invalid inputs.
+ */
+export function formatJoinMonth(input: Date | string | null | undefined): string {
+  if (!input) return "";
+  const date = typeof input === "string" ? new Date(input) : input;
+  if (!(date instanceof Date) || isNaN(date.getTime())) return "";
+  return `tháng ${date.getMonth() + 1}/${date.getFullYear()}`;
+}
+
 export function formatRelativeTime(input: Date | string | null | undefined): string {
   if (!input) return "";
   const date = typeof input === "string" ? new Date(input) : input;
