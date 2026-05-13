@@ -127,7 +127,7 @@ export default function ExamModeSelection({
           {/* Icon chip */}
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
-            style={{ background: "rgba(255,255,255,0.08)", color: "var(--color-amber)" }}
+            style={{ background: "rgba(0,168,150,0.18)", color: "#00C4B0" }}
           >
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -142,7 +142,7 @@ export default function ExamModeSelection({
             style={{
               fontSize: 11,
               letterSpacing: "0.14em",
-              color: "var(--color-amber)",
+              color: "#00C4B0",
               textTransform: "uppercase",
             }}
           >
@@ -168,7 +168,7 @@ export default function ExamModeSelection({
           {/* Meta */}
           <div
             className="flex items-center gap-2 text-xs mb-5"
-            style={{ color: "var(--color-amber)" }}
+            style={{ color: "rgba(247, 244, 236, 0.6)" }}
           >
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10" />
@@ -177,11 +177,8 @@ export default function ExamModeSelection({
             <span>{fullTestCopy.meta}</span>
           </div>
 
-          {/* CTA */}
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold"
-            style={{ background: "var(--color-amber)", color: "var(--color-bg-navy)" }}
-          >
+          {/* CTA — solid teal */}
+          <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold bg-teal text-cream">
             {fullTestCTA.label}
           </div>
         </button>
@@ -192,8 +189,8 @@ export default function ExamModeSelection({
           onClick={practiceCTA.onClick}
           className="relative text-left rounded-2xl p-6 transition-transform hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
           style={{
-            background: "var(--color-bg-teal-surface)",
-            border: "1px solid var(--color-border-teal)",
+            background: "var(--color-bg-navy)",
+            border: "1px solid rgba(255,255,255,0.08)",
             minHeight: 260,
           }}
         >
@@ -203,7 +200,7 @@ export default function ExamModeSelection({
           {/* Icon chip */}
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center mb-5"
-            style={{ background: "var(--color-teal)", color: "#FFFFFF" }}
+            style={{ background: "rgba(0,168,150,0.18)", color: "#00C4B0" }}
           >
             <svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 20h9" />
@@ -217,7 +214,7 @@ export default function ExamModeSelection({
             style={{
               fontSize: 11,
               letterSpacing: "0.14em",
-              color: "var(--color-teal-accent)",
+              color: "#00C4B0",
               textTransform: "uppercase",
             }}
           >
@@ -227,7 +224,7 @@ export default function ExamModeSelection({
           {/* Title */}
           <h2
             className="font-display font-bold mb-3"
-            style={{ fontSize: 22, lineHeight: 1.2, color: "var(--color-text)" }}
+            style={{ fontSize: 22, lineHeight: 1.2, color: "#F7F4EC" }}
           >
             Luyện tập
           </h2>
@@ -235,7 +232,7 @@ export default function ExamModeSelection({
           {/* Body */}
           <p
             className="text-sm mb-4"
-            style={{ color: "var(--color-text-secondary)", lineHeight: 1.55 }}
+            style={{ color: "rgba(247, 244, 236, 0.72)", lineHeight: 1.55 }}
           >
             {practiceCopy.body}
           </p>
@@ -243,7 +240,7 @@ export default function ExamModeSelection({
           {/* Meta */}
           <div
             className="flex items-center gap-2 text-xs mb-5"
-            style={{ color: "var(--color-teal-meta)" }}
+            style={{ color: "rgba(247, 244, 236, 0.6)" }}
           >
             <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20 6 9 17 4 12" />
@@ -251,11 +248,8 @@ export default function ExamModeSelection({
             <span>{practiceCopy.meta}</span>
           </div>
 
-          {/* CTA */}
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold"
-            style={{ background: "var(--color-teal)", color: "#FFFFFF" }}
-          >
+          {/* CTA — outlined teal */}
+          <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-semibold border border-teal text-teal bg-transparent">
             {practiceCTA.label}
           </div>
         </button>

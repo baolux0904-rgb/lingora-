@@ -10,6 +10,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import Mascot from "@/components/ui/Mascot";
 import { getSocialNotifications, markNotificationRead, markAllNotificationsRead } from "@/lib/api";
 import { useAuthStore } from "@/lib/stores/authStore";
@@ -51,9 +52,15 @@ export default function NotificationBell() {
   const [notifications, setNotifications] = useState<SocialNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [openUpward, setOpenUpward] = useState(false);
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; right: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLButtonElement>(null);
+
+  // SSR guard for portal target — only render portal after client mount.
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (!user) return;
@@ -91,13 +98,14 @@ export default function NotificationBell() {
     return () => { socket.off("notification:new", onNew); };
   }, [socket, user]);
 
-  // Close dropdown on outside click
+  // Close dropdown on outside click — checks both bell trigger AND portal panel.
   useEffect(() => {
     if (!isOpen) return;
     function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
+      const target = e.target as Node;
+      if (bellRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setIsOpen(false);
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -125,19 +133,99 @@ export default function NotificationBell() {
 
   const handleToggle = () => {
     if (!isOpen) {
-      // Position dropdown above the bell if it sits in the lower half of the
-      // viewport — fixes AppSidebar bottom-left clipping (Session 1 backlog).
+      // Compute dropdown position in viewport coordinates. Portal-rendered
+      // dropdown bypasses all sidebar overflow / z-index ancestors.
       if (bellRef.current) {
         const rect = bellRef.current.getBoundingClientRect();
-        setOpenUpward(rect.top > window.innerHeight / 2);
+        const dropdownWidth = 320;
+        const dropdownHeight = 384;
+        const gap = 8;
+        const inLowerHalf = rect.top > window.innerHeight / 2;
+        const top = inLowerHalf
+          ? Math.max(8, rect.top - dropdownHeight - gap)
+          : rect.bottom + gap;
+        const right = Math.max(8, window.innerWidth - rect.right);
+        // Clamp right so dropdown doesn't push off the right edge either.
+        const clampedRight = Math.min(right, window.innerWidth - dropdownWidth - 8);
+        setDropdownPos({ top, right: Math.max(8, clampedRight) });
       }
       fetchNotifications();
     }
     setIsOpen(!isOpen);
   };
 
+  const dropdown = (
+    <div
+      ref={dropdownRef}
+      role="dialog"
+      aria-label="Thông báo"
+      className="fixed w-80 max-h-96 overflow-y-auto rounded-xl shadow-xl"
+      style={{
+        top: dropdownPos?.top ?? 0,
+        right: dropdownPos?.right ?? 0,
+        zIndex: 100,
+        background: "var(--color-bg-card)",
+        border: "1px solid var(--color-border)",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
+        <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
+          Thông báo
+        </span>
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="text-xs font-medium"
+            style={{ color: "#00A896" }}
+          >
+            Đánh dấu đã đọc
+          </button>
+        )}
+      </div>
+
+      {/* List */}
+      {notifications.length === 0 ? (
+        <div className="px-4 py-8 text-center flex flex-col items-center gap-2">
+          <Mascot size={40} />
+          <p className="text-sm" style={{ color: "var(--color-text-tertiary)" }}>Không có thông báo mới</p>
+        </div>
+      ) : (
+        <div>
+          {notifications.map((n) => (
+            <button
+              key={n.id}
+              onClick={() => { if (!n.read_at) handleMarkRead(n.id); }}
+              className="w-full text-left px-4 py-3 flex gap-3 transition-colors"
+              style={{
+                background: n.read_at ? "transparent" : "rgba(0,168,150,0.04)",
+                borderBottom: "1px solid var(--color-border)",
+              }}
+            >
+              {/* Unread dot */}
+              <div className="pt-1.5 shrink-0">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: n.read_at ? "transparent" : "#00A896" }}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm leading-snug" style={{ color: "var(--color-text)" }}>
+                  {formatNotification(n)}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
+                  {timeAgo(n.created_at)}
+                </p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       {/* Bell button */}
       <button
         ref={bellRef}
@@ -161,69 +249,8 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown — opens upward when bell is in lower half of viewport */}
-      {isOpen && (
-        <div
-          className={`absolute right-0 w-80 max-h-96 overflow-y-auto rounded-xl shadow-lg z-50 ${
-            openUpward ? "bottom-12" : "top-12"
-          }`}
-          style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: "1px solid var(--color-border)" }}>
-            <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
-              Thông báo
-            </span>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllRead}
-                className="text-xs font-medium"
-                style={{ color: "#00A896" }}
-              >
-                Đánh dấu đã đọc
-              </button>
-            )}
-          </div>
-
-          {/* List */}
-          {notifications.length === 0 ? (
-            <div className="px-4 py-8 text-center flex flex-col items-center gap-2">
-              <Mascot size={40} />
-              <p className="text-sm" style={{ color: "var(--color-text-tertiary)" }}>Không có thông báo mới</p>
-            </div>
-          ) : (
-            <div>
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => { if (!n.read_at) handleMarkRead(n.id); }}
-                  className="w-full text-left px-4 py-3 flex gap-3 transition-colors"
-                  style={{
-                    background: n.read_at ? "transparent" : "rgba(0,168,150,0.04)",
-                    borderBottom: "1px solid var(--color-border)",
-                  }}
-                >
-                  {/* Unread dot */}
-                  <div className="pt-1.5 shrink-0">
-                    <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ background: n.read_at ? "transparent" : "#00A896" }}
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm leading-snug" style={{ color: "var(--color-text)" }}>
-                      {formatNotification(n)}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-tertiary)" }}>
-                      {timeAgo(n.created_at)}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+      {/* Portal-rendered dropdown — escapes sidebar overflow + stacking contexts */}
+      {isOpen && mounted && createPortal(dropdown, document.body)}
+    </>
   );
 }

@@ -112,10 +112,18 @@ export default function AppSidebar({
 
   const handleRowClick = (item: NavItem) => {
     play("click", 0.2);
-    // In collapsed mode, top-level items always navigate (children unreachable
-    // without expanding the sidebar first).
+    // In collapsed mode, top-level items must navigate (children unreachable
+    // without expanding the sidebar first). If the group itself has no href
+    // (e.g. "Learn"), fall back to the first child's id so the click does
+    // something useful instead of nothing.
     if (isCollapsed) {
-      onChange(item.id);
+      if (item.href) {
+        onChange(item.id);
+      } else if (item.children && item.children.length > 0) {
+        onChange(item.children[0].id);
+      } else {
+        onChange(item.id);
+      }
       if (isMobileOverlay) setMobileOpen(false);
       return;
     }
@@ -200,23 +208,12 @@ export default function AppSidebar({
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-          className="absolute -right-3 top-20 w-6 h-6 rounded-full flex items-center justify-center shadow-sm transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] z-50"
-          style={{
-            background: "var(--sidebar-bg)",
-            border: "1px solid var(--sidebar-border)",
-            color: "var(--color-text-secondary)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "var(--sidebar-item-hover)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "var(--sidebar-bg)";
-          }}
+          className="absolute -right-3 top-16 w-7 h-7 rounded-full bg-teal text-cream border border-cream/20 shadow-sm hover:bg-teal-dark transition-colors duration-fast focus:outline-none focus-visible:ring-2 focus-visible:ring-teal/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg)] z-50 flex items-center justify-center"
         >
           {collapsed ? (
-            <ChevronRight className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
+            <ChevronRight className="w-4 h-4" strokeWidth={2.5} aria-hidden="true" />
           ) : (
-            <ChevronLeft className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden="true" />
+            <ChevronLeft className="w-4 h-4" strokeWidth={2.5} aria-hidden="true" />
           )}
         </button>
       )}
