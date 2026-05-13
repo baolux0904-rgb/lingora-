@@ -163,6 +163,12 @@
   --color-bg-secondary: #F0EFEC;     /* warm gray input backgrounds */
   --color-bg-card: #FFFFFF;           /* white card surface */
   --color-bg-card-hover: #FAFAF8;    /* warm white card hover */
+
+  /* Writing v2 result highlight tokens — light mode */
+  --color-amber-bg: rgba(245, 158, 11, 0.18);
+  --color-amber-text: #92400E;
+  --color-red-bg: rgba(239, 68, 68, 0.18);
+  --color-red-text: #991B1B;
   --color-bg-overlay: rgba(15, 30, 51, 0.6); /* navy overlay */
 
   /* ── Brand tokens ── */
@@ -278,6 +284,11 @@
 
 /* ── Dark theme ── */
 .dark {
+  /* Writing v2 result highlight tokens — dark mode */
+  --color-amber-bg: rgba(245, 158, 11, 0.22);
+  --color-amber-text: #FCD34D;
+  --color-red-bg: rgba(239, 68, 68, 0.22);
+  --color-red-text: #FCA5A5;
   --color-bg: #0F1E33;
   --color-bg-secondary: #162740;
   --color-bg-card: #1B2B4B;
