@@ -74,7 +74,7 @@ export default function SkillPageShell({
   return (
     <div
       data-skill-key={skillKey}
-      className="min-h-dvh relative bg-cream"
+      className="min-h-dvh relative bg-exam"
     >
       <AnimatedBackground variant={bgVariant} />
 
@@ -87,7 +87,8 @@ export default function SkillPageShell({
         {breadcrumb && breadcrumb.length > 0 && (
           <nav
             aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-sm text-navy-light mb-4"
+            className="flex items-center gap-1.5 text-sm mb-4"
+            style={{ color: "var(--color-text-secondary)" }}
           >
             {breadcrumb.map((item, idx) => {
               const isLast = idx === breadcrumb.length - 1;
@@ -101,13 +102,16 @@ export default function SkillPageShell({
                       {item.label}
                     </Link>
                   ) : (
-                    <span className={isLast ? "text-navy font-medium" : ""}>
+                    <span
+                      className={isLast ? "font-medium" : ""}
+                      style={isLast ? { color: "var(--color-text)" } : undefined}
+                    >
                       {item.label}
                     </span>
                   )}
                   {!isLast && (
                     <ChevronRight
-                      className="w-3.5 h-3.5 text-navy-light/60"
+                      className="w-3.5 h-3.5 opacity-60"
                       aria-hidden="true"
                     />
                   )}
@@ -118,11 +122,17 @@ export default function SkillPageShell({
         )}
 
         <header className="mb-6 lg:mb-8">
-          <h1 className="font-display italic text-navy text-3xl lg:text-4xl leading-tight">
+          <h1
+            className="font-display italic text-3xl lg:text-4xl leading-tight"
+            style={{ color: "var(--color-text)" }}
+          >
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-2 text-base text-navy-light font-sans">
+            <p
+              className="mt-2 text-base font-sans"
+              style={{ color: "var(--color-text-secondary)" }}
+            >
               {subtitle}
             </p>
           )}
