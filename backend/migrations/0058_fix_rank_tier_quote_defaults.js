@@ -1,20 +1,29 @@
 /**
  * 0058_fix_rank_tier_quote_defaults.js
  *
- * Fix: earlier migrations (0019_battle_system, 0053_drop_dead_schema) declared
+ * Fix rank_tier quote defaults — battle_player_profiles only.
+ *
+ * Earlier migration 0019_battle_system declared
  *   default: "'iron'"
- * for `battle_player_profiles.current_rank_tier` and
- * `battle_season_profiles.rank_tier`. node-pg-migrate string-escaped the
- * embedded apostrophes, so the column DEFAULT became the literal seven-char
- * value `'iron'` (with surrounding single quotes baked into the value), not
- * the four-char `iron`.
+ * for `battle_player_profiles.current_rank_tier`. node-pg-migrate
+ * string-escaped the embedded apostrophes, so the column DEFAULT became
+ * the literal seven-char value `'iron'` (with surrounding single quotes
+ * baked into the value), not the four-char `iron`.
  *
  * Symptom: Profile page renders rank as `'Iron'` (Title-case of `'iron'`).
  *
+ * Note: This migration originally also targeted `battle_season_profiles`,
+ * but that table was dropped by migration 0053 (Wave 5.2 cleanup — per-season
+ * slicing was never wired). The `battle_season_profiles` operations have
+ * been removed to fix a structural bug that prevented this migration from
+ * running on any fresh DB (PostgreSQL 42P01 relation does not exist).
+ * See post-incident analysis in CLAUDE.md.
+ *
  * This migration:
- *   1. Corrects the DEFAULT on both columns to the clean string `iron`.
- *   2. Strips leading/trailing apostrophes from any existing rows that were
- *      stored with the bad default.
+ *   1. Corrects the DEFAULT on `battle_player_profiles.current_rank_tier`
+ *      to the clean string `iron`.
+ *   2. Strips leading/trailing apostrophes from any existing rows that
+ *      were stored with the bad default.
  *
  * Idempotent — re-running produces no further changes after rows are clean.
  */
@@ -25,21 +34,11 @@ exports.up = (pgm) => {
     notNull: true,
     default: "iron",
   });
-  pgm.alterColumn("battle_season_profiles", "rank_tier", {
-    type: "text",
-    notNull: true,
-    default: "iron",
-  });
 
   pgm.sql(`
     UPDATE battle_player_profiles
        SET current_rank_tier = trim(both '''' from current_rank_tier)
      WHERE current_rank_tier LIKE '''%''';
-  `);
-  pgm.sql(`
-    UPDATE battle_season_profiles
-       SET rank_tier = trim(both '''' from rank_tier)
-     WHERE rank_tier LIKE '''%''';
   `);
 };
 
