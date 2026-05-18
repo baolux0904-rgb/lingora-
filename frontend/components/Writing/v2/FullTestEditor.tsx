@@ -21,6 +21,7 @@ import { ChevronLeft, Loader2 } from "lucide-react";
 import Mascot from "@/components/ui/Mascot";
 import WritingEditorCore from "@/components/Writing/WritingEditorCore";
 import WritingTimerBar from "@/components/Writing/WritingTimerBar";
+import WritingChartRenderer from "@/components/Writing/WritingChartRenderer";
 import {
   startWritingFullTest,
   submitWritingFullTestTask,
@@ -262,6 +263,39 @@ export default function FullTestEditor() {
           >
             {currentQuestion.title}
           </h1>
+        )}
+
+        {/* Task 1 chart (visual stimulus) — only on Task 1 tab */}
+        {activeTab === "task1" && (
+          <div
+            className="rounded-md p-4 mb-4 overflow-x-auto"
+            style={{
+              background: "var(--color-bg-card)",
+              border: "0.5px solid var(--color-border)",
+              minHeight:
+                currentQuestion.chart_type != null &&
+                currentQuestion.chart_data != null
+                  ? "240px"
+                  : undefined,
+              maxHeight: "400px",
+              overflowY: "auto",
+            }}
+          >
+            {currentQuestion.chart_type != null &&
+            currentQuestion.chart_data != null ? (
+              <WritingChartRenderer
+                chartType={currentQuestion.chart_type}
+                data={currentQuestion.chart_data}
+              />
+            ) : (
+              <p
+                className="text-[13px] sm:text-[14px] italic leading-relaxed text-center py-6"
+                style={{ color: "var(--color-text-tertiary)" }}
+              >
+                Đề này chưa có biểu đồ — mình đang thêm vào, bạn vẫn viết tả dữ liệu theo prompt được nha.
+              </p>
+            )}
+          </div>
         )}
 
         {/* Prompt */}

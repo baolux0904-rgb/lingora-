@@ -18,6 +18,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import Mascot from "@/components/ui/Mascot";
 import WritingEditorCore from "@/components/Writing/WritingEditorCore";
+import WritingChartRenderer from "@/components/Writing/WritingChartRenderer";
 import {
   getWritingQuestion,
   recordWritingAttempt,
@@ -25,6 +26,44 @@ import {
 } from "@/lib/api";
 import type { WritingQuestionDetail } from "@/lib/types";
 import { topicLabel, difficultyLabel } from "./topicTranslations";
+
+/**
+ * Task 1 chart panel — wraps WritingChartRenderer with the editorial card chrome
+ * + a peer-voice placeholder when the prompt has no chart_data yet (seed gap).
+ * Task 2 callers must skip this component entirely.
+ */
+function Task1ChartPanel({ question }: { question: WritingQuestionDetail }) {
+  if (question.task_type !== "task1") return null;
+
+  const hasChart = question.chart_type != null && question.chart_data != null;
+
+  return (
+    <div
+      className="rounded-md p-4 mb-4 overflow-x-auto"
+      style={{
+        background: "var(--color-bg-card)",
+        border: "0.5px solid var(--color-border)",
+        minHeight: hasChart ? "240px" : undefined,
+        maxHeight: "400px",
+        overflowY: "auto",
+      }}
+    >
+      {hasChart ? (
+        <WritingChartRenderer
+          chartType={question.chart_type!}
+          data={question.chart_data}
+        />
+      ) : (
+        <p
+          className="text-[13px] sm:text-[14px] italic leading-relaxed text-center py-6"
+          style={{ color: "var(--color-text-tertiary)" }}
+        >
+          Đề này chưa có biểu đồ — mình đang thêm vào, bạn vẫn viết tả dữ liệu theo prompt được nha.
+        </p>
+      )}
+    </div>
+  );
+}
 
 const MIN_WORDS: Record<"task1" | "task2", number> = {
   task1: 150,
@@ -186,6 +225,9 @@ export default function PracticeEditor({ questionId }: PracticeEditorProps) {
           {question.title}
         </h1>
       )}
+
+      {/* Task 1 chart (visual stimulus) — rendered above the prompt */}
+      <Task1ChartPanel question={question} />
 
       {/* Question prompt (English original) */}
       <div
