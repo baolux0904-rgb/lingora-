@@ -527,6 +527,33 @@ export default function ScenarioConversation({
                 </button>
               </div>
             )}
+            {recorder.errorMessage && (
+              <div
+                role="alert"
+                aria-live="polite"
+                className="mb-2 px-3 py-2 rounded-xl text-sm flex items-start gap-2"
+                style={{ background: "rgba(245,158,11,0.10)", border: "1px solid rgba(245,158,11,0.30)", color: "var(--color-text)" }}
+              >
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="mt-0.5 shrink-0"
+                  style={{ color: "#f59e0b" }}
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span className="flex-1 leading-relaxed">{recorder.errorMessage}</span>
+              </div>
+            )}
 
             <div className="flex items-end gap-2">
               {/* Mic button */}

@@ -38,9 +38,25 @@ function createWhisperProvider() {
 
   const configured = (process.env.WHISPER_PROVIDER || "mock").toLowerCase();
 
+  // Fail-fast in production: silent mock fallback is how Speaking transcripts
+  // come back as deterministic placeholders and users report "mic ko thu được".
+  // Crash boot rather than ship broken UX. Tests/dev unaffected.
+  if (process.env.NODE_ENV === "production" && configured !== "openai") {
+    throw new Error(
+      `[FATAL] WHISPER_PROVIDER must be "openai" in production. ` +
+        `Current value: ${process.env.WHISPER_PROVIDER || "undefined"}. ` +
+        `Set this env var on Railway before deploying.`,
+    );
+  }
+
   switch (configured) {
     case "openai":
       if (!process.env.OPENAI_API_KEY) {
+        if (process.env.NODE_ENV === "production") {
+          throw new Error(
+            "[FATAL] OPENAI_API_KEY is required when WHISPER_PROVIDER=openai in production.",
+          );
+        }
         console.warn("[whisper] OPENAI_API_KEY missing — falling back to mock provider");
         _provider = require("./mockWhisper");
       } else {
@@ -49,11 +65,6 @@ function createWhisperProvider() {
       break;
     case "mock":
     default:
-      if (process.env.NODE_ENV === "production") {
-        console.warn(
-          "[whisper] WARNING: WHISPER_PROVIDER is 'mock' in production — transcripts will be deterministic placeholders",
-        );
-      }
       _provider = require("./mockWhisper");
       break;
   }

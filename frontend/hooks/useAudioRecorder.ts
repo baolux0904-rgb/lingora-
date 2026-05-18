@@ -30,11 +30,46 @@ export interface AudioRecorderState {
   isRecording: boolean;
   audioBlob: Blob | null;
   durationMs: number;
+  /** Raw error string from the browser (English, may be empty). For debugging. */
   error: string | null;
+  /** Vietnamese peer-voice error mapped from {@link error}. Display this to users. */
+  errorMessage: string | null;
   start: () => Promise<void>;
   stop: () => Promise<Blob | null>;
   cancel: () => void;
   reset: () => void;
+}
+
+/**
+ * Map a raw recorder/getUserMedia error string to a Vietnamese peer-voice
+ * message that tells the user WHAT TO DO. Detection is best-effort: matches
+ * DOMException names + common message substrings emitted by Chromium / Firefox
+ * / Safari / Webkit.
+ */
+function mapErrorToVietnamese(raw: string | null): string | null {
+  if (!raw) return null;
+  const s = raw.toLowerCase();
+
+  if (s.includes("notallowed") || s.includes("permission denied") || s.includes("permission dismissed")) {
+    return "Lingona cần quyền dùng mic — bấm icon ổ khóa trên thanh địa chỉ trình duyệt để bật lại nha.";
+  }
+  if (s.includes("notfound") || s.includes("no device") || s.includes("requested device not found")) {
+    return "Mình không tìm thấy mic. Bạn cắm tai nghe hoặc kiểm tra mic của máy chưa?";
+  }
+  if (s.includes("notreadable") || s.includes("could not start") || s.includes("device in use") || s.includes("hardware")) {
+    return "Mic đang được app khác dùng. Bạn đóng Zoom / Google Meet / Discord rồi thử lại nha.";
+  }
+  if (s.includes("overconstrained") || s.includes("constraint")) {
+    return "Mic hiện không tương thích với cấu hình. Bạn thử mic khác xem.";
+  }
+  if (s.includes("security") || s.includes("insecure")) {
+    return "Trình duyệt chặn mic vì lý do bảo mật. Bạn dùng Chrome / Edge / Safari mới nhất nha.";
+  }
+  if (s.includes("not supported") || s.includes("audio recording is not supported")) {
+    return "Trình duyệt này chưa hỗ trợ ghi âm. Bạn mở bằng Chrome / Edge / Safari mới nhất nha.";
+  }
+  // Generic fallback — keep it actionable.
+  return "Mic chưa thu được tiếng. Bạn thử reload trang xem.";
 }
 
 export function useAudioRecorder(): AudioRecorderState {
@@ -193,6 +228,7 @@ export function useAudioRecorder(): AudioRecorderState {
     audioBlob,
     durationMs,
     error,
+    errorMessage: mapErrorToVietnamese(error),
     start,
     stop,
     cancel,
